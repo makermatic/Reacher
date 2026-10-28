@@ -16,7 +16,7 @@ Turn the prototype into a real web app:
 Keep every prototype behavior unless Zack says otherwise. The prototype is the contract.
 
 ## Stack
-Proposed in `docs/ROADMAP.md`; not final until Zack approves it there. Original suggestions:
+The current stack lives in `docs/ROADMAP.md`. Recommended there: run Reacher as a Claude artifact, so AI uses each user's own Claude plan with no separate billing. The original suggestions below are the fallback if Reacher ever moves to a standalone site:
 - **Frontend**: Vite + React + TypeScript. Framer Motion for animation.
 - **Data + accounts**: Supabase (Postgres, auth, row-level security so each user only sees their own data).
 - **AI**: Claude API, called from a server function (never put the API key in the browser).
