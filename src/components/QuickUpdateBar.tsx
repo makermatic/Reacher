@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAssistant, type Notice } from '../ai/Assistant';
-import type { Candidate } from '../model/quickPlan';
 import { popIn } from '../motion';
 import { btn } from './Modal';
 
@@ -26,7 +25,7 @@ export function QuickUpdateBar() {
     <div className="relative z-15" data-keep-panel>
       <form
         onSubmit={submit}
-        className="flex items-stretch gap-2 rounded-xl border border-line bg-surface py-1.5 pr-1.5 pl-3.5 shadow-xs transition-[border-color,box-shadow] duration-200 ease-standard focus-within:border-accent focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]"
+        className={`${busy ? 'ai-working ' : ''}flex items-stretch gap-2 rounded-xl border border-line bg-surface py-1.5 pr-1.5 pl-3.5 shadow-xs transition-[border-color,box-shadow] duration-200 ease-standard focus-within:border-accent focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]`}
       >
         <label
           htmlFor="quick-input"
@@ -64,15 +63,13 @@ function hideAfter(n: Notice): number | null {
       return 4000;
     case 'message':
       return 6000;
-    case 'lookup':
-      return n.ask ? null : n.candidates.length ? 6000 : 3500;
     default:
       return null;
   }
 }
 
 function NoticeCard({ onApplied }: { onApplied: () => void }) {
-  const { notice, dismiss, undo, applyConfirmed, pickCandidate } = useAssistant();
+  const { notice, dismiss, undo, applyConfirmed } = useAssistant();
   const hovered = useRef(false);
 
   useEffect(() => {
@@ -111,7 +108,6 @@ function NoticeCard({ onApplied }: { onApplied: () => void }) {
               applyConfirmed();
               onApplied();
             }}
-            onPick={pickCandidate}
           />
         </motion.div>
       )}
@@ -124,13 +120,11 @@ function NoticeBody({
   onDismiss,
   onUndo,
   onApply,
-  onPick,
 }: {
   notice: Notice;
   onDismiss: () => void;
   onUndo: () => void;
   onApply: () => void;
-  onPick: (c: Candidate) => void;
 }) {
   const close = (
     <button type="button" onClick={onDismiss} aria-label="Close" className={btn.icon}>
@@ -169,6 +163,12 @@ function NoticeBody({
             </span>
           </div>
           {list(n.lines)}
+          {n.skipped.length > 0 && (
+            <>
+              <div className="text-[12.5px] text-muted">Already there, skipped:</div>
+              <div className="text-muted">{list(n.skipped)}</div>
+            </>
+          )}
         </>
       );
     case 'confirm':
@@ -184,40 +184,6 @@ function NoticeBody({
               Discard
             </button>
           </div>
-        </>
-      );
-    case 'lookup':
-      return (
-        <>
-          <div className="flex items-start justify-between gap-3">
-            <span>{n.msg}</span>
-            {!n.ask && close}
-          </div>
-          {n.candidates.length > 0 && (
-            <>
-              {!n.ask && <div className="text-[12.5px] text-muted">Not it? Did you mean:</div>}
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                {n.candidates.map((c, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => onPick(c)}
-                    className="grid gap-0.5 rounded-lg border border-line px-3 py-2 text-left transition-colors hover:border-accent hover:bg-accent-soft"
-                  >
-                    <b className="font-semibold">{c.name}</b>
-                    <small className="text-[12px] text-muted">{c.about}</small>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {n.ask && (
-            <div>
-              <button type="button" onClick={onDismiss} className={`${btn.ghost} ${btn.small}`}>
-                None of these
-              </button>
-            </div>
-          )}
         </>
       );
   }

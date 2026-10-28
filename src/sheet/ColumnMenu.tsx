@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import {
   deleteColumn,
   moveColumn,
@@ -7,7 +8,6 @@ import {
   updateColumn,
 } from '../model/columns';
 import { TYPE_LABELS, type Column } from '../model/types';
-import { useArm } from '../lib/useArm';
 import { btn, field } from '../components/Modal';
 import { Popover, PopoverHeader } from '../components/Popover';
 import { useToast } from '../components/Toast';
@@ -51,11 +51,11 @@ function ColumnMenu({ col, onDone }: { col: Column; onDone: () => void }) {
   const [onSheet, setOnSheet] = useState(col.onSheet !== false);
   const isStatus = col.id === 'status';
   const idx = board.columns.findIndex((c) => c.id === col.id);
-  const [armed, del] = useArm(() => {
+  const del = () => {
     actions.saveBoard(deleteColumn(board, col.id));
     toast(`Deleted ${col.name}`);
     onDone();
-  });
+  };
 
   const save = (e: FormEvent) => {
     e.preventDefault();
@@ -135,13 +135,14 @@ function ColumnMenu({ col, onDone }: { col: Column; onDone: () => void }) {
             </button>
           </div>
           <div>
-            <button
-              type="button"
+            <ConfirmButton
+              onConfirm={del}
+              confirm="Click again to delete"
               className={`${btn.base} ${btn.small} ${btn.danger}`}
-              onClick={del}
+              armedClassName={armedDanger}
             >
-              {armed ? 'Click again to delete' : 'Delete column'}
-            </button>
+              Delete column
+            </ConfirmButton>
           </div>
         </>
       )}

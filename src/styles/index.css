@@ -299,4 +299,62 @@ input:-webkit-autofill:focus {
   .sheet-grid tbody td {
     transition: background-color 0.15s;
   }
+
+  /*
+   * AI is working on this box (Zack, round 2): a thin light that runs around
+   * its border. Put the class on any element with a border radius. The spin
+   * speed lives here because CSS can't read src/motion.ts.
+   */
+  .ai-working {
+    position: relative;
+  }
+  .ai-working::after {
+    content: '';
+    position: absolute;
+    /* Over the 1px border plus 1px inside, so boxes that clip still show it. */
+    inset: -1px;
+    border-radius: inherit;
+    padding: 2px;
+    pointer-events: none;
+    background: conic-gradient(
+      from var(--ai-angle),
+      transparent 0 55%,
+      color-mix(in srgb, var(--accent) 60%, transparent) 72%,
+      var(--accent) 86%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: ai-spin 1.4s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ai-working::after {
+      background: var(--accent);
+      animation: ai-pulse 1.4s ease-in-out infinite alternate;
+    }
+  }
+}
+
+@property --ai-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes ai-spin {
+  to {
+    --ai-angle: 360deg;
+  }
+}
+@keyframes ai-pulse {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 0.8;
+  }
 }

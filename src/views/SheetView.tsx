@@ -157,6 +157,7 @@ function SheetMessage({ children }: { children: React.ReactNode }) {
 function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) {
   const { actions } = useWorkspace();
   const { available, lookup } = useAssistant();
+  const { openCompany } = useSheetUI();
   const toast = useToast();
   const [name, setName] = useState('');
   const onKeyDown = (e: KeyboardEvent) => {
@@ -171,7 +172,8 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
     }
     const c = actions.addCompany(n);
     setName('');
-    if (available) void lookup(c);
+    // Sure answers fill in quietly; a "which one?" opens the page to ask there.
+    if (available) void lookup(c, { announce: true, onAsk: () => openCompany(c.id) });
   };
   return (
     <tr>

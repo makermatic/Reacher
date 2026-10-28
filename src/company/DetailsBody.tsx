@@ -3,6 +3,7 @@ import { EditableValue } from '../sheet/MetaCell';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAssistant } from '../ai/Assistant';
 import { btn } from '../components/Modal';
+import { useSheetUI } from '../sheet/SheetUI';
 
 /**
  * Every column as a label and value; click a value to edit it. Columns hidden
@@ -11,6 +12,7 @@ import { btn } from '../components/Modal';
 export function DetailsBody({ company }: { company: Company }) {
   const { board } = useWorkspace();
   const { available, lookup } = useAssistant();
+  const { addColumn } = useSheetUI();
   // Status and its dependent chips (Outcome) live in the page header instead.
   const props = board.columns.filter(
     (col) => col.id !== 'status' && !(col.type === 'status' && col.showWhen),
@@ -42,8 +44,11 @@ export function DetailsBody({ company }: { company: Company }) {
           </div>
         ))}
       </div>
-      {available && (
-        <div>
+      <div className="flex flex-wrap gap-1">
+        <button type="button" onClick={addColumn} className={`${btn.ghost} ${btn.small}`}>
+          + Property
+        </button>
+        {available && (
           <button
             type="button"
             onClick={() => void lookup(company)}
@@ -51,8 +56,8 @@ export function DetailsBody({ company }: { company: Company }) {
           >
             Look up company details
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }

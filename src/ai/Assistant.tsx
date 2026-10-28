@@ -36,15 +36,37 @@ export type Notice =
   | { kind: 'error'; text: string }
   | { kind: 'message'; text: string }
   | { kind: 'confirm'; reply: string; actions: QuickAction[]; lines: string[]; note: string }
-  | { kind: 'done'; lines: string[]; undo: QuickUndo }
+  /** `skipped`: things the note mentioned that the tracker already had. */
+  | { kind: 'done'; lines: string[]; skipped: string[]; undo: QuickUndo };
+
+/**
+ * A company lookup's state, shown on that company's page rather than under
+ * Quick update (Zack, round 2).
+ */
+export type LookupState =
+  | { busy: true }
   | {
-      kind: 'lookup';
+      busy: false;
       company: Company;
       msg: string;
       candidates: Candidate[];
       /** Not sure which company: the candidates are the question. */
       ask: boolean;
     };
+
+type LookupOptions = {
+  /** Only speak up when it fills something (lookups after a quick update). */
+  quiet?: boolean;
+  /** What the person wrote about the company, to tell similar names apart. */
+  context?: string;
+  /** Called when it needs the person to pick: open the company's page. */
+  onAsk?: () => void;
+  /** Also toast the result (the lookup started away from the company's page). */
+  announce?: boolean;
+};
+
+/** Finished results that nobody saw clear on their own after this long. */
+const STALE_LOOKUP_MS = 20000;
 
 type Assistant = {
   /** AI is available on this view (inside Claude, allowed). */
@@ -55,9 +77,11 @@ type Assistant = {
   quickUpdate: (note: string) => Promise<boolean>;
   applyConfirmed: () => void;
   undo: () => void;
-  /** Look up a company's details. Quiet: only speak up when it fills something. */
-  lookup: (company: Company, opts?: { quiet?: boolean; context?: string }) => Promise<void>;
-  pickCandidate: (cand: Candidate) => void;
+  /** Look up a company's details; results show on its page. */
+  lookup: (company: Company, opts?: LookupOptions) => Promise<void>;
+  lookups: Record<string, LookupState>;
+  pickCandidate: (companyId: string, cand: Candidate) => void;
+  clearLookup: (companyId: string) => void;
   /** Summarize an email chain into three lines; saves it on the chain. */
   summarize: (chain: Chain) => Promise<void>;
   /** Draft with AI: the next email for a company, new or as a reply in a chain. */
@@ -86,7 +110,28 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const ws = useWorkspace();
   const toast = useToast();
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [lookups, setLookups] = useState<Record<string, LookupState>>({});
   const [off, setOff] = useState(false);
+  const setLookup = useCallback((id: string, state: LookupState | null) => {
+    setLookups((cur) => {
+      const next = { ...cur };
+      if (state) next[id] = state;
+      else delete next[id];
+      return next;
+    });
+    // So a result doesn't greet you next time you open the page.
+    if (state && !state.busy && !state.ask)
+      setTimeout(
+        () =>
+          setLookups((cur) => {
+            if (cur[id] !== state) return cur;
+            const next = { ...cur };
+            delete next[id];
+            return next;
+          }),
+        STALE_LOOKUP_MS,
+      );
+  }, []);
   const ai: AI | null = runtime.status === 'ready' && !off ? runtime.ai : null;
 
   // AI answers arrive after a wait; always act on the latest data, not what was there when asked.
@@ -104,12 +149,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const lookup = useCallback(
-    async (company: Company, opts: { quiet?: boolean; context?: string } = {}) => {
+    async (company: Company, opts: LookupOptions = {}) => {
       if (!ai) {
-        if (!opts.quiet) setNotice({ kind: 'error', text: NO_AI });
+        if (!opts.quiet) toast(NO_AI);
         return;
       }
-      if (!opts.quiet) setNotice({ kind: 'busy', text: `Looking up “${company.name}”` });
+      if (!opts.quiet) setLookup(company.id, { busy: true });
       try {
         const reply = await ai.json<LookupReply>(
           lookupPrompt(wsRef.current.board, company.name, opts.context),
@@ -117,6 +162,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const cands = cleanCandidates(reply);
         const sure = !!reply?.sure;
         const { actions } = wsRef.current;
+        const filledMsg = (name: string, filled: string[]) =>
+          `Filled in ${name}${filled.length ? `: ${filled.join(', ')}` : ''}.`;
         if (opts.quiet) {
           if (cands.length && sure) {
             actions.applyCandidate(company, cands[0]!);
@@ -125,8 +172,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           return;
         }
         if (!cands.length)
-          setNotice({
-            kind: 'lookup',
+          setLookup(company.id, {
+            busy: false,
             company,
             msg: `Couldn't find a media company called “${company.name}”. Check the spelling, or fill the details in yourself.`,
             candidates: [],
@@ -134,38 +181,50 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           });
         else if (sure) {
           const filled = actions.applyCandidate(company, cands[0]!);
-          setNotice({
-            kind: 'lookup',
+          const msg = filledMsg(cands[0]!.name, filled);
+          if (opts.announce) toast(msg);
+          setLookup(company.id, {
+            busy: false,
             company: { ...company, name: cands[0]!.name },
-            msg: `Filled in ${cands[0]!.name}${filled.length ? `: ${filled.join(', ')}` : ''}.`,
+            msg,
             candidates: cands.slice(1),
             ask: false,
           });
-        } else
-          setNotice({
-            kind: 'lookup',
+        } else {
+          setLookup(company.id, {
+            busy: false,
             company,
             msg: `Which “${company.name}” did you mean?`,
             candidates: cands,
             ask: true,
           });
+          opts.onAsk?.();
+        }
       } catch (e) {
         const text = fail(e);
-        if (!opts.quiet && text)
-          setNotice({ kind: 'error', text: `Couldn't look up ${company.name}. ${text}` });
+        if (opts.quiet) return;
+        setLookup(company.id, null);
+        if (text) toast(`Couldn't look up ${company.name}. ${text}`);
       }
     },
-    [ai, fail, toast],
+    [ai, fail, toast, setLookup],
   );
 
   const apply = useCallback(
     (actions: QuickAction[], note: string) => {
       const { board, companies, pages, chains, actions: write } = wsRef.current;
       const plan = planQuick({ board, companies, pages, chains }, actions);
+      if (!plan.applied.length) {
+        setNotice({ kind: 'message', text: 'Nothing new: your tracker already has all of that.' });
+        return;
+      }
       write.applyQuick(plan);
       setNotice({
         kind: 'done',
-        lines: actions.map((a) => describeAction(board, a)),
+        lines: plan.applied.map((a) => describeAction(board, a)),
+        skipped: plan.skipped
+          .filter((a) => a.type !== 'add_company' && a.type !== 'set_status')
+          .map((a) => describeAction(board, a)),
         undo: plan.undo,
       });
       // New companies get a quiet lookup, using the note as context.
@@ -224,17 +283,20 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         toast('Undone');
       },
       lookup,
-      pickCandidate: (cand) => {
-        if (notice?.kind !== 'lookup') return;
-        const filled = wsRef.current.actions.applyCandidate(notice.company, cand);
-        setNotice({
-          kind: 'lookup',
-          company: { ...notice.company, name: cand.name },
+      lookups,
+      pickCandidate: (companyId, cand) => {
+        const cur = lookups[companyId];
+        if (!cur || cur.busy) return;
+        const filled = wsRef.current.actions.applyCandidate(cur.company, cand);
+        setLookup(companyId, {
+          busy: false,
+          company: { ...cur.company, name: cand.name },
           msg: `Filled in ${cand.name}${filled.length ? `: ${filled.join(', ')}` : ''}.`,
           candidates: [],
           ask: false,
         });
       },
+      clearLookup: (companyId) => setLookup(companyId, null),
       summarize: async (chain) => {
         if (!ai) {
           toast('Summaries use AI, which works when Reacher is open in Claude.');
@@ -283,7 +345,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [ai, notice, quickUpdate, apply, lookup, toast, fail],
+    [ai, notice, lookups, quickUpdate, apply, lookup, toast, fail, setLookup],
   );
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;

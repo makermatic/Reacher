@@ -43,6 +43,7 @@ export function parseExport(text: string): ImportData {
     meta: isPlainObject(c.meta) ? c.meta : {},
     due: typeof c.due === 'string' && c.due ? c.due : null,
     auto: isPlainObject(c.auto) ? (c.auto as Company['auto']) : {},
+    ...(typeof c.rank === 'number' ? { rank: c.rank } : {}),
     ...(c.example ? { example: true } : {}),
   }));
   const companyIds = new Set(companies.map((c) => c.id));

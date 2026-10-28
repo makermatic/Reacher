@@ -1,31 +1,28 @@
 import { AnimatePresence, motion, Reorder, useDragControls } from 'motion/react';
 import type { ReactNode } from 'react';
-import { useArm } from '../lib/useArm';
+import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import { btn } from '../components/Modal';
 import { duration, ease } from '../motion';
 
 /** The × on a dated entry: first click asks "Delete?", second click deletes. */
 export function DeleteButton({ label, onDelete }: { label: string; onDelete: () => void }) {
-  const [armed, click] = useArm(onDelete);
   return (
-    <button
-      type="button"
-      onClick={click}
-      aria-label={armed ? `Confirm: ${label}` : label}
-      className={
-        armed
-          ? `${btn.small} rounded-md bg-[color-mix(in_srgb,var(--c-red)_14%,transparent)] font-medium text-[var(--c-red)]`
-          : btn.icon
-      }
+    <ConfirmButton
+      onConfirm={onDelete}
+      confirm="Delete?"
+      label={label}
+      className={btn.icon}
+      armedClassName={armedDanger}
     >
-      {armed ? 'Delete?' : '×'}
-    </button>
+      ×
+    </ConfirmButton>
   );
 }
 
 /**
- * A company page section: click the title to collapse it, drag the grip to
- * reorder (SPEC section 6). Lives inside a Reorder.Group.
+ * A company page section: click the title to collapse it, drag anywhere on
+ * the header row to reorder (SPEC section 6; whole row per Zack, round 2).
+ * Lives inside a Reorder.Group.
  */
 export function Section({
   id,
@@ -33,7 +30,6 @@ export function Section({
   count,
   collapsed,
   onToggle,
-  action,
   children,
 }: {
   id: string;
@@ -41,7 +37,6 @@ export function Section({
   count?: number;
   collapsed: boolean;
   onToggle: () => void;
-  action?: ReactNode;
   children: ReactNode;
 }) {
   const controls = useDragControls();
@@ -56,12 +51,14 @@ export function Section({
       whileDrag={{ scale: 1.01, boxShadow: 'var(--shadow)', zIndex: 5 }}
       transition={{ duration: duration.base, ease: ease.out }}
     >
-      <div className="flex items-center gap-1.5 border-b border-line pb-2">
+      <div
+        onPointerDown={(e) => controls.start(e)}
+        title="Drag to reorder"
+        className="flex cursor-grab touch-none items-center gap-1.5 border-b border-line pb-2 select-none active:cursor-grabbing"
+      >
         <span
-          onPointerDown={(e) => controls.start(e)}
-          title="Drag to reorder"
           aria-hidden="true"
-          className="cursor-grab touch-none px-0.5 text-[13px] tracking-[-2px] text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
+          className="px-0.5 text-[13px] tracking-[-2px] text-faint opacity-0 transition-opacity group-hover/sec:opacity-100"
         >
           ⋮⋮
         </span>
@@ -69,7 +66,7 @@ export function Section({
           type="button"
           onClick={onToggle}
           aria-expanded={!collapsed}
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+          className="flex min-w-0 flex-1 cursor-[inherit] items-center gap-1.5 text-left"
         >
           <motion.span
             aria-hidden="true"
@@ -86,7 +83,6 @@ export function Section({
             )}
           </h3>
         </button>
-        {action}
       </div>
       <AnimatePresence initial={false}>
         {!collapsed && (

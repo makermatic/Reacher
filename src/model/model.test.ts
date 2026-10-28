@@ -7,6 +7,7 @@ import { rankOptions, splitMatch } from './picker';
 import { matchesSearch, needsMe, visibleCompanies } from './search';
 import { textSuggestions } from './suggest';
 import { googleCalendarLink, nextStatus } from './automation';
+import { byRank, rankBetween } from './ranking';
 import type { Company } from './types';
 
 const board = DEFAULT_BOARD;
@@ -259,5 +260,22 @@ describe('Google Calendar link', () => {
   it('makes untimed meetings all-day', () => {
     const url = new URL(googleCalendarLink('Buck', { ...m, start: '', kind: 'meeting' }));
     expect(url.searchParams.get('dates')).toBe('20261106/20261107');
+  });
+});
+
+describe('board card order', () => {
+  it('puts a dropped card between its neighbours', () => {
+    expect(rankBetween(10, 20)).toBe(15);
+    expect(rankBetween(undefined, 20)).toBeLessThan(20);
+    expect(rankBetween(10, undefined)).toBeGreaterThan(10);
+  });
+
+  it('sorts by board position, falling back to the order added', () => {
+    const cards = [
+      { id: 'a', order: 3 },
+      { id: 'b', order: 1, rank: 5 },
+      { id: 'c', order: 2 },
+    ];
+    expect(byRank(cards).map((c) => c.id)).toEqual(['c', 'a', 'b']);
   });
 });

@@ -72,6 +72,7 @@ function Shell() {
       addColumn: () => setAddColumnOpen(true),
       openCompanyId,
       toggleCompany: (id) => setOpenCompanyId((cur) => (cur === id ? null : id)),
+      openCompany: setOpenCompanyId,
       closeCompany,
       openDetails: () => setDetailsOpen(true),
       openTemplates: () => setTemplatesOpen(true),
@@ -91,7 +92,7 @@ function Shell() {
   return (
     <SheetUIContext.Provider value={ui}>
       <div
-        className="gutter flex h-full flex-col gap-2.5 pt-3 pb-3.5 transition-[padding] duration-200 ease-out"
+        className="gutter flex h-full flex-col gap-2.5 pt-3 pb-3.5"
         style={pushed ? { paddingRight: width + 16 } : undefined}
       >
         <Header

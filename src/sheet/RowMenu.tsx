@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
+import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import type { Company } from '../model/types';
-import { useArm } from '../lib/useArm';
 import { btn, field } from '../components/Modal';
 import { Popover, PopoverHeader } from '../components/Popover';
 import { useToast } from '../components/Toast';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAssistant } from '../ai/Assistant';
+import { useSheetUI } from './SheetUI';
 
 /** The ⋯ menu at the end of a company's name cell. */
 export function RowMenu({
@@ -40,13 +41,14 @@ export function RowMenu({
 function RowMenuBody({ company, onDone }: { company: Company; onDone: () => void }) {
   const { actions } = useWorkspace();
   const { available, lookup } = useAssistant();
+  const { openCompany } = useSheetUI();
   const toast = useToast();
   const [name, setName] = useState(company.name);
-  const [armed, del] = useArm(() => {
+  const del = () => {
     onDone();
     void actions.deleteCompany(company.id);
     toast(`Deleted ${company.name}`);
-  });
+  };
   const rename = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim() && name.trim() !== company.name) {
@@ -77,6 +79,8 @@ function RowMenuBody({ company, onDone }: { company: Company; onDone: () => void
             className={`${btn.base} ${btn.small}`}
             onClick={() => {
               onDone();
+              // The result shows on the company page.
+              openCompany(company.id);
               void lookup(company);
             }}
           >
@@ -85,9 +89,14 @@ function RowMenuBody({ company, onDone }: { company: Company; onDone: () => void
         </div>
       )}
       <div>
-        <button type="button" className={`${btn.base} ${btn.small} ${btn.danger}`} onClick={del}>
-          {armed ? 'Click again to delete' : 'Delete company'}
-        </button>
+        <ConfirmButton
+          onConfirm={del}
+          confirm="Click again to delete"
+          className={`${btn.base} ${btn.small} ${btn.danger}`}
+          armedClassName={armedDanger}
+        >
+          Delete company
+        </ConfirmButton>
       </div>
       <p className="m-0 text-xs text-muted">Deleting also removes its emails and notes.</p>
     </>

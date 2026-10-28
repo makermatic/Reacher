@@ -205,6 +205,15 @@ function makeActions(
       if (c) void guard(store.updateItem('companies', id, metaPatch(board, c, colId, value)));
     },
 
+    /** A Board drop: new lane (status) and position, in one write. */
+    moveCard(id: string, status: string | null, rank: number) {
+      const c = company(id);
+      if (!c) return;
+      const statusChanged = (c.meta?.status ?? null) !== status;
+      const patch = statusChanged ? { ...metaPatch(board, c, 'status', status), rank } : { rank };
+      void guard(store.updateItem('companies', id, patch));
+    },
+
     setDue(id: string, due: string | null) {
       void guard(store.updateItem('companies', id, { due }));
     },

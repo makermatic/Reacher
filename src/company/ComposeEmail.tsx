@@ -170,7 +170,9 @@ export function ComposeEmail({ company }: { company: Company }) {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-line-strong">
+      <div
+        className={`${drafting ? 'ai-working ' : ''}overflow-hidden rounded-xl border border-line-strong`}
+      >
         <Row label="To" onCopy={to ? () => copy('address', to) : undefined}>
           <RecipientField
             key={`${company.id}:${sel?.col.id ?? ''}:${to}`}

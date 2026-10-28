@@ -1,64 +1,55 @@
-import { useState, type ReactNode } from 'react';
-import { field } from '../components/Modal';
+import { useState } from 'react';
 
 /**
- * Text you click to rename in place: Enter or clicking away saves, Escape
- * cancels. Blank names are ignored.
+ * Text that is its own editor: click it and the caret lands where you clicked,
+ * no box (Zack, round 2). Enter or clicking away saves, Escape puts it back.
+ * Blank names are ignored.
  */
 export function InlineText({
   value,
   onSave,
   label,
   className,
-  inputClassName = '',
-  children,
 }: {
   value: string;
   onSave: (v: string) => void;
   label: string;
+  /** The text's own look (font, size, weight); the input adds nothing visible. */
   className: string;
-  inputClassName?: string;
-  /** How the text looks when not editing (defaults to the value). */
-  children?: ReactNode;
 }) {
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        title={label}
-        onClick={() => {
-          setDraft(value);
-          setEditing(true);
-        }}
-        className={className}
-      >
-        {children ?? value}
-      </button>
-    );
+  const [shown, setShown] = useState(value);
+  // Follow renames made elsewhere (another device, a quick update).
+  if (value !== shown) {
+    setShown(value);
+    setDraft(value);
   }
-  const finish = (save: boolean) => {
-    setEditing(false);
-    if (save && draft.trim() && draft.trim() !== value) onSave(draft.trim());
+
+  const commit = () => {
+    const v = draft.trim();
+    if (v && v !== value) onSave(v);
+    else setDraft(value);
   };
+
   return (
     <input
-      autoFocus
       value={draft}
       aria-label={label}
+      title={label}
+      spellCheck={false}
       onChange={(e) => setDraft(e.target.value)}
-      onFocus={(e) => e.target.select()}
-      onBlur={() => finish(true)}
+      onBlur={commit}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') finish(true);
+        if (e.key === 'Enter') e.currentTarget.blur();
         if (e.key === 'Escape') {
+          // Undo the edit without also closing the company page.
+          e.preventDefault();
           e.stopPropagation();
-          finish(false);
+          setDraft(value);
+          requestAnimationFrame(() => (e.target as HTMLInputElement).blur());
         }
       }}
-      className={`${field} ${inputClassName}`}
+      className={`block w-full min-w-0 cursor-text truncate rounded-sm border-0 bg-transparent p-0 outline-none transition-colors hover:bg-hover focus:bg-transparent ${className}`}
     />
   );
 }

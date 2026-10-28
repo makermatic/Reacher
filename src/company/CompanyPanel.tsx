@@ -1,10 +1,9 @@
-import { motion, Reorder } from 'motion/react';
+import { Reorder } from 'motion/react';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { colShows, statusCol } from '../model/board';
 import type { Company } from '../model/types';
 import { readPref, writePref } from '../lib/prefs';
 import { btn, fieldInline } from '../components/Modal';
-import { duration, ease } from '../motion';
 import { RowMenu } from '../sheet/RowMenu';
 import { useSheetUI } from '../sheet/SheetUI';
 import { StatusChip } from '../sheet/StatusChip';
@@ -15,6 +14,7 @@ import { ComposeEmail } from './ComposeEmail';
 import { DetailsBody } from './DetailsBody';
 import { ApplicationsBody, MeetingsBody, NotesBody } from './EntrySections';
 import { InlineText } from './InlineText';
+import { LookupCard } from './LookupCard';
 import { Section } from './parts';
 
 export const MIN_PANEL = 380;
@@ -124,10 +124,9 @@ export function CompanyPanel({
     el.addEventListener('pointercancel', up);
   };
 
+  // Appears and disappears instantly, like Kitsu's side panel (Zack, round 2).
   return (
-    // The wrapper only fades, so the fixed resize handle stays fixed to the screen
-    // (a sliding parent would carry it along).
-    <motion.div exit={{ opacity: 0, transition: { duration: duration.fast } }}>
+    <>
       <div
         onPointerDown={startResize}
         data-keep-panel
@@ -138,18 +137,15 @@ export function CompanyPanel({
       >
         <span className="absolute inset-y-0 left-1 w-0.5 bg-transparent transition-colors group-hover/rz:bg-accent group-active/rz:bg-accent" />
       </div>
-      <motion.aside
+      <aside
         ref={ref}
         aria-label="Company page"
-        initial={{ opacity: 0, x: 24 }}
-        animate={{ opacity: 1, x: 0, transition: { duration: duration.slow, ease: ease.out } }}
-        exit={{ opacity: 0, x: 16, transition: { duration: duration.fast, ease: ease.out } }}
         style={{ width: `min(${width}px, 100%)` }}
         className="fixed top-0 right-0 bottom-0 z-20 overflow-y-auto border-l border-line bg-surface shadow-panel"
       >
         {company && <PanelContent key={company.id} company={company} />}
-      </motion.aside>
-    </motion.div>
+      </aside>
+    </>
   );
 }
 
@@ -171,22 +167,20 @@ function PanelContent({ company }: { company: Company }) {
   });
   const setChainOpen = (id: string, open: boolean) => setOpenChains((o) => ({ ...o, [id]: open }));
 
-  const sections: Record<
-    SectionId,
-    { title: string; count?: number; action?: React.ReactNode; body: React.ReactNode }
-  > = {
+  const sections: Record<SectionId, { title: string; count?: number; body: React.ReactNode }> = {
     details: {
       title: 'Details',
       body: <DetailsBody company={company} />,
-      action: <AddPropertyButton />,
     },
     chains: {
       title: 'Email chains',
       count: companyChains.length,
-      action: <NewChainButton company={company} onCreated={(id) => setChainOpen(id, true)} />,
       body: (
         <>
           <ChainsBody company={company} open={openChains} setOpen={setChainOpen} />
+          <div>
+            <NewChainButton company={company} onCreated={(id) => setChainOpen(id, true)} />
+          </div>
           <ComposeEmail company={company} />
         </>
       ),
@@ -205,9 +199,7 @@ function PanelContent({ company }: { company: Company }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1, transition: { duration: duration.base, ease: ease.out } }}
+    <div
       className="grid gap-4 px-5 pt-4 pb-10"
       style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}
     >
@@ -218,8 +210,7 @@ function PanelContent({ company }: { company: Company }) {
             value={company.name}
             label="Rename company"
             onSave={(name) => actions.renameCompany(company.id, name)}
-            className="m-0 text-left font-display text-[26px] leading-tight font-bold [text-wrap:balance] decoration-line-strong underline-offset-4 hover:underline"
-            inputClassName="font-display text-xl font-bold"
+            className="m-0 font-display text-[26px] leading-tight font-bold"
           />
         </div>
         <RowMenu company={company} alwaysVisible />
@@ -274,6 +265,8 @@ function PanelContent({ company }: { company: Company }) {
         </div>
       </div>
 
+      <LookupCard company={company} />
+
       <Reorder.Group
         axis="y"
         values={prefs.order}
@@ -286,7 +279,6 @@ function PanelContent({ company }: { company: Company }) {
             id={id}
             title={sections[id].title}
             count={sections[id].count}
-            action={sections[id].action}
             collapsed={!!prefs.collapsed[id]}
             onToggle={() => prefs.toggle(id)}
           >
@@ -294,15 +286,6 @@ function PanelContent({ company }: { company: Company }) {
           </Section>
         ))}
       </Reorder.Group>
-    </motion.div>
-  );
-}
-
-function AddPropertyButton() {
-  const { addColumn } = useSheetUI();
-  return (
-    <button type="button" onClick={addColumn} className={`${btn.ghost} ${btn.small}`}>
-      + Property
-    </button>
+    </div>
   );
 }

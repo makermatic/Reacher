@@ -18,12 +18,19 @@ type Props = {
   used?: unknown[];
 };
 
+/**
+ * Types whose editor opens right on top of the value, first field over the
+ * text (Zack, round 2). Lists and checklists keep a titled panel underneath.
+ */
+export const editsInPlace = (col: Column) =>
+  ['text', 'longtext', 'number', 'date', 'link', 'person'].includes(col.type);
+
 /** The popover editor for one cell, by column type (prototype's openCellEditor). */
 export function CellEditor(props: Props) {
   const { col } = props;
   return (
     <>
-      <PopoverHeader title={col.name} caption={TYPE_LABELS[col.type]} />
+      {!editsInPlace(col) && <PopoverHeader title={col.name} caption={TYPE_LABELS[col.type]} />}
       {col.type === 'person' ? (
         <PersonEditor {...props} />
       ) : col.type === 'tags' ? (

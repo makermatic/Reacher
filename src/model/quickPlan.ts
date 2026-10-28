@@ -19,6 +19,10 @@ export type QuickUndo = {
 
 /** The writes a quick update makes. */
 export type QuickPlan = {
+  /** Actions that changed something. */
+  applied: QuickAction[];
+  /** Actions skipped because the tracker already had them (Zack, round 2). */
+  skipped: QuickAction[];
   companies: Company[];
   pages: Record<string, Page>;
   chains: Chain[];
@@ -36,6 +40,26 @@ type State = {
 
 const emptyPage = (): Page => ({ notes: [], applications: [], meetings: [] });
 
+const words = (t: string) =>
+  new Set(
+    t
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length > 2),
+  );
+
+/** Two short texts say the same thing: one contains the other, or most words overlap. */
+export function similarText(a: string, b: string) {
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return na === nb;
+  if (na.includes(nb) || nb.includes(na)) return true;
+  const wa = words(a);
+  const wb = words(b);
+  const shared = [...wa].filter((w) => wb.has(w)).length;
+  return shared / Math.max(1, Math.min(wa.size, wb.size)) >= 0.6;
+}
+
 /**
  * Applies cleaned actions to copies of the data (the prototype's applyQuick).
  * Nothing is written here; the caller writes the plan and keeps its undo.
@@ -47,6 +71,8 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
   const pages = new Map<string, Page>();
   const chains = new Map<string, Chain>();
   const undo: QuickUndo = { created: [], companies: [], pages: {}, chains: {}, board: null };
+  const applied: QuickAction[] = [];
+  const skipped: QuickAction[] = [];
 
   const current = () => [...state.companies.map((c) => work.get(c.id) ?? c), ...created];
   const company = (name: string): Company => {
@@ -91,14 +117,18 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
   };
 
   for (const a of actions) {
+    const existed = !!findCompany(current(), a.company);
     const c = company(a.company);
+    let changed = true;
     switch (a.type) {
       case 'add_company':
+        changed = !existed;
         break;
       case 'set_status': {
         const col = colByName(curBoard(), a.column);
         const v = col && coerce(col, a.value);
-        if (col && v) setMeta(c, col.id, v);
+        changed = !!col && !!v && meta(c, col.id) !== v;
+        if (changed) setMeta(c, col!.id, v);
         break;
       }
       case 'log_email': {
@@ -106,6 +136,19 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
         let ch =
           [...chains.values()].find(mine) ??
           (state.chains.find(mine) ? structuredClone(state.chains.find(mine)!) : undefined);
+        // The same email already in any of this company's chains: skip it.
+        const allMessages = [
+          ...state.chains.filter((x) => x.companyId === c.id && x.id !== ch?.id),
+          ...(ch ? [ch] : []),
+        ].flatMap((x) => x.messages);
+        if (
+          allMessages.some(
+            (m) => m.date === a.date && m.dir === a.dir && similarText(m.text, a.text),
+          )
+        ) {
+          changed = false;
+          break;
+        }
         ch ??= {
           id: uid('ch'),
           companyId: c.id,
@@ -119,36 +162,56 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
         chains.set(ch.id, ch);
         break;
       }
-      case 'add_note':
-        page(c.id).notes.push({ id: uid('n'), date: a.date, text: a.text });
+      case 'add_note': {
+        const p = page(c.id);
+        changed = !p.notes.some((n) => n.date === a.date && similarText(n.text, a.text));
+        if (changed) p.notes.push({ id: uid('n'), date: a.date, text: a.text });
         break;
-      case 'add_application':
-        page(c.id).applications.push({
-          id: uid('a'),
-          date: a.date,
-          role: a.role,
-          link: a.link,
-          result: a.result,
-        });
+      }
+      case 'add_application': {
+        const p = page(c.id);
+        changed = !p.applications.some((x) => x.date === a.date && norm(x.role) === norm(a.role));
+        if (changed)
+          p.applications.push({
+            id: uid('a'),
+            date: a.date,
+            role: a.role,
+            link: a.link,
+            result: a.result,
+          });
         break;
-      case 'add_meeting':
-        page(c.id).meetings.push({
-          id: uid('mt'),
-          date: a.date,
-          start: a.start,
-          end: a.end,
-          kind: a.kind,
-          with: a.with,
-          notes: a.notes,
-        });
+      }
+      case 'add_meeting': {
+        // One meeting of a kind per company per day: a second one is a repeat.
+        const p = page(c.id);
+        changed = !p.meetings.some((m) => m.date === a.date && m.kind === a.kind);
+        if (changed)
+          p.meetings.push({
+            id: uid('mt'),
+            date: a.date,
+            start: a.start,
+            end: a.end,
+            kind: a.kind,
+            with: a.with,
+            notes: a.notes,
+          });
         break;
+      }
       case 'set_follow_up':
+        changed = c.due !== a.date;
         c.due = a.date;
         break;
       case 'set_field': {
         const col = colByName(curBoard(), a.column);
-        if (!col) break;
+        if (!col) {
+          changed = false;
+          break;
+        }
         const v = matchOption(col, coerce(col, a.value));
+        if (JSON.stringify(meta(c, col.id)) === JSON.stringify(v)) {
+          changed = false;
+          break;
+        }
         const add = missingOptions(col, v);
         if (add.length) {
           undo.board ??= structuredClone(state.board);
@@ -161,9 +224,12 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
         break;
       }
     }
+    (changed ? applied : skipped).push(a);
   }
 
   return {
+    applied,
+    skipped,
     companies: [...work.values()],
     pages: Object.fromEntries(pages),
     chains: [...chains.values()],

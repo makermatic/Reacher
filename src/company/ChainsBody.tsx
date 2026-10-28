@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from 'motion/react';
+import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import { useState } from 'react';
 import { fmtDate, todayISO } from '../model/dates';
 import type { Chain, Company, Message } from '../model/types';
 import { btn, field, fieldInline } from '../components/Modal';
 import { Popover, PopoverHeader } from '../components/Popover';
 import { useToast } from '../components/Toast';
-import { useArm } from '../lib/useArm';
 import { duration, ease, itemInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAssistant } from '../ai/Assistant';
@@ -14,7 +14,7 @@ import { addForm, DeleteButton } from './parts';
 
 const byDate = (a: Message, b: Message) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 
-/** The "+ New chain" button in the section header. */
+/** The "+ New chain" button under the chains. */
 export function NewChainButton({
   company,
   onCreated,
@@ -119,8 +119,7 @@ function ChainCard({
           value={chain.title}
           label="Rename chain"
           onSave={(title) => actions.saveChain({ ...chain, title })}
-          className="min-w-0 flex-1 truncate text-left font-semibold"
-          inputClassName="flex-1 py-1"
+          className="flex-1 font-semibold"
         />
         <span className="font-mono text-[11px] whitespace-nowrap text-muted">
           {msgs.length} · {range}
@@ -154,11 +153,11 @@ function ChainMenu({ chain }: { chain: Chain }) {
   const { actions } = useWorkspace();
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [armed, del] = useArm(() => {
+  const del = () => {
     setOpen(false);
     actions.deleteChain(chain.id);
     toast('Chain deleted');
-  });
+  };
   return (
     <Popover
       open={open}
@@ -174,9 +173,14 @@ function ChainMenu({ chain }: { chain: Chain }) {
     >
       <PopoverHeader title={chain.title} />
       <div>
-        <button type="button" className={`${btn.base} ${btn.small} ${btn.danger}`} onClick={del}>
-          {armed ? 'Click again to delete' : 'Delete this chain'}
-        </button>
+        <ConfirmButton
+          onConfirm={del}
+          confirm="Click again to delete"
+          className={`${btn.base} ${btn.small} ${btn.danger}`}
+          armedClassName={armedDanger}
+        >
+          Delete this chain
+        </ConfirmButton>
       </div>
     </Popover>
   );
@@ -317,7 +321,9 @@ function ChainSummary({ chain }: { chain: Chain }) {
       </div>
       {sum ? (
         <>
-          <div className="rounded-lg bg-accent-soft px-3 py-2 text-[13.5px] whitespace-pre-wrap">
+          <div
+            className={`${busy ? 'ai-working ' : ''}rounded-lg bg-accent-soft px-3 py-2 text-[13.5px] whitespace-pre-wrap`}
+          >
             {sum.text}
           </div>
           {stale > 0 && (
@@ -327,7 +333,9 @@ function ChainSummary({ chain }: { chain: Chain }) {
           )}
         </>
       ) : (
-        <div className="rounded-lg bg-surface-2 px-3 py-2 text-[13.5px] text-muted">
+        <div
+          className={`${busy ? 'ai-working ' : ''}rounded-lg bg-surface-2 px-3 py-2 text-[13.5px] text-muted`}
+        >
           {chain.messages.length
             ? 'Summarize to see where this chain stands and what you owe them.'
             : 'Paste the first email below.'}

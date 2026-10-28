@@ -171,3 +171,80 @@ describe('prompts', () => {
     expect(p).not.toContain('Main contact');
   });
 });
+
+describe('quick update: no duplicates (round 2)', () => {
+  it('skips a meeting, note or email the tracker already has', () => {
+    const sr = co('co-sr', 'Sibling Rivalry', { status: 'meeting' });
+    const pages = {
+      'co-sr': {
+        notes: [{ id: 'n1', date: '2026-02-01', text: 'We talked and it was not a good fit' }],
+        applications: [],
+        meetings: [
+          {
+            id: 'm1',
+            date: '2026-02-01',
+            start: '',
+            end: '',
+            kind: 'meeting' as const,
+            with: '',
+            notes: 'We talked',
+          },
+        ],
+      },
+    };
+    const chains: Chain[] = [
+      {
+        id: 'ch-sr',
+        companyId: 'co-sr',
+        title: 'Outreach',
+        started: '2026-01-01',
+        messages: [
+          { id: 'e1', dir: 'out', date: '2026-01-01', text: 'Reached out to Sibling Rivalry' },
+        ],
+        summary: null,
+      },
+    ];
+    const plan = planQuick(
+      { board, companies: [sr], pages, chains },
+      cleanActions(board, [
+        {
+          type: 'log_email',
+          company: 'Sibling Rivalry',
+          chain: 'First outreach',
+          dir: 'out',
+          date: '2026-01-01',
+          text: 'Reached out to Sibling Rivalry',
+        },
+        {
+          type: 'add_meeting',
+          company: 'Sibling Rivalry',
+          date: '2026-02-01',
+          kind: 'meeting',
+          notes: 'Had a conversation. It did not feel like a good fit.',
+        },
+        {
+          type: 'add_note',
+          company: 'Sibling Rivalry',
+          date: '2026-02-01',
+          text: "We talked and it wasn't a good fit",
+        },
+        { type: 'set_status', company: 'Sibling Rivalry', column: 'Status', value: 'Meeting' },
+        {
+          type: 'add_note',
+          company: 'Sibling Rivalry',
+          date: '2026-03-01',
+          text: 'They are hiring in spring',
+        },
+      ]),
+    );
+    expect(plan.skipped.map((a) => a.type)).toEqual([
+      'log_email',
+      'add_meeting',
+      'add_note',
+      'set_status',
+    ]);
+    expect(plan.applied.map((a) => a.type)).toEqual(['add_note']);
+    expect(plan.chains).toHaveLength(0);
+    expect(plan.pages['co-sr']!.meetings).toHaveLength(1);
+  });
+});

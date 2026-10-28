@@ -83,6 +83,8 @@ export type Company = {
   meta: Record<string, unknown>;
   /** Follow-up date, YYYY-MM-DD. */
   due: string | null;
+  /** Position within its Board lane (see model/ranking). Absent until moved on the Board. */
+  rank?: number;
   /** Fields filled by company lookup (true) rather than typed. */
   auto?: Record<string, boolean | null>;
   example?: boolean;

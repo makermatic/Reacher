@@ -3,7 +3,7 @@ import { colShows, meta } from '../model/board';
 import type { Column, Company } from '../model/types';
 import { Popover } from '../components/Popover';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { CellEditor } from './CellEditor';
+import { CellEditor, editsInPlace } from './CellEditor';
 import { CellValue } from './CellValue';
 import { OptionPicker } from './OptionPicker';
 import { StatusChip } from './StatusChip';
@@ -90,6 +90,7 @@ export function EditableValue({
       trigger={trigger}
       label={`${col.name} for ${company.name}`}
       width={col.type === 'longtext' ? 360 : 300}
+      cover={!label && editsInPlace(col)}
     >
       {col.type === 'values' || col.type === 'status' ? (
         <OptionPicker

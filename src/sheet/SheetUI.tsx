@@ -10,6 +10,8 @@ export type SheetUI = {
   openCompanyId: string | null;
   /** Open a company's page; opening the one already open closes it (SPEC section 4). */
   toggleCompany: (id: string) => void;
+  /** Open a company's page (stays open if it already is). */
+  openCompany: (id: string) => void;
   closeCompany: () => void;
   /** Open Your details (the my_* email fields). */
   openDetails: () => void;
@@ -22,6 +24,7 @@ export const SheetUIContext = createContext<SheetUI>({
   addColumn: () => {},
   openCompanyId: null,
   toggleCompany: () => {},
+  openCompany: () => {},
   closeCompany: () => {},
   openDetails: () => {},
   openTemplates: () => {},

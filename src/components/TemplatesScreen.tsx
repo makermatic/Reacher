@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react';
+import { armedDanger, ConfirmButton } from './ConfirmButton';
 import { useRef, useState } from 'react';
 import { optList } from '../model/board';
 import { peopleOf, previewParts, tokenGroups, tokenMap } from '../model/email';
 import { uid } from '../model/text';
 import type { Template } from '../model/types';
-import { useArm } from '../lib/useArm';
 import { dialogIn, fade } from '../motion';
 import { useSheetUI } from '../sheet/SheetUI';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
@@ -112,11 +112,11 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
   const focus = useRef<'subject' | 'body'>('body');
   const subjectRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const [armed, del] = useArm(() => {
+  const del = () => {
     actions.deleteTemplate(draft.id);
     toast('Template deleted');
     onDeleted();
-  });
+  };
 
   const preview = companies.find((c) => c.id === previewId);
   const m = tokenMap(board, preview, preview ? peopleOf(board, preview)[0]?.p : null, me);
@@ -274,9 +274,14 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         >
           Save template
         </button>
-        <button type="button" onClick={del} className={`${btn.base} ${btn.danger}`}>
-          {armed ? 'Click again to delete' : 'Delete'}
-        </button>
+        <ConfirmButton
+          onConfirm={del}
+          confirm="Click again to delete"
+          className={`${btn.base} ${btn.danger}`}
+          armedClassName={`${armedDanger} px-3 py-1.5 text-sm`}
+        >
+          Delete
+        </ConfirmButton>
       </div>
     </div>
   );
