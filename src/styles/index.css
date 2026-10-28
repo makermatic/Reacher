@@ -127,6 +127,15 @@ button {
   cursor: pointer;
 }
 
+/* Keep browser autofill from painting fields bright blue or yellow. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--fg);
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  caret-color: var(--fg);
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

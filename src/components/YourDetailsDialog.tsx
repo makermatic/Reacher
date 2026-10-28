@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
+import { normalizeUrl } from '../lib/links';
 import { fade, popIn } from '../motion';
 import { useDoc, useRuntime } from '../runtime/RuntimeProvider';
 import { useToast } from './Toast';
@@ -10,12 +11,25 @@ export type Me = { name: string; portfolio: string; reel: string; phone: string;
 
 const EMPTY: Me = { name: '', portfolio: '', reel: '', phone: '', intro: '' };
 
-const FIELDS: { key: keyof Me; label: string; type?: string; placeholder?: string }[] = [
+const FIELDS: {
+  key: keyof Me;
+  label: string;
+  link?: boolean;
+  type?: string;
+  placeholder?: string;
+}[] = [
   { key: 'name', label: 'Your name' },
-  { key: 'portfolio', label: 'Portfolio link', type: 'url', placeholder: 'https://' },
-  { key: 'reel', label: 'Reel link', type: 'url', placeholder: 'https://' },
+  { key: 'portfolio', label: 'Portfolio link', link: true, placeholder: 'yoursite.com' },
+  { key: 'reel', label: 'Reel link', link: true, placeholder: 'vimeo.com/…' },
   { key: 'phone', label: 'Phone', type: 'tel' },
 ];
+
+/** Links are typed loosely ("zackzand.com") and saved as full links. */
+const tidy = (v: Me): Me => ({
+  ...v,
+  portfolio: normalizeUrl(v.portfolio),
+  reel: normalizeUrl(v.reel),
+});
 
 const input =
   'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 outline-none transition-[border-color] duration-200 focus:border-accent';
@@ -85,7 +99,7 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
     setSaving(true);
     setError('');
     try {
-      await runtime.store.setDoc('me', values);
+      await runtime.store.setDoc('me', tidy(values));
       toast('Saved your details');
       onDone();
     } catch {
@@ -103,8 +117,14 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
           <input
             id={`me-${f.key}`}
             type={f.type ?? 'text'}
+            inputMode={f.link ? 'url' : undefined}
             value={values[f.key]}
             onChange={set(f.key)}
+            onBlur={
+              f.link
+                ? () => setValues((v) => ({ ...v, [f.key]: normalizeUrl(v[f.key]) }))
+                : undefined
+            }
             placeholder={f.placeholder}
             className={input}
           />
