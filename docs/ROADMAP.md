@@ -8,17 +8,20 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Approve "Reacher runs inside Claude"** (see Stack). A yes is enough.
-2. ⏳ **Allow two more domains** for the portfolio site's styles, scripts and video: `static.cmcdn.net` and `carbon-media.accelerator.net` (`zackzand.com` is already allowed).
-3. ⏳ **Connect Gmail and Google Calendar** at https://claude.ai/customize/connectors. This isn't urgent (needed for M8 and M9). Connectors load when a session starts, so Claude sees them in the next session.
+1. ⏳ **Test M1** on Reacher Test: https://claude.ai/artifact/J86CzpMXjnr8dryxLmbckc (test list in the M1 section below).
 
 ## Now
 
-Stack decision. Once it's approved: M1.
+M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2.
+
+## Links
+
+- **Reacher Test:** https://claude.ai/artifact/J86CzpMXjnr8dryxLmbckc (publish from `dist-artifact/reacher-test.html`)
+- **Reacher (real):** not published yet. First publish is at M2, once there's data worth keeping.
 
 ---
 
-## Stack (recommended 2026-10-28, waiting on Zack's yes)
+## Stack (approved 2026-10-28)
 
 **Reacher runs inside Claude, as a Claude app (an "artifact"), the same way the prototype did.** Everyone who opens it is signed in with their own Claude account, so:
 
@@ -70,19 +73,28 @@ Stack decision. Once it's approved: M1.
 
 ## Milestones
 
-### M0: Setup 🔨
+### M0: Setup ✅
 - ✅ Read the prototype and spec.
 - ✅ Repo layout: `CLAUDE.md` at the root, `docs/SPEC.md`, `docs/ROADMAP.md`, `prototype/studio-outreach-tracker.html`.
 - ✅ Audience decided: Zack first, then friends, then a public app.
-- ✅ Design references collected.
-- ⏳ Stack approved.
+- ✅ Design references collected; zackzand.com motion studied.
+- ✅ Stack approved.
+- ✅ Gmail and Google Calendar connectors connected and confirmed.
 
-### M1: Empty app, live link ⬜
-- Scaffold Vite + React + TS, Tailwind, lint, format, tests, GitHub Actions CI.
-- Data and AI adapters, plus a local mock so the app runs and is tested outside Claude.
-- Base design system: color tokens (the 8 status colors, light and dark), type scale, spacing, easing and duration tokens, green accent.
-- App shell: header, Sheet/Board switcher with a cross-fade, quick update bar (not working yet), Templates and Your details buttons.
-- Published as Reacher Test. **Test:** open it on laptop and phone, switch views, toggle dark mode.
+### M1: Empty app, live link 🔨 (built, waiting on Zack's test)
+- ✅ Vite + React + TS, Tailwind, ESLint, Prettier, Vitest, GitHub Actions CI.
+- ✅ Storage adapter (`src/runtime/`): Claude db and browser-only versions behind one interface. The AI adapter comes with M5.
+- ✅ Design tokens: the prototype's palette (light and dark) and fonts. Motion tokens in `src/motion.ts`.
+- ✅ App shell: header with sync badge, Sheet/Board switcher (gliding highlight, cross-fade between views), quick update bar (not working yet), Your details (saves to the user's private space), empty Sheet and Board.
+- ✅ Published to Reacher Test.
+- **Test list:**
+  1. Open Reacher Test on your laptop. The badge next to "Reacher" says **Synced** after a moment.
+  2. Click **Board**. The green highlight glides over, and the sheet fades up and out as the board fades in.
+  3. Reload. You're still on Board (the view is remembered per device).
+  4. Click **Your details**, fill in your name and reel link, and Save. A "Saved your details" toast appears.
+  5. Open Reacher Test on your phone. The badge says Synced, and **Your details** shows what you typed on the laptop.
+  6. Switch your Claude theme between light and dark. Reacher follows it.
+  7. Tell Claude about anything that looks off, feels slow, or animates wrong (numbered notes, screenshots welcome).
 
 ### M2: Data model, Sheet, import ⬜
 - Per-user data: board config (columns), companies, chains, pages (notes, applications, meetings), templates, Your details.
@@ -139,13 +151,17 @@ Stack decision. Once it's approved: M1.
 |---|---|
 | 2026-10-28 | Repo reorganized to match CLAUDE.md. Handoff zip unpacked and removed (it's still in git history). |
 | 2026-10-28 | Audience: Zack first, then friends, then public. Build multi-user from the start. |
-| 2026-10-28 | No separate AI billing. Recommended: run as a Claude artifact on each user's own plan (waiting on Zack's yes). |
+| 2026-10-28 | No separate AI billing: Reacher runs as a Claude artifact on each user's own plan. Approved. |
+| 2026-10-28 | Database access: each user writes only their own private space; shared data is owner-only. Friends must be shared as **Contributor**. |
+| 2026-10-28 | M1 keeps the prototype's palette and fonts so it feels familiar; the redesign is M7. |
+| 2026-10-28 | Animation starting point: zackzand.com's curve (cubic-bezier(0.4, 0, 0.2, 1)), 350–500ms fades with a small upward drift. Zack expects to change it; every value lives in `src/motion.ts`. |
 | 2026-10-28 | Source of truth is this GitHub repo. The artifact is only the built output, published from the repo. |
 | 2026-10-28 | Design references: Kitsu, ClickUp, Notion, zackzand.com (eased fades, smooth transitions). |
 
 ## Notes and risks
 
 - The artifact platform has limits (page size 16MB, rate limits on AI calls). A bundled React app is well under the size limit. Rate limits get checked in M5.
-- What the Gmail and Calendar connectors can do (read only, drafts, creating events) has to be confirmed before M8 and M9.
+- **Capacity:** one artifact database holds 25,000 documents across all users. At roughly 200 per user that's about 100 users. Past that, move to a server through the storage adapter.
+- **Connectors confirmed (2026-10-28):** Gmail can search and read threads, create, update and delete drafts, send, reply and label. Calendar can list, search, create, update and delete events. M8 and M9 can create real calendar events and send email.
 - AI answers vary run to run. The prompt regression set in M5 is the guard against that.
 - The repo can go private at any time. Cloud Claude sessions reach private repos through the Claude GitHub app.

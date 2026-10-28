@@ -1,0 +1,172 @@
+@import 'tailwindcss';
+
+/*
+ * Layout: Kitsu-style production sheet. Top bar, quick-update bar, then the
+ * Sheet or Board filling the screen; the company page docks on the right.
+ * Palette and fonts carry over from the prototype; the redesign is M7.
+ */
+:root {
+  --bg: #ecf0ee;
+  --surface: #ffffff;
+  --surface-2: #f4f7f5;
+  --hover: #eef3f0;
+  --line: #dae1dd;
+  --line-strong: #c2ccc7;
+  --fg: #16201c;
+  --muted: #5d6b65;
+  --faint: #8c9893;
+  --accent: #08924a;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcf2e5;
+  --c-grey: #7f8b86;
+  --c-blue: #2c67d6;
+  --c-teal: #0e8a93;
+  --c-green: #08924a;
+  --c-amber: #a86f00;
+  --c-pink: #c8317a;
+  --c-red: #b0473a;
+  --c-violet: #6b4fd0;
+  --chip-ink: #ffffff;
+  --shadow: 0 12px 40px rgb(18 32 26 / 0.16);
+  --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --f-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #121715;
+    --surface: #1a201e;
+    --surface-2: #202725;
+    --hover: #252d2a;
+    --line: #2d3633;
+    --line-strong: #3e4945;
+    --fg: #e3ebe7;
+    --muted: #9aa8a2;
+    --faint: #6f7c77;
+    --accent: #2ed27a;
+    --accent-ink: #04220f;
+    --accent-soft: #183a28;
+    --c-grey: #7c8984;
+    --c-blue: #5c93ff;
+    --c-teal: #3ccfd8;
+    --c-green: #2ed27a;
+    --c-amber: #edb23a;
+    --c-pink: #ff6dae;
+    --c-red: #e8705f;
+    --c-violet: #a08bff;
+    --chip-ink: #0e1311;
+    --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #121715;
+  --surface: #1a201e;
+  --surface-2: #202725;
+  --hover: #252d2a;
+  --line: #2d3633;
+  --line-strong: #3e4945;
+  --fg: #e3ebe7;
+  --muted: #9aa8a2;
+  --faint: #6f7c77;
+  --accent: #2ed27a;
+  --accent-ink: #04220f;
+  --accent-soft: #183a28;
+  --c-grey: #7c8984;
+  --c-blue: #5c93ff;
+  --c-teal: #3ccfd8;
+  --c-green: #2ed27a;
+  --c-amber: #edb23a;
+  --c-pink: #ff6dae;
+  --c-red: #e8705f;
+  --c-violet: #a08bff;
+  --chip-ink: #0e1311;
+  --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+/* Expose the tokens to Tailwind utilities: bg-surface, text-muted, border-line, font-display... */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-chip-ink: var(--chip-ink);
+  --font-display: var(--f-display);
+  --font-body: var(--f-body);
+  --font-mono: var(--f-mono);
+  --shadow-panel: var(--shadow);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Status color by name: class="c-blue" sets --c for chips, bars and stripes. */
+.c-grey {
+  --c: var(--c-grey);
+}
+.c-blue {
+  --c: var(--c-blue);
+}
+.c-teal {
+  --c: var(--c-teal);
+}
+.c-green {
+  --c: var(--c-green);
+}
+.c-amber {
+  --c: var(--c-amber);
+}
+.c-pink {
+  --c: var(--c-pink);
+}
+.c-red {
+  --c: var(--c-red);
+}
+.c-violet {
+  --c: var(--c-violet);
+}
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Side gutter that clears a phone's side system bar. */
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}

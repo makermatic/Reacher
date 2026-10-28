@@ -25,6 +25,14 @@ The current stack lives in `docs/ROADMAP.md`. Recommended there: run Reacher as 
 
 These are suggestions, not decisions. Explain the tradeoffs in plain words and let Zack pick.
 
+## Development
+- `npm run dev` runs the app locally (data saves in the browser; AI and connectors aren't available outside Claude).
+- `npm run check` runs typecheck, lint, format check and unit tests. Run it before every commit; CI runs it too.
+- `npm run build` writes `dist-artifact/reacher-test.html` and `dist-artifact/reacher.html`: the whole app as one page fragment (the artifact host adds the doctype, head and body).
+- Publish with the Artifact tool: the test page goes to Reacher Test, and the real one goes to Reacher only after Zack OKs a round. URLs are in `docs/ROADMAP.md` under Links. From a new session, pass the URL as `url` (read it first), or it creates a new artifact. Capabilities: `db` (rules: root `read: view, write: owner`; `data/users/{self}` `write: interact`) and `user`; later `sample` (AI), `mcp` (Gmail and Calendar) and `downloads` (export).
+- Code map: `src/runtime/` is the storage adapter (`Store` interface, Claude db version, browser version). Never call `window.claude` outside `src/runtime/`. `src/motion.ts` holds every timing and curve. `src/model/` holds the data model and defaults. `src/runtime/contract/` holds the platform's type definitions; don't edit them.
+- Each user's data lives under `data/users/<id>/` (private to them): named docs like `me`, plus collections under `ws/` (`ws/companies/<id>`...).
+
 ## Project management
 Claude is the project manager. `docs/ROADMAP.md` is the plan and status board: milestones, what's done, what's waiting on Zack, and the decisions log. Read it at the start of every session and update it before the session ends. Go to Zack only for decisions and testing.
 
