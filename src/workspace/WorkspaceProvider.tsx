@@ -10,7 +10,8 @@ import {
 import { useToast } from '../components/Toast';
 import { nextStatus, type StatusEvent } from '../model/automation';
 import { boardOrDefault, metaPatch, optionOf, statusCol } from '../model/board';
-import { todayISO } from '../model/dates';
+import { addDays, fmtDate, todayISO } from '../model/dates';
+import { DEFAULT_TEMPLATES } from '../model/defaults';
 import { fillableColumns } from '../ai/prompts';
 import type { ImportData } from '../model/importData';
 import { planCandidate, type Candidate, type QuickPlan, type QuickUndo } from '../model/quickPlan';
@@ -116,8 +117,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const resolvedBoard = boardOrDefault(board);
   const actions = useMemo(
-    () => makeActions(store ?? NOT_READY, resolvedBoard, companies ?? [], pages, chains, fail),
-    [store, resolvedBoard, companies, pages, chains, fail],
+    () =>
+      makeActions(
+        store ?? NOT_READY,
+        resolvedBoard,
+        companies ?? [],
+        pages,
+        chains,
+        templates,
+        fail,
+      ),
+    [store, resolvedBoard, companies, pages, chains, templates, fail],
   );
 
   const value = useMemo<Workspace>(
@@ -127,7 +137,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       companies: companies ?? [],
       pages,
       chains,
-      templates,
+      // A new account starts with the default templates until it saves its own.
+      templates: templates.length ? templates : DEFAULT_TEMPLATES,
       me,
       actions,
     }),
@@ -143,6 +154,7 @@ function makeActions(
   companies: Company[],
   pages: Record<string, Page>,
   chains: Chain[],
+  storedTemplates: Template[],
   fail: (e: unknown) => void,
 ) {
   const company = (id: string) => companies.find((c) => c.id === id);
@@ -199,6 +211,59 @@ function makeActions(
 
     saveBoard(next: Board) {
       void guard(store.setDoc('board', { ...next, version: 2 }));
+    },
+
+    // ---------- email ----------
+
+    /** Saves a template. The first save also keeps the starting set, which until now was only shown. */
+    saveTemplate(t: Template) {
+      const base = storedTemplates.length ? [] : DEFAULT_TEMPLATES.filter((d) => d.id !== t.id);
+      void guard(Promise.all([...base, t].map((x) => store.setItem('templates', x.id, body(x)))));
+    },
+
+    deleteTemplate(id: string) {
+      if (storedTemplates.length) void guard(store.deleteItem('templates', id));
+      else
+        void guard(
+          Promise.all(
+            DEFAULT_TEMPLATES.filter((d) => d.id !== id).map((x) =>
+              store.setItem('templates', x.id, body(x)),
+            ),
+          ),
+        );
+    },
+
+    /**
+     * Log as sent (SPEC section 7): adds the email to the chosen chain (or a
+     * new one titled by its subject), sets the follow-up, and moves the status.
+     * Returns the chain id and a toast line.
+     */
+    logSent(c: Company, target: string, subject: string, text: string, followDays: number) {
+      const today = todayISO();
+      const msg = {
+        id: uid('m'),
+        dir: 'out' as const,
+        date: today,
+        text: (subject ? `Subject: ${subject}\n\n` : '') + text,
+      };
+      const existing = target !== 'new' ? chains.find((ch) => ch.id === target) : undefined;
+      const chain: Chain = existing
+        ? { ...existing, messages: [...existing.messages, msg] }
+        : {
+            id: uid('ch'),
+            companyId: c.id,
+            title: subject || `Email chain ${fmtDate(today)}`,
+            started: today,
+            messages: [msg],
+            summary: null,
+          };
+      api.saveChain(chain);
+      const due = addDays(today, followDays);
+      const label = api.autoStatus(c.id, { kind: 'sent' }, { due });
+      return {
+        chainId: chain.id,
+        toast: `Logged${label ? `. Status → ${label}` : ''}. Follow up ${fmtDate(due, true)}`,
+      };
     },
 
     // ---------- AI ----------

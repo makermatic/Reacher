@@ -11,6 +11,10 @@ export type SheetUI = {
   /** Open a company's page; opening the one already open closes it (SPEC section 4). */
   toggleCompany: (id: string) => void;
   closeCompany: () => void;
+  /** Open Your details (the my_* email fields). */
+  openDetails: () => void;
+  /** Open the Email templates screen. */
+  openTemplates: () => void;
 };
 
 export const SheetUIContext = createContext<SheetUI>({
@@ -19,5 +23,7 @@ export const SheetUIContext = createContext<SheetUI>({
   openCompanyId: null,
   toggleCompany: () => {},
   closeCompany: () => {},
+  openDetails: () => {},
+  openTemplates: () => {},
 });
 export const useSheetUI = () => useContext(SheetUIContext);

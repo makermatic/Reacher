@@ -182,3 +182,29 @@ Where it stands: ...
 You owe them: ... (write "Nothing right now" if nothing)
 Next step: ...`;
 }
+
+export type DraftReply = { subject?: unknown; body?: unknown };
+
+/** Draft with AI (SPEC section 9): under 140 words, only the facts given. */
+export function draftPrompt(
+  board: Board,
+  c: Company,
+  page: Page,
+  me: { name: string; portfolio: string; intro: string } | null,
+  recipient: { name: string; role: string } | null,
+  chain: Chain | null,
+) {
+  return `Write the next email a job seeker should send. Plain, warm, specific, under 140 words. Use only the facts given; don't invent projects, dates or names. Sign off with the sender's first name.
+Sender: ${me?.name || 'the sender'}. Portfolio: ${me?.portfolio || 'n/a'}. About the sender: ${me?.intro || 'n/a'}
+Recipient: ${recipient ? `${recipient.name || ''} (${recipient.role || ''})` : 'unknown, so open with "Hi there,"'}
+Status: ${valueText(statusCol(board), meta(c, 'status')) || 'none yet'}
+${companyContext(board, c, page)}
+${chain ? `This is a reply in the email chain "${chain.title}", oldest first:\n${chainText(chain.messages)}` : 'This starts a new email chain.'}
+
+Reply with only JSON: {"subject": "...", "body": "..."}`;
+}
+
+/** A quick guess at a name when the address isn't plainly first.last. */
+export const namePrompt = (email: string) =>
+  `Guess the person's name from this work email address: ${email}
+Reply with only JSON {"name": "First Last"}. Use "" if it's a shared inbox or you can't tell. A lone first name is fine.`;

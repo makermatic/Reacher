@@ -65,6 +65,9 @@ export const btn = {
   icon: 'inline-grid h-7 w-7 place-items-center rounded-md text-faint transition-colors hover:bg-line hover:text-fg disabled:opacity-40',
 };
 
-/** Shared text-field look. */
+/** Shared text-field look (full width). */
 export const field =
   'w-full rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 outline-none transition-[border-color] duration-200 focus:border-accent';
+
+/** The same look, sized to its content: selects, dates and times inside a row. */
+export const fieldInline = field.replace('w-full ', 'w-auto max-w-full ');

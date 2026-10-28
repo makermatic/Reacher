@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { clampPanel, CompanyPanel } from './company/CompanyPanel';
 import { Header } from './components/Header';
 import { ImportDialog } from './components/ImportDialog';
+import { TemplatesScreen } from './components/TemplatesScreen';
 import { QuickUpdateBar } from './components/QuickUpdateBar';
 import { ToastProvider } from './components/Toast';
 import type { View } from './components/ViewSwitcher';
@@ -46,6 +47,7 @@ export function App() {
 function Shell() {
   const [view, setView] = useState<View>(() => readPref('view', 'sheet', isView));
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [choicesFor, setChoicesFor] = useState<string | null>(null);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
@@ -71,6 +73,8 @@ function Shell() {
       openCompanyId,
       toggleCompany: (id) => setOpenCompanyId((cur) => (cur === id ? null : id)),
       closeCompany,
+      openDetails: () => setDetailsOpen(true),
+      openTemplates: () => setTemplatesOpen(true),
     }),
     [openCompanyId, closeCompany],
   );
@@ -90,7 +94,12 @@ function Shell() {
         className="gutter flex h-full flex-col gap-2.5 pt-3 pb-3.5 transition-[padding] duration-200 ease-out"
         style={pushed ? { paddingRight: width + 16 } : undefined}
       >
-        <Header view={view} onViewChange={changeView} onOpenDetails={() => setDetailsOpen(true)} />
+        <Header
+          view={view}
+          onViewChange={changeView}
+          onOpenDetails={() => setDetailsOpen(true)}
+          onOpenTemplates={() => setTemplatesOpen(true)}
+        />
         <QuickUpdateBar />
         <NoAccessNotice />
         <main className="min-h-0 flex-1">
@@ -120,6 +129,7 @@ function Shell() {
           }}
         />
         <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+        <TemplatesScreen open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
         <AddColumnDialog open={addColumnOpen} onOpenChange={setAddColumnOpen} />
         <ChoicesDialog colId={choicesFor} onClose={() => setChoicesFor(null)} />
       </div>

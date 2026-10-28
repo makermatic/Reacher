@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { fmtDate, todayISO } from '../model/dates';
 import type { Chain, Company, Message } from '../model/types';
-import { btn, field } from '../components/Modal';
+import { btn, field, fieldInline } from '../components/Modal';
 import { Popover, PopoverHeader } from '../components/Popover';
 import { useToast } from '../components/Toast';
 import { useArm } from '../lib/useArm';
@@ -267,7 +267,7 @@ function AddEmailForm({ chain }: { chain: Chain }) {
           value={date}
           onChange={(e) => setDate(e.target.value)}
           aria-label="Date"
-          className={`${field} w-auto`}
+          className={fieldInline}
         />
       </div>
       <textarea

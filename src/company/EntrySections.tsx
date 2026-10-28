@@ -3,7 +3,7 @@ import { googleCalendarLink } from '../model/automation';
 import { fmtDate, fmtTime, todayISO } from '../model/dates';
 import type { Company, Meeting } from '../model/types';
 import { normalizeUrl } from '../lib/links';
-import { btn, field } from '../components/Modal';
+import { btn, field, fieldInline } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { addForm, Entry } from './parts';
@@ -20,7 +20,7 @@ const submitOnEnter = (submit: () => void) => (e: KeyboardEvent) => {
 };
 
 const hint = 'text-xs text-muted';
-const dateField = `${field} w-auto`;
+const dateField = fieldInline;
 
 export function NotesBody({ company }: { company: Company }) {
   const { actions } = useWorkspace();

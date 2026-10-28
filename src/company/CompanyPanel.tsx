@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { colShows, statusCol } from '../model/board';
 import type { Company } from '../model/types';
 import { readPref, writePref } from '../lib/prefs';
-import { btn, field } from '../components/Modal';
+import { btn, fieldInline } from '../components/Modal';
 import { duration, ease } from '../motion';
 import { RowMenu } from '../sheet/RowMenu';
 import { useSheetUI } from '../sheet/SheetUI';
@@ -11,6 +11,7 @@ import { StatusChip } from '../sheet/StatusChip';
 import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { ChainsBody, NewChainButton } from './ChainsBody';
+import { ComposeEmail } from './ComposeEmail';
 import { DetailsBody } from './DetailsBody';
 import { ApplicationsBody, MeetingsBody, NotesBody } from './EntrySections';
 import { InlineText } from './InlineText';
@@ -183,7 +184,12 @@ function PanelContent({ company }: { company: Company }) {
       title: 'Email chains',
       count: companyChains.length,
       action: <NewChainButton company={company} onCreated={(id) => setChainOpen(id, true)} />,
-      body: <ChainsBody company={company} open={openChains} setOpen={setChainOpen} />,
+      body: (
+        <>
+          <ChainsBody company={company} open={openChains} setOpen={setChainOpen} />
+          <ComposeEmail company={company} />
+        </>
+      ),
     },
     notes: { title: 'Notes', count: page.notes.length, body: <NotesBody company={company} /> },
     apps: {
@@ -250,7 +256,7 @@ function PanelContent({ company }: { company: Company }) {
               type="date"
               value={company.due ?? ''}
               onChange={(e) => actions.setDue(company.id, e.target.value || null)}
-              className={`${field} w-auto py-1`}
+              className={`${fieldInline} py-1`}
             />
             {company.due && (
               <>

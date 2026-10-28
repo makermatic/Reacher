@@ -13,6 +13,8 @@ export type Connection = {
   store: Store;
   /** Claude on the viewer's own plan, or null where AI isn't available. */
   ai: AI | null;
+  /** Offers the viewer a file to save (Export), or null where that isn't available. */
+  saveFile: ((filename: string, data: string) => Promise<void>) | null;
 };
 
 /**
@@ -22,17 +24,23 @@ export type Connection = {
  */
 export async function connect(): Promise<Connection> {
   const claude = (window as Partial<Window>).claude;
-  if (!claude?.use) return { kind: 'local', store: createLocalStore(), ai: null };
+  if (!claude?.use) return { kind: 'local', store: createLocalStore(), ai: null, saveFile: null };
 
-  const [db, user, sample] = await Promise.all([
+  const [db, user, sample, downloads] = await Promise.all([
     claude.use('db'),
     claude.use('user'),
     claude.use('sample'),
+    claude.use('downloads'),
   ]);
   const ai = sample ? createClaudeAI(sample) : null;
-  if (!db || !user) return { kind: 'local', store: createLocalStore(), ai };
+  const saveFile = downloads
+    ? async (filename: string, data: string) => {
+        await downloads.save({ filename, data });
+      }
+    : null;
+  if (!db || !user) return { kind: 'local', store: createLocalStore(), ai, saveFile };
 
   const id = await user.id();
-  if (!id) return { kind: 'no-access', store: createLocalStore(), ai };
-  return { kind: 'claude', store: createClaudeStore(db, id), ai };
+  if (!id) return { kind: 'no-access', store: createLocalStore(), ai, saveFile };
+  return { kind: 'claude', store: createClaudeStore(db, id), ai, saveFile };
 }

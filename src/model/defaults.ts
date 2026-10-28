@@ -1,4 +1,4 @@
-import type { Board } from './types';
+import type { Board, Template } from './types';
 
 /**
  * The starting board for a new user, exactly as in the prototype
@@ -109,3 +109,40 @@ export const DEFAULT_BOARD: Board = {
     { id: 'prep', name: 'Prep', type: 'checklist', onSheet: false },
   ],
 };
+
+/**
+ * Starting templates for a new account (SPEC section 8). Zack's own come over
+ * with his import; these are the prototype's, minus his personal details.
+ */
+export const DEFAULT_TEMPLATES: Template[] = [
+  {
+    id: 'tpl-intro',
+    name: 'First outreach',
+    subject: 'Motion designer interested in {{company}}',
+    body: "Hi {{first_name}},\n\n{{my_intro}}\n\n{{why_them}}\n\nI'd love to be considered for {{role_i_want}} work at {{company}}, whether that's a staff role or freelance. My reel and portfolio are at {{my_portfolio}}.\n\nWould you have 15 minutes in the next couple of weeks to talk about how your team is staffing up?\n\nThanks,\n{{my_name}}",
+  },
+  {
+    id: 'tpl-check',
+    name: 'Check-in (no reply yet)',
+    subject: 'Re: Motion designer interested in {{company}}',
+    body: "Hi {{first_name}},\n\nJust floating this back to the top of your inbox. I'm still very interested in {{role_i_want}} work at {{company}}.\n\nReel and portfolio: {{my_portfolio}}\n\nThanks again,\n{{my_name}}",
+  },
+  {
+    id: 'tpl-app',
+    name: 'Application follow-up',
+    subject: 'Following up on my {{role_i_want}} application',
+    body: 'Hi {{first_name}},\n\nI applied for the {{role_i_want}} role at {{company}} recently and wanted to follow up directly. {{why_them}}\n\nMy portfolio is at {{my_portfolio}}. Happy to send anything else you need.\n\nBest,\n{{my_name}}',
+  },
+  {
+    id: 'tpl-thanks',
+    name: 'Thank you after interview',
+    subject: 'Thank you, {{first_name}}',
+    body: "Hi {{first_name}},\n\nThanks for taking the time to talk today. I enjoyed learning more about the team at {{company}}, and I'm even more excited about the {{role_i_want}} role.\n\nLet me know if there's anything else I can send your way.\n\nBest,\n{{my_name}}",
+  },
+  {
+    id: 'tpl-referral',
+    name: 'Ask a friend for a referral',
+    subject: 'Quick favor about {{company}}',
+    body: "Hey {{first_name}},\n\nHope you're doing well! I'm going after {{role_i_want}} roles at {{company}} and wanted to ask if you'd be open to passing my name along, or pointing me to the right person on the production side.\n\nHere's my portfolio: {{my_portfolio}}\n\nNo pressure at all, and thanks either way.\n{{my_name}}",
+  },
+];

@@ -20,7 +20,15 @@ import { aiErrorMessage, type AI } from '../runtime/ai';
 import { useRuntime } from '../runtime/RuntimeProvider';
 import { useToast } from '../components/Toast';
 import { useWorkspace, type Workspace } from '../workspace/WorkspaceProvider';
-import { lookupPrompt, quickUpdatePrompt, summaryPrompt, type LookupReply } from './prompts';
+import {
+  draftPrompt,
+  lookupPrompt,
+  namePrompt,
+  quickUpdatePrompt,
+  summaryPrompt,
+  type DraftReply,
+  type LookupReply,
+} from './prompts';
 
 /** The card under the Quick update bar (SPEC section 9). */
 export type Notice =
@@ -52,6 +60,14 @@ type Assistant = {
   pickCandidate: (cand: Candidate) => void;
   /** Summarize an email chain into three lines; saves it on the chain. */
   summarize: (chain: Chain) => Promise<void>;
+  /** Draft with AI: the next email for a company, new or as a reply in a chain. */
+  draft: (
+    company: Company,
+    recipient: { name: string; role: string } | null,
+    chain: Chain | null,
+  ) => Promise<{ subject: string; body: string } | null>;
+  /** A quick AI guess at a name from an email address; '' when it can't tell. */
+  guessName: (email: string) => Promise<string>;
 };
 
 const AssistantContext = createContext<Assistant | null>(null);
@@ -234,6 +250,36 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           const text = fail(e);
           if (text) toast(text);
+        }
+      },
+      draft: async (company, recipient, chain) => {
+        if (!ai) {
+          toast('Drafting uses AI, which works when Reacher is open in Claude.');
+          return null;
+        }
+        const { board, me, actions } = wsRef.current;
+        try {
+          const r = await ai.json<DraftReply>(
+            draftPrompt(board, company, actions.pageOf(company.id), me, recipient, chain),
+          );
+          if (typeof r?.body !== 'string' || !r.body.trim()) {
+            toast("The AI's answer was empty. Try again.");
+            return null;
+          }
+          return { subject: String(r.subject ?? ''), body: r.body };
+        } catch (e) {
+          const text = fail(e);
+          if (text) toast(text);
+          return null;
+        }
+      },
+      guessName: async (email) => {
+        if (!ai) return '';
+        try {
+          const r = await ai.json<{ name?: unknown }>(namePrompt(email), 'quick');
+          return String(r?.name ?? '').trim();
+        } catch {
+          return '';
         }
       },
     }),

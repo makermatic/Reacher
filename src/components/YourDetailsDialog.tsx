@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { normalizeUrl } from '../lib/links';
+import { todayISO } from '../model/dates';
 import type { Me } from '../model/types';
 import { useRuntime } from '../runtime/RuntimeProvider';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
@@ -19,6 +20,7 @@ const FIELDS: {
   { key: 'portfolio', label: 'Portfolio link', link: true, placeholder: 'yoursite.com' },
   { key: 'reel', label: 'Reel link', link: true, placeholder: 'vimeo.com/…' },
   { key: 'phone', label: 'Phone', type: 'tel' },
+  // intro is the textarea below
 ];
 
 /** Links are typed loosely ("zackzand.com") and saved as full links. */
@@ -53,8 +55,9 @@ export function YourDetailsDialog({
       )}
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-[13px] text-muted">
         <span className="min-w-0 flex-1">
-          Coming from the prototype? Bring everything over in one go.
+          Your data is yours. Export everything as one file anytime, or bring in an export.
         </span>
+        <ExportButton />
         <button type="button" className={`${btn.base} ${btn.small}`} onClick={onImport}>
           Import data
         </button>
@@ -92,7 +95,10 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
     <form onSubmit={save} className="grid gap-4">
       {FIELDS.map((f) => (
         <label key={f.key} htmlFor={`me-${f.key}`} className="grid gap-1.5">
-          <span className="font-medium">{f.label}</span>
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="font-medium">{f.label}</span>
+            <span className="font-mono text-[11px] text-faint">{`{{my_${f.key}}}`}</span>
+          </span>
           <input
             id={`me-${f.key}`}
             type={f.type ?? 'text'}
@@ -110,7 +116,10 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
         </label>
       ))}
       <label htmlFor="me-intro" className="grid gap-1.5">
-        <span className="font-medium">Intro paragraph</span>
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="font-medium">Intro paragraph</span>
+          <span className="font-mono text-[11px] text-faint">{'{{my_intro}}'}</span>
+        </span>
         <textarea
           id="me-intro"
           rows={4}
@@ -130,5 +139,37 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
         </button>
       </div>
     </form>
+  );
+}
+
+/** Export data (SPEC section 10): everything in one file, the same shape the import reads. */
+function ExportButton() {
+  const runtime = useRuntime();
+  const { board, companies, chains, pages, templates, me } = useWorkspace();
+  const toast = useToast();
+  const saveFile = runtime.status === 'ready' ? runtime.saveFile : null;
+  const exportAll = async () => {
+    if (!saveFile) return toast('Export works when Reacher is open in Claude.');
+    const data = {
+      exported: new Date().toISOString(),
+      board,
+      companies,
+      chains,
+      pages,
+      templates,
+      me,
+    };
+    try {
+      await saveFile(`reacher-${todayISO()}.json`, JSON.stringify(data, null, 2));
+      toast('Exported');
+    } catch (e) {
+      if ((e as { code?: string } | null)?.code !== 'declined')
+        toast("Couldn't export. Try again.");
+    }
+  };
+  return (
+    <button type="button" className={`${btn.base} ${btn.small}`} onClick={exportAll}>
+      Export data
+    </button>
   );
 }

@@ -27,10 +27,12 @@ export function Header({
   view,
   onViewChange,
   onOpenDetails,
+  onOpenTemplates,
 }: {
   view: View;
   onViewChange: (v: View) => void;
   onOpenDetails: () => void;
+  onOpenTemplates: () => void;
 }) {
   return (
     <header className="flex flex-wrap items-center gap-3">
@@ -40,12 +42,7 @@ export function Header({
       </div>
       <ViewSwitcher view={view} onChange={onViewChange} />
       <div className="flex-1" />
-      <button
-        type="button"
-        className={button}
-        disabled
-        title="Email templates arrive in a later update"
-      >
+      <button type="button" className={button} onClick={onOpenTemplates}>
         Email templates
       </button>
       <button type="button" className={button} onClick={onOpenDetails}>

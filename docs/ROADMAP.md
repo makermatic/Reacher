@@ -8,11 +8,11 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M3** (company page), **M4** (Board) and **M5** (AI) on Reacher Test. Test lists in those sections. The first AI use asks permission to use your Claude; allow it.
+1. ⏳ **Big test round: M3–M6** on Reacher Test. The full regimen is in the M6 section below. Send numbered notes with screenshots.
 
 ## Now
 
-M3, M4 and M5 published. Next: M6 (writing emails, templates, Your details export), which reaches feature parity.
+M3–M6 published: Reacher now does everything the prototype did. Waiting on Zack's test round. After his notes: fix round, then move real data to the real Reacher artifact, then M7 (UI overhaul).
 
 ## Links
 
@@ -167,13 +167,51 @@ M3, M4 and M5 published. Next: M6 (writing emails, templates, Your details expor
   6. Open a company with an email chain and click Summarize: three lines appear. Add an email and the summary says "1 new email since this summary".
   7. Tell Claude when an answer is wrong: what you typed, what it did, what you expected.
 
-### M6: Writing emails, templates, Your details ⬜
-- Draft with AI and the name-from-email guess (moved from M5).
-- An "AI check" page that runs the prompt regression set inside Claude.
-- Write an email panel: Send in, template, To (saves into Main contact), editable subject and body, blank-field warnings, live placeholder replacement, Back to template, copy buttons, mailto, Log as sent with follow-up.
-- Email templates screen with field buttons and live preview.
-- Your details and Export data.
-- **Milestone: feature parity. Zack moves his real data into Reacher and stops using the prototype.**
+### M6: Writing emails, templates, Your details 🔨 (published, waiting on Zack's test)
+- ✅ Email logic in `src/model/email.ts` (fields, placeholders, default template and chain, name guessing), unit tested.
+- ✅ Write an email under Email chains: Send in, template (status-suggested), To (saves into the contact and fills the name: first.last, shared inboxes skipped, else an AI guess), editable subject and body, "Fill in before sending" with set it / add it links, placeholders filled automatically even after edits, Back to template, Draft with AI, Copy email / subject / to, Open in mail app, Log as sent with follow-up days.
+- ✅ Email templates screen: list, editor, click-to-insert fields at the cursor, live preview for any company (green filled, yellow blank), Suggested at, save and delete. New accounts start with the five starting templates (made generic).
+- ✅ Your details shows which field each value fills; Export data saves everything as one file (same shape the import reads).
+- Not yet: the "AI check" page for the prompt regression set (moved to the fix round after this test).
+- **Milestone reached: feature parity.** Reacher does everything the prototype does.
+
+#### Test regimen for M3–M6 (Reacher Test)
+Before you start: Reacher Test already has your imported data. Use it freely; the real Reacher gets a fresh import later.
+
+**A. Company page (M3)**
+1. Click a company name: its page slides in from the right and the sheet shifts left. Click the same name: it closes.
+2. Drag the page's left edge to resize. Close it, open another: the width stuck.
+3. Escape closes it; so does clicking an empty part of the sheet. Clicks inside menus and pickers don't.
+4. Click the company name at the top to rename it. Change Status, Outcome (at Meeting or Interview) and Follow up on from the header.
+5. Details: edit a few values; hidden columns say PAGE ONLY; + Property adds a column.
+6. Collapse a section by its title; drag a section by its ⋮⋮ grip (shows on hover) to reorder. Reload: both remembered.
+7. Email chains: + New chain, rename it by clicking the title, paste an email From them (status → Wrote back!!, follow-up clears), paste one From me on a Gathering company (→ Reached out). Long emails collapse with Show all. ⋯ deletes a chain (second click confirms).
+8. Notes: Enter adds, Shift+Enter is a new line. Applications on a company with no status → Applied. Meetings: Interview, future date and time → Interview status, Upcoming tag, the sheet shows the date, Add to Google Calendar opens a filled-in event.
+9. Delete an entry with × (it asks "Delete?" first).
+
+**B. Board (M4)**
+10. Drag a card to another lane: the lane lights up, the status changes, a message confirms. A plain click opens the page.
+11. Click a lane header to collapse it into a strip; click the strip to open it. Reload: remembered. Drop a card on a strip.
+
+**C. AI (M5)** (Claude asks permission the first time; allow it)
+12. Quick update: "Interview with New York Life on 11/6 at 12:30". The Updated card lists the changes; New York Life appears with Interview and 11/6; a moment later it says it filled in details. Hover the card: it stays. Click Undo: it's all gone.
+13. Quick update: "Reached out to Sibling Rivalry in January. In February we talked and it wasn't a good fit." Expect two dates, an email chain, a meeting, Outcome Bad fit.
+14. Quick update something vague: it asks a question, or shows Apply / Discard.
+15. Add "Big Star" in the sheet's last row: it's looked up (filled in, or "Which … did you mean?"). Also try ⋯ → Look up company details on an existing company.
+16. Open a chain and click Summarize: three lines. Add an email: "1 new email since this summary"; Refresh.
+
+**D. Emails (M6)**
+17. Open a Gathering or no-status company: Write an email picks First outreach and Start a new chain. On a Reached out or Wrote back!! company it picks the status template and replies in the latest chain.
+18. In To, type firstname.lastname@company.com and press Enter: the name fills in and "Hi [Contact first name]" becomes their name. Try jobs@… (no name guessed) and an address like jsmith@… (AI guesses).
+19. Blank fields show as [Why them] etc. with a set it / add it link. Edit the body, then click set it and fill the field: your edits stay and the placeholder fills in. Back to template resets.
+20. Draft with AI: a draft appears (under 140 words, signed with your first name). Try another gives a new one.
+21. Copy email, Copy subject, Copy (To). Open in mail app (may do nothing in some setups; that's the platform).
+22. Log as sent with "follow up in 5 days": the email lands in the chain, status moves (Gathering → Reached out, Wrote back!! → Replied), Follow up on is set.
+23. Email templates (top right): pick one, click in the body, click a field button (it inserts at the cursor), switch the preview company and watch green and yellow, Save. Make a new template; delete one.
+24. Your details: each field shows its {{my_…}} name. Export data offers a file to save; it can be imported back.
+
+**E. Anything else**
+25. Look and feel: anything that animates too much or too little, feels slow, or reads wrong. Note it with a screenshot.
 
 ### M7: UI overhaul and motion pass ⬜
 - After feature parity (M6). Zack directs the look; references: Notion, ClickUp, Kitsu. Claude builds options, Zack picks and gives notes in rounds.

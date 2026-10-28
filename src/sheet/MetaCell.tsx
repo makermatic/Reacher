@@ -37,19 +37,22 @@ export function EditableValue({
   col,
   className,
   full = false,
+  label,
 }: {
   company: Company;
   col: Column;
   className: string;
   /** Show long text in full (company page) rather than its first line (sheet). */
   full?: boolean;
+  /** Show this text instead of the value (e.g. "set it" links). */
+  label?: string;
 }) {
   const { actions, companies } = useWorkspace();
   const [open, setOpen] = useState(false);
   const value = meta(company, col.id);
   const save = (v: unknown) => actions.setMeta(company.id, col.id, v);
 
-  if (col.type === 'status') return <StatusChip company={company} col={col} />;
+  if (col.type === 'status' && !label) return <StatusChip company={company} col={col} />;
 
   if (col.type === 'checkbox') {
     return (
@@ -70,7 +73,9 @@ export function EditableValue({
       className={`${className} ${col.type === 'number' && !full ? 'text-right' : ''}`}
       aria-label={`Edit ${col.name} for ${company.name}`}
     >
-      {full && col.type === 'longtext' && value ? (
+      {label ? (
+        label
+      ) : full && col.type === 'longtext' && value ? (
         <span className="whitespace-pre-wrap">{String(value)}</span>
       ) : (
         <CellValue col={col} value={value} />
@@ -86,7 +91,7 @@ export function EditableValue({
       label={`${col.name} for ${company.name}`}
       width={col.type === 'longtext' ? 360 : 300}
     >
-      {col.type === 'values' ? (
+      {col.type === 'values' || col.type === 'status' ? (
         <OptionPicker
           col={col}
           current={value}
