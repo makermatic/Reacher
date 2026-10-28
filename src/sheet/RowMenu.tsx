@@ -5,6 +5,7 @@ import { btn, field } from '../components/Modal';
 import { Popover, PopoverHeader } from '../components/Popover';
 import { useToast } from '../components/Toast';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useAssistant } from '../ai/Assistant';
 
 /** The ⋯ menu at the end of a company's name cell. */
 export function RowMenu({
@@ -38,6 +39,7 @@ export function RowMenu({
 
 function RowMenuBody({ company, onDone }: { company: Company; onDone: () => void }) {
   const { actions } = useWorkspace();
+  const { available, lookup } = useAssistant();
   const toast = useToast();
   const [name, setName] = useState(company.name);
   const [armed, del] = useArm(() => {
@@ -68,6 +70,20 @@ function RowMenuBody({ company, onDone }: { company: Company; onDone: () => void
           Rename
         </button>
       </form>
+      {available && (
+        <div>
+          <button
+            type="button"
+            className={`${btn.base} ${btn.small}`}
+            onClick={() => {
+              onDone();
+              void lookup(company);
+            }}
+          >
+            Look up company details
+          </button>
+        </div>
+      )}
       <div>
         <button type="button" className={`${btn.base} ${btn.small} ${btn.danger}`} onClick={del}>
           {armed ? 'Click again to delete' : 'Delete company'}

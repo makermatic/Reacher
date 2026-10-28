@@ -1,4 +1,5 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { AssistantProvider } from './ai/Assistant';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { clampPanel, CompanyPanel } from './company/CompanyPanel';
@@ -30,9 +31,11 @@ export function App() {
       <RuntimeProvider>
         <ToastProvider>
           <WorkspaceProvider>
-            <Tooltip.Provider delayDuration={hoverDelay}>
-              <Shell />
-            </Tooltip.Provider>
+            <AssistantProvider>
+              <Tooltip.Provider delayDuration={hoverDelay}>
+                <Shell />
+              </Tooltip.Provider>
+            </AssistantProvider>
           </WorkspaceProvider>
         </ToastProvider>
       </RuntimeProvider>

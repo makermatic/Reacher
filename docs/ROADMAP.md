@@ -8,11 +8,11 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M3** (the company page) and **M4** (Board) on Reacher Test. Test lists in those sections.
+1. ⏳ **Test M3** (company page), **M4** (Board) and **M5** (AI) on Reacher Test. Test lists in those sections. The first AI use asks permission to use your Claude; allow it.
 
 ## Now
 
-M3 and M4 published. Building M5 (AI: quick update, company lookup, chain summary, draft, name guess).
+M3, M4 and M5 published. Next: M6 (writing emails, templates, Your details export), which reaches feature parity.
 
 ## Links
 
@@ -149,14 +149,27 @@ M3 and M4 published. Building M5 (AI: quick update, company lookup, chain summar
   3. Click a lane's header: it shrinks to a thin strip with the name running vertically and the count on top. Click the strip to open it again. Reload: collapsed lanes stay collapsed.
   4. Drop a card onto a collapsed strip: that works too.
 
-### M5: AI features ⬜
-- One AI module for every Claude call.
-- Quick update: actions, apply immediately with Undo card, or Confirm with Apply / Discard; quiet lookup for new companies.
-- Company lookup (sure / not sure / no match).
-- Chain summary, Draft with AI, name-from-email guess.
-- Prompt regression set: example notes (like the Sibling Rivalry one) with the expected actions, rerun whenever a prompt changes.
+### M5: AI features 🔨 (published, waiting on Zack's test)
+- ✅ AI adapter (`src/runtime/ai.ts`) on the artifact's `sample` capability: runs on the viewer's own Claude plan. Default tier for quick update and lookup, quick tier for summaries.
+- ✅ Prompts carried over word for word from the prototype (`src/ai/prompts.ts`).
+- ✅ Quick update: actions apply straight away with an Updated card and Undo (restores every touched company, page, chain and column choices), or Apply / Discard when the AI isn't sure. New companies get a quiet lookup using the note as context. The card fades after about 7 seconds and stays while hovered.
+- ✅ Company lookup: on adding a company, from the row ⋯ menu, and from Details. Sure: fills empty fields and fixes the name, with "Not it? Did you mean…". Not sure: "Which X did you mean?" cards plus None of these.
+- ✅ Chain summary: Summarize / Refresh, three lines, "N new emails since this summary".
+- ✅ Unit tests for cleaning the AI's answer, applying it, undo snapshots, lookup filling, and the prompts. End-to-end test with a stand-in AI.
+- Moved to M6: Draft with AI and the name-from-email guess (both live in the email writer).
+- Prompt regression set: still to do. The AI only runs inside Claude, so this needs a small in-app "AI check" page; planned with M6.
+- **Test list (Reacher Test, inside Claude):**
+  1. Type "Interview with New York Life on 11/6 at 12:30" in Quick update and press Enter. Claude asks once for permission to use AI; allow it. An "Updated" card lists what changed; New York Life appears with Interview and 11/6. A moment later a message says it filled in details.
+  2. Click Undo on the card: New York Life disappears.
+  3. Try the Sibling Rivalry note from the spec: "Reached out to Sibling Rivalry in January. In February we talked and it wasn't a good fit." Two separate dates, a chain, a meeting, Outcome Bad fit.
+  4. Type something vague. The card should ask a question, or show Apply / Discard.
+  5. Add a company by name in the last row (try an ambiguous one, like "Big Star"). It's looked up: either filled in, or "Which … did you mean?" with choices.
+  6. Open a company with an email chain and click Summarize: three lines appear. Add an email and the summary says "1 new email since this summary".
+  7. Tell Claude when an answer is wrong: what you typed, what it did, what you expected.
 
 ### M6: Writing emails, templates, Your details ⬜
+- Draft with AI and the name-from-email guess (moved from M5).
+- An "AI check" page that runs the prompt regression set inside Claude.
 - Write an email panel: Send in, template, To (saves into Main contact), editable subject and body, blank-field warnings, live placeholder replacement, Back to template, copy buttons, mailto, Log as sent with follow-up.
 - Email templates screen with field buttons and live preview.
 - Your details and Export data.

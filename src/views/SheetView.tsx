@@ -14,6 +14,7 @@ import { useSheetUI } from '../sheet/SheetUI';
 import { StatusChip } from '../sheet/StatusChip';
 import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useAssistant } from '../ai/Assistant';
 
 /** The Kitsu-style sheet: one row per company (SPEC section 4). */
 export function SheetView({ onImport }: { onImport: () => void }) {
@@ -155,6 +156,7 @@ function SheetMessage({ children }: { children: React.ReactNode }) {
 /** The last row: type a company name and press Enter. Focus stays for the next one. */
 function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) {
   const { actions } = useWorkspace();
+  const { available, lookup } = useAssistant();
   const toast = useToast();
   const [name, setName] = useState('');
   const onKeyDown = (e: KeyboardEvent) => {
@@ -167,8 +169,9 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
       toast(`${existing.name} is already on the list`);
       return;
     }
-    actions.addCompany(n);
+    const c = actions.addCompany(n);
     setName('');
+    if (available) void lookup(c);
   };
   return (
     <tr>

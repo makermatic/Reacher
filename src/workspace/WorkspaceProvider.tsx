@@ -11,7 +11,9 @@ import { useToast } from '../components/Toast';
 import { nextStatus, type StatusEvent } from '../model/automation';
 import { boardOrDefault, metaPatch, optionOf, statusCol } from '../model/board';
 import { todayISO } from '../model/dates';
+import { fillableColumns } from '../ai/prompts';
 import type { ImportData } from '../model/importData';
+import { planCandidate, type Candidate, type QuickPlan, type QuickUndo } from '../model/quickPlan';
 import { norm, uid } from '../model/text';
 import type {
   Application,
@@ -153,8 +155,8 @@ function makeActions(
       return n ? companies.find((c) => norm(c.name) === n) : undefined;
     },
 
-    /** Adds a company at the bottom of the sheet; returns its id. */
-    addCompany(name: string) {
+    /** Adds a company at the bottom of the sheet; returns it. */
+    addCompany(name: string): Company {
       const id = uid('co');
       const c: Company = {
         id,
@@ -165,7 +167,7 @@ function makeActions(
         due: null,
       };
       void guard(store.setItem('companies', id, body(c)));
-      return id;
+      return c;
     },
 
     renameCompany(id: string, name: string) {
@@ -197,6 +199,62 @@ function makeActions(
 
     saveBoard(next: Board) {
       void guard(store.setDoc('board', { ...next, version: 2 }));
+    },
+
+    // ---------- AI ----------
+
+    /** Writes a quick update's plan (see model/quickPlan). */
+    applyQuick(plan: QuickPlan) {
+      const writes: Promise<unknown>[] = [
+        ...plan.created.map((c) => store.setItem('companies', c.id, body(c))),
+        ...plan.companies.map((c) => store.setItem('companies', c.id, body(c))),
+        ...Object.entries(plan.pages).map(([id, p]) =>
+          store.setItem('pages', id, p as unknown as Json),
+        ),
+        ...plan.chains.map((ch) => store.setItem('chains', ch.id, body(ch))),
+      ];
+      if (plan.board) writes.push(store.setDoc('board', plan.board as unknown as Json));
+      void guard(Promise.all(writes));
+    },
+
+    /** Puts back everything a quick update touched. */
+    async undoQuick(undo: QuickUndo) {
+      const writes: Promise<unknown>[] = undo.created.map((id) => api.deleteCompany(id));
+      for (const c of undo.companies) {
+        writes.push(store.setItem('companies', c.id, body(c)));
+        const p = undo.pages[c.id];
+        if (p) writes.push(store.setItem('pages', c.id, p as unknown as Json));
+        else if (pages[c.id]) writes.push(store.deleteItem('pages', c.id));
+        const keep = new Set((undo.chains[c.id] ?? []).map((ch) => ch.id));
+        for (const ch of chains)
+          if (ch.companyId === c.id && !keep.has(ch.id))
+            writes.push(store.deleteItem('chains', ch.id));
+        for (const ch of undo.chains[c.id] ?? [])
+          writes.push(store.setItem('chains', ch.id, body(ch)));
+      }
+      if (undo.board) writes.push(store.setDoc('board', undo.board as unknown as Json));
+      await guard(Promise.all(writes));
+    },
+
+    /** Fills a company from a lookup candidate; returns the names of the fields filled. */
+    applyCandidate(c: Company, cand: Candidate) {
+      const fillable = fillableColumns(board).map((col) => col.id);
+      const { patch, filled, newOptions } = planCandidate(board, c, cand, fillable);
+      if (Object.keys(newOptions).length)
+        api.saveBoard({
+          ...board,
+          columns: board.columns.map((col) =>
+            newOptions[col.id]
+              ? { ...col, options: [...(col.options ?? []), ...newOptions[col.id]!] }
+              : col,
+          ),
+        });
+      void guard(store.updateItem('companies', c.id, patch));
+      return filled;
+    },
+
+    saveSummary(chain: Chain, text: string) {
+      api.saveChain({ ...chain, summary: { text, at: todayISO(), count: chain.messages.length } });
     },
 
     // ---------- company page ----------

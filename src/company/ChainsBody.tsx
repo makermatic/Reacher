@@ -8,6 +8,7 @@ import { useToast } from '../components/Toast';
 import { useArm } from '../lib/useArm';
 import { duration, ease, itemInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useAssistant } from '../ai/Assistant';
 import { InlineText } from './InlineText';
 import { addForm, DeleteButton } from './parts';
 
@@ -136,6 +137,7 @@ function ChainCard({
             className="overflow-hidden"
           >
             <div className="grid gap-2 p-2.5">
+              <ChainSummary chain={chain} />
               {msgs.map((m) => (
                 <MessageCard key={m.id} chain={chain} message={m} />
               ))}
@@ -282,6 +284,55 @@ function AddEmailForm({ chain }: { chain: Chain }) {
           Add email
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Three plain lines: Where it stands / You owe them / Next step (SPEC section 9). */
+function ChainSummary({ chain }: { chain: Chain }) {
+  const { available, summarize } = useAssistant();
+  const [busy, setBusy] = useState(false);
+  const sum = chain.summary;
+  const stale = sum ? chain.messages.length - (sum.count || 0) : 0;
+  const run = async () => {
+    setBusy(true);
+    await summarize(chain);
+    setBusy(false);
+  };
+  if (!sum && !available) return null;
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="eyebrow text-[10.5px] font-semibold text-muted">AI summary</span>
+        {available && (
+          <button
+            type="button"
+            onClick={run}
+            disabled={busy || !chain.messages.length}
+            className={`${btn.base} ${btn.small}`}
+          >
+            {busy ? 'Summarizing…' : sum ? 'Refresh' : 'Summarize'}
+          </button>
+        )}
+      </div>
+      {sum ? (
+        <>
+          <div className="rounded-lg bg-accent-soft px-3 py-2 text-[13.5px] whitespace-pre-wrap">
+            {sum.text}
+          </div>
+          {stale > 0 && (
+            <div className="text-xs text-[var(--c-amber)]">
+              {stale} new {stale === 1 ? 'email' : 'emails'} since this summary.
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="rounded-lg bg-surface-2 px-3 py-2 text-[13.5px] text-muted">
+          {chain.messages.length
+            ? 'Summarize to see where this chain stands and what you owe them.'
+            : 'Paste the first email below.'}
+        </div>
+      )}
     </div>
   );
 }
