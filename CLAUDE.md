@@ -15,7 +15,8 @@ Turn the prototype into a real web app:
 
 Keep every prototype behavior unless Zack says otherwise. The prototype is the contract.
 
-## Suggested stack (confirm with Zack in the first session)
+## Stack
+Proposed in `docs/ROADMAP.md`; not final until Zack approves it there. Original suggestions:
 - **Frontend**: Vite + React + TypeScript. Framer Motion for animation.
 - **Data + accounts**: Supabase (Postgres, auth, row-level security so each user only sees their own data).
 - **AI**: Claude API, called from a server function (never put the API key in the browser).
@@ -23,6 +24,9 @@ Keep every prototype behavior unless Zack says otherwise. The prototype is the c
 - **Google**: Gmail and Google Calendar APIs with Google sign-in (OAuth). This needs a Google Cloud project.
 
 These are suggestions, not decisions. Explain the tradeoffs in plain words and let Zack pick.
+
+## Project management
+Claude is the project manager. `docs/ROADMAP.md` is the plan and status board: milestones, what's done, what's waiting on Zack, and the decisions log. Read it at the start of every session and update it before the session ends. Go to Zack only for decisions and testing.
 
 ## Working with Zack
 - Give the direct answer first. Start simple and only add complexity if the simple way doesn't work.

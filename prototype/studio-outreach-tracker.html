@@ -1,0 +1,1390 @@
+<title>Studio Outreach Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: Kitsu-style production sheet. Top bar, quick-update bar, sheet or board filling the screen; a company page docks on the right like Kitsu's task panel. */
+:root{
+  --bg:#ECF0EE; --surface:#FFFFFF; --surface-2:#F4F7F5; --hover:#EEF3F0;
+  --line:#DAE1DD; --line-strong:#C2CCC7; --fg:#16201C; --muted:#5D6B65; --faint:#8C9893;
+  --accent:#08924A; --accent-ink:#FFFFFF; --accent-soft:#DCF2E5;
+  --c-grey:#7F8B86; --c-blue:#2C67D6; --c-teal:#0E8A93; --c-green:#08924A; --c-amber:#A86F00; --c-pink:#C8317A; --c-red:#B0473A; --c-violet:#6B4FD0;
+  --chip-ink:#FFFFFF;
+  --miss-bg:#FFE7B8; --miss-fg:#6E4300; --late:#B0473A;
+  --shadow:0 12px 40px rgba(18,32,26,.16);
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121715; --surface:#1A201E; --surface-2:#202725; --hover:#252D2A;
+  --line:#2D3633; --line-strong:#3E4945; --fg:#E3EBE7; --muted:#9AA8A2; --faint:#6F7C77;
+  --accent:#2ED27A; --accent-ink:#04220F; --accent-soft:#183A28;
+  --c-grey:#7C8984; --c-blue:#5C93FF; --c-teal:#3CCFD8; --c-green:#2ED27A; --c-amber:#EDB23A; --c-pink:#FF6DAE; --c-red:#E8705F; --c-violet:#A08BFF;
+  --chip-ink:#0E1311;
+  --miss-bg:#4A3511; --miss-fg:#FFD68A; --late:#FF8A78;
+  --shadow:0 12px 40px rgba(0,0,0,.5);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#121715; --surface:#1A201E; --surface-2:#202725; --hover:#252D2A;
+  --line:#2D3633; --line-strong:#3E4945; --fg:#E3EBE7; --muted:#9AA8A2; --faint:#6F7C77;
+  --accent:#2ED27A; --accent-ink:#04220F; --accent-soft:#183A28;
+  --c-grey:#7C8984; --c-blue:#5C93FF; --c-teal:#3CCFD8; --c-green:#2ED27A; --c-amber:#EDB23A; --c-pink:#FF6DAE; --c-red:#E8705F; --c-violet:#A08BFF;
+  --chip-ink:#0E1311;
+  --miss-bg:#4A3511; --miss-fg:#FFD68A; --late:#FF8A78;
+  --shadow:0 12px 40px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column;gap:10px;padding-block:12px 14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.c-grey{--c:var(--c-grey)}.c-blue{--c:var(--c-blue)}.c-teal{--c:var(--c-teal)}.c-green{--c:var(--c-green)}.c-amber{--c:var(--c-amber)}.c-pink{--c:var(--c-pink)}.c-red{--c:var(--c-red)}.c-violet{--c:var(--c-violet)}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.brand .prod{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.spacer{flex:1}
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:7px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:var(--surface);padding:5px 11px;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--fg);font-weight:500}
+.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:6px 12px;transition:background .15s,border-color .15s,filter .15s;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none;color:var(--fg)}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.ghost:hover{background:var(--hover)}
+.btn.small{padding:3px 8px;font-size:12.5px}
+.btn.danger{color:var(--c-red)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.mode{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--line-strong);color:var(--muted)}
+
+/* quick update + notices */
+.quick-wrap{position:relative;z-index:15}
+.quick{display:flex;gap:8px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 14px;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:border-color .15s,box-shadow .15s}
+.quick .q-label{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);align-self:center;white-space:nowrap}
+.quick input{flex:1;min-width:0;border:0;background:none;padding:6px 4px;outline:none;font-size:14.5px}
+.quick:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+#notice{position:absolute;left:0;right:0;top:calc(100% + 6px)}
+.notice{background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:12px 14px;display:grid;gap:8px;box-shadow:var(--shadow)}
+.notice.done{border-left:3px solid var(--accent)}
+.notice .n-head{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.notice .n-head b{font-weight:600}
+.notice .n-msg{font-weight:500}
+.notice ul{margin:0;padding-left:18px;display:grid;gap:3px}
+.notice .n-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cands{display:flex;gap:8px;flex-wrap:wrap}
+.cand{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:7px 10px;text-align:left;display:grid;gap:1px;max-width:280px}
+.cand:hover{border-color:var(--accent);background:var(--hover)}
+.cand small{color:var(--muted);font-size:12px}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:6px 12px;border:1px dashed var(--line-strong);border-radius:8px}
+.banner b{color:var(--fg);font-weight:600}
+
+/* toolbar */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar .search{border:1px solid var(--line-strong);background:var(--surface);border-radius:7px;padding:6px 10px;width:220px;max-width:100%}
+.count{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-right:auto}
+.view{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+
+/* sheet */
+.grid-wrap{flex:1;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table.grid{border-collapse:separate;border-spacing:0;min-width:100%;font-size:13.5px}
+.grid th,.grid td{border-bottom:1px solid var(--line);border-right:1px solid color-mix(in srgb,var(--line) 55%,transparent);padding:0;text-align:left;vertical-align:middle;white-space:nowrap}
+.grid thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);font-weight:600;font-size:12.5px;color:var(--muted)}
+.grid .sticky-col{position:sticky;left:0;z-index:1;background:var(--surface);min-width:200px;max-width:270px}
+.grid thead .sticky-col{z-index:3;background:var(--surface-2)}
+.grid tbody tr:hover td{background:var(--hover)}
+.grid tbody tr.open td{background:var(--accent-soft)}
+.h-btn{display:flex;flex-direction:column;gap:3px;width:100%;border:0;background:none;padding:7px 10px 6px;text-align:left;font-weight:600}
+.h-btn:hover{background:var(--hover)}
+.h-type{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:500}
+.dist{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line);min-width:110px}
+.dist span{display:block;height:100%;background:var(--c)}
+.th-plain{padding:7px 10px;font-weight:600}
+.co-cell{display:flex;align-items:center;gap:4px;padding-right:4px}
+.co-name{flex:1;min-width:0;border:0;background:none;text-align:left;padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.co-name:hover{text-decoration:underline;text-decoration-color:var(--line-strong)}
+.ex{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line-strong);border-radius:4px;padding:0 4px}
+.icon-btn{border:0;background:none;color:var(--faint);padding:4px 6px;border-radius:5px;line-height:1}
+.icon-btn:hover{background:var(--line);color:var(--fg)}
+.st-cell{padding:5px 8px !important}
+.st-wrap{display:flex;align-items:center;gap:6px}
+.schip{font-family:var(--f-mono);font-weight:600;font-size:11px;letter-spacing:.03em;border-radius:5px;padding:3px 8px;min-width:84px;text-align:center;border:1px solid transparent;background:var(--c);color:var(--chip-ink);white-space:nowrap}
+.schip:hover{filter:brightness(1.07)}
+.schip.empty{background:transparent;border-color:var(--line-strong);color:var(--faint);font-weight:500}
+.due{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.due.late{color:var(--late);font-weight:600}
+.due.today{color:var(--c-amber);font-weight:600}
+.m-cell{cursor:pointer;padding:7px 10px !important;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.m-cell.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:12.5px}
+.m-cell.date{font-family:var(--f-mono);font-size:12.5px}
+.empty-v{color:var(--faint)}
+a.lnk{color:var(--accent);text-decoration:none}
+a.lnk:hover{text-decoration:underline}
+.ai{font-family:var(--f-mono);font-size:9px;letter-spacing:.05em;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:3px;padding:0 3px;margin-left:5px;vertical-align:1px}
+.person{display:inline-flex;flex-direction:column;line-height:1.2}
+.person small{color:var(--muted);font-size:11.5px}
+.tag{display:inline-block;font-size:12px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--c) 18%,var(--surface));color:var(--fg);border:1px solid color-mix(in srgb,var(--c) 35%,var(--surface));margin-right:3px}
+.cl{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px}
+.cl .bar{width:44px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.cl .bar span{display:block;height:100%;background:var(--accent)}
+.cb{width:16px;height:16px;border:1.5px solid var(--line-strong);border-radius:4px;display:inline-grid;place-items:center;vertical-align:middle}
+.cb.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.add-row td{border-bottom:0}
+.add-row input{border:0;background:none;padding:9px 10px;width:100%;outline:none}
+.add-row input::placeholder{color:var(--faint)}
+.add-col-th{padding:4px 8px !important;border-right:0 !important}
+.empty-grid{padding:40px 20px;text-align:center;color:var(--muted)}
+
+/* board */
+.kanban{flex:1;min-height:0;overflow:auto;display:flex;gap:10px;padding-bottom:4px;align-items:stretch}
+.lane{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-height:0;flex:1 0 220px;max-width:340px}
+.lane.collapsed{flex:0 0 46px;cursor:pointer;box-shadow:inset 0 4px 0 var(--c);overflow:hidden}
+.lane.collapsed:hover{background:var(--hover)}
+.lane.collapsed .lane-body{display:none}
+.lane.collapsed .lane-h{border-bottom:0;height:100%;justify-items:center;align-content:start;padding:10px 0}
+.lane.collapsed .lane-h .g,.lane.collapsed .lane-h .bar{display:none}
+.lane.collapsed .lane-h .t{writing-mode:vertical-rl;transform:rotate(180deg);flex-direction:row-reverse;gap:8px}
+.lane-name{font-weight:600}
+.lane-h[data-act]{cursor:pointer;border-radius:10px 10px 0 0}
+.lane-h[data-act]:hover{background:var(--hover)}
+.lane-h[data-act]:hover .lane-name{text-decoration:underline;text-underline-offset:3px}
+.lane.over{border-color:var(--accent);background:var(--accent-soft)}
+.lane-h{display:grid;gap:4px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.lane-h .g{font-family:var(--f-mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);min-height:1em}
+.lane-h .t{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.lane-h .n{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.lane-h .bar{height:3px;border-radius:2px;background:var(--c)}
+.lane-body{padding:8px;display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:60px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;cursor:grab;text-align:left;transition:border-color .15s,box-shadow .15s}
+.card:hover{border-color:var(--line-strong);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.45}
+.card-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.lane-empty{font-size:12.5px;color:var(--faint);padding:6px 4px}
+
+/* company page (docked panel) */
+#resizer{position:fixed;top:0;bottom:0;width:10px;right:calc(min(var(--pw,640px),100vw) - 5px);cursor:col-resize;z-index:22;touch-action:none}
+#resizer::after{content:"";position:absolute;left:4px;top:0;bottom:0;width:2px;background:transparent;transition:background .15s}
+#resizer:hover::after,#resizer.drag::after{background:var(--accent)}
+body.panel-push .app{padding-right:calc(var(--pw,640px) + 16px)}
+@media (max-width:720px){#resizer{display:none}}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(var(--pw,640px),100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow);z-index:20;overflow:auto;
+  padding-top:calc(20px + env(safe-area-inset-top,0px));padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));padding-left:26px;padding-right:max(26px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:26px}
+.p-head{display:flex;align-items:flex-start;gap:8px}
+.p-head h2{font-family:var(--f-display);font-weight:700;font-size:26px;margin:0;line-height:1.1;text-wrap:balance}
+.p-title{border:0;background:none;padding:0;text-align:left;flex:1;min-width:0}
+.p-title:hover h2{text-decoration:underline;text-decoration-color:var(--line-strong)}
+.p-status{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.p-status .field{gap:4px}
+.eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.props{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);border-top:1px solid var(--line)}
+.prop-k,.prop-v{border-bottom:1px solid var(--line);padding:7px 8px;min-height:36px;display:flex;align-items:center}
+.prop-k{color:var(--muted);font-size:13px;gap:6px}
+.prop-k .hidden-note{font-family:var(--f-mono);font-size:9px;color:var(--faint);letter-spacing:.05em}
+.prop-v{cursor:pointer;min-width:0;flex-wrap:wrap;gap:3px;overflow-wrap:anywhere}
+.prop-v:hover{background:var(--hover)}
+.prop-v.long{white-space:pre-wrap;align-items:flex-start}
+.sec{display:grid;gap:10px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding-bottom:8px;cursor:grab}
+.sec-h:active{cursor:grabbing}
+.sec-h .sec-t{display:flex;align-items:center;gap:6px;border:0;background:none;padding:0;text-align:left;flex:1;min-width:0}
+.sec-h .chev{color:var(--muted);font-size:12px;width:12px}
+.grip{color:var(--faint);padding:2px 2px;font-size:13px;line-height:1;letter-spacing:-2px;opacity:0;transition:opacity .15s}
+.sec-h:hover .grip{opacity:1}
+.psec.over > .sec-h{border-bottom-color:var(--accent)}
+.psec.dragging{opacity:.5}
+.psec.collapsed > :not(.sec-h){display:none}
+.sec-h h3{font-family:var(--f-display);font-weight:700;font-size:16px;margin:0;letter-spacing:-.005em}
+.sec-h .n{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:6px;font-weight:500}
+.chain{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.chain-h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.chain-h .ttl{font-weight:600;border:0;background:none;padding:0;text-align:left;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chain-h .meta{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.chain-b{padding:10px 12px;display:grid;gap:8px}
+.summary{background:var(--accent-soft);border-radius:8px;padding:9px 12px;white-space:pre-wrap;font-size:13.5px}
+.summary.none{background:var(--surface-2);color:var(--muted)}
+.stale{font-size:12px;color:var(--c-amber)}
+.msg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:4px}
+.msg.out{border-left:3px solid var(--c-blue)}
+.msg.in{border-left:3px solid var(--c-pink)}
+.msg-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.msg-h .who{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--fg)}
+.msg-h .x{margin-left:auto}
+.msg-body{white-space:pre-wrap;font-size:13px;max-height:9.5em;overflow:hidden}
+.msg-body.open{max-height:none}
+.more{border:0;background:none;color:var(--accent);padding:0;font-size:12px;justify-self:start}
+.entry{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);align-items:start}
+.entry .d{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:1px}
+.entry .b{white-space:pre-wrap;font-size:13.5px;min-width:0;overflow-wrap:anywhere}
+.entry .b b{font-weight:600}
+.entry .b .sub{color:var(--muted);font-size:12.5px}
+.addform{display:grid;gap:8px;background:var(--surface-2);border-radius:10px;padding:10px}
+.compose{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.compose .c-row{display:flex;gap:8px;align-items:baseline;padding:7px 10px;border-bottom:1px solid var(--line);font-size:13px}
+.compose .c-row .k{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);width:54px;flex:none}
+.compose .c-row .v{flex:1;min-width:0;overflow-wrap:anywhere}
+.compose .c-body{padding:10px;white-space:pre-wrap;font-size:13px;line-height:1.55}
+.compose .c-row input{border:1px solid transparent;background:none;border-radius:5px;padding:2px 5px;width:100%;min-width:0}
+.compose .c-row input:hover{border-color:var(--line)}
+.compose .c-row input:focus{border-color:var(--accent);outline:none}
+.compose textarea.c-edit{display:block;width:100%;border:0;padding:12px;font-size:13.5px;line-height:1.6;min-height:200px;resize:none;overflow:hidden;background:var(--surface);outline:none}
+.compose:focus-within{border-color:var(--accent)}
+.to-who{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.due.when{color:var(--accent);font-weight:600;cursor:default}
+.compose .c-tools{display:flex;gap:6px;align-items:center;justify-content:flex-end;padding:5px 8px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:12px;color:var(--muted)}
+.warn button.more{color:var(--miss-fg);text-decoration:underline}
+.upcoming{font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:4px;padding:0 4px;margin-left:6px}
+.tok-group{display:grid;gap:5px}
+.tok-group > b{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tpl-preview{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tpl-preview .c-body{padding:10px;white-space:pre-wrap;font-size:13px;line-height:1.55}
+.tok-fill{background:var(--accent-soft);border-radius:3px;padding:0 2px}
+.tok-miss{background:var(--miss-bg);color:var(--miss-fg);border-radius:3px;padding:0 2px;font-family:var(--f-mono);font-size:12px}
+.warn{font-size:12.5px;color:var(--miss-fg);background:var(--miss-bg);border-radius:7px;padding:7px 10px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+
+/* forms */
+.field{display:grid;gap:5px}
+.field > span{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.field input,.field select,.field textarea,.inp{border:1px solid var(--line-strong);background:var(--surface);border-radius:7px;padding:7px 9px;width:100%}
+textarea.inp,.field textarea{resize:vertical;line-height:1.5}
+.hint{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row > .grow{flex:1;min-width:140px}
+
+/* popover, picker, modal, overlay, toast */
+.pop{position:fixed;z-index:30;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);padding:12px;width:300px;max-width:calc(100vw - 32px);display:grid;gap:10px;max-height:72vh;overflow:auto}
+.pop-h{display:flex;justify-content:space-between;align-items:baseline;font-weight:600}
+.pop-h .pt{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.pk-list{display:grid;gap:1px}
+.pk-group{font-family:var(--f-mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);padding:8px 6px 3px}
+.pk-item{border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;display:flex;align-items:center;gap:8px}
+.pk-item .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.pk-item.hi{background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent)}
+.pk-item mark{background:none;color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:2px}
+.pk-item .grp{margin-left:auto;font-family:var(--f-mono);font-size:10px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase}
+.pk-enter{font-family:var(--f-mono);font-size:10px;color:var(--muted);border:1px solid var(--line-strong);border-radius:3px;padding:0 4px;margin-left:6px}
+.pk-item .cur{margin-left:auto;font-size:11px;color:var(--muted)}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:6px 9px;text-align:left;display:flex;align-items:center;gap:8px}
+.cl-item{display:flex;align-items:center;gap:8px}
+.cl-item span{flex:1;min-width:0}
+.cl-item span.done{text-decoration:line-through;color:var(--muted)}
+.modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(10,16,13,.45);padding:16px}
+.modal-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(480px,100%);max-height:90vh;overflow:auto;padding:22px;display:grid;gap:14px}
+.modal-card.wide{width:min(640px,100%)}
+.modal-card h3{font-family:var(--f-display);font-weight:700;font-size:26px;margin:0}
+.opt-edit{display:grid;grid-template-columns:44px minmax(0,1.3fr) minmax(0,1fr) 84px minmax(0,1fr) auto;gap:6px;align-items:center}
+.opt-edit .inp{padding:5px 7px;font-size:13px}
+.opt-edit-h{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.overlay{position:fixed;inset:0;z-index:35;background:var(--bg);display:flex;flex-direction:column;gap:12px;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.overlay-h{display:flex;align-items:center;gap:10px}
+.overlay-h h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0;flex:1}
+.tpl-layout{flex:1;min-height:0;display:grid;grid-template-columns:250px minmax(0,1fr);gap:12px}
+.tpl-list{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.tpl-item{border:0;background:none;text-align:left;padding:8px 10px;border-radius:7px;display:grid;gap:1px}
+.tpl-item:hover{background:var(--hover)}
+.tpl-item[aria-current="true"]{background:var(--accent-soft)}
+.tpl-item small{color:var(--muted);font-size:12px}
+.tpl-edit{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;overflow:auto;display:grid;gap:12px;align-content:start}
+.tokens{display:flex;flex-wrap:wrap;gap:5px}
+.tok{font-family:var(--f-mono);font-size:11.5px;border:1px solid var(--line-strong);background:var(--surface-2);border-radius:5px;padding:2px 6px}
+.tok:hover{border-color:var(--accent)}
+.tip{position:fixed;z-index:60;background:var(--fg);color:var(--bg);border-radius:8px;padding:6px 10px;font-size:12.5px;line-height:1.35;pointer-events:none;box-shadow:var(--shadow);max-width:260px}
+.tip b{font-weight:600;display:block}
+.tip span{opacity:.75}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+@media (max-width:720px){
+  .tpl-layout{grid-template-columns:1fr;grid-auto-rows:min-content}
+  .tpl-list{max-height:180px}
+  .brand .prod,.quick .q-label{display:none}
+  .props{grid-template-columns:110px minmax(0,1fr)}
+  .opt-edit{grid-template-columns:1fr 1fr}
+  .opt-edit-h{display:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  .panel{animation:slide .18s ease-out}
+  @keyframes slide{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><h1>Studio Outreach Tracker</h1><span class="prod" id="prod-line"></span></div>
+    <div class="seg" role="group" aria-label="View">
+      <button data-act="view" data-view="sheet" aria-pressed="true">Sheet</button>
+      <button data-act="view" data-view="board" aria-pressed="false">Board</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" data-act="open-templates">Email templates</button>
+    <button class="btn" data-act="open-me">Your details</button>
+    <span class="mode" id="mode" hidden></span>
+  </header>
+
+  <div class="quick-wrap">
+  <form class="quick" id="quick-form" autocomplete="off">
+    <span class="q-label">Quick update</span>
+    <input id="quick-input" placeholder="Tell it what happened, e.g. “Reached out to Sibling Rivalry in January. In February we talked and it wasn't a good fit.”">
+    <button class="btn primary" id="quick-go" type="submit">Update</button>
+  </form>
+  <div id="notice" hidden></div>
+  </div>
+  <div id="banner" hidden></div>
+
+  <section class="view" id="view-sheet">
+    <div class="toolbar">
+      <input class="search" id="search" type="search" placeholder="Search companies">
+      <div class="seg" role="group" aria-label="Filter">
+        <button data-act="filter" data-f="all" aria-pressed="true">All</button>
+        <button data-act="filter" data-f="needs" aria-pressed="false">Needs me</button>
+      </div>
+      <span class="count" id="count"></span>
+      <button class="btn" data-act="columns-menu">Columns</button>
+      <button class="btn" data-act="add-col">+ Column</button>
+    </div>
+    <div class="grid-wrap" id="grid-host"></div>
+  </section>
+
+  <section class="view" id="view-board" hidden>
+    <div class="toolbar"><span class="count" id="board-count"></span><span class="small muted">Drag a card to change its status. Click a card to open it.</span></div>
+    <div class="kanban" id="board-host"></div>
+  </section>
+</div>
+
+<div id="resizer" hidden aria-hidden="true"></div>
+<aside class="panel" id="panel" hidden aria-label="Company page"></aside>
+<div class="overlay" id="overlay" hidden></div>
+<div class="pop" id="pop" hidden></div>
+<div class="modal" id="modal" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<div class="tip" id="tip" hidden role="tooltip"></div>
+
+<script>
+/* ---------- constants ---------- */
+const TYPES={status:'Status',text:'Text',longtext:'Long text',number:'Number',checkbox:'Checkbox',date:'Date',link:'Link',person:'Person',values:'List of values',tags:'List of tags',checklist:'Checklist'};
+const COLORS=['grey','blue','teal','green','amber','pink','red','violet'];
+const DEFAULT_BOARD={version:2,columns:[
+  {id:'status',name:'Status',type:'status',locked:true,onSheet:true,options:[
+    {id:'gathering',label:'Gathering',group:'Email outreach',color:'grey',tpl:'tpl-intro'},
+    {id:'reached',label:'Reached out',group:'Email outreach',color:'blue',tpl:'tpl-check'},
+    {id:'wroteback',label:'Wrote back!!',group:'Email outreach',color:'pink',tpl:'',icon:'❗'},
+    {id:'replied',label:'Replied',group:'Email outreach',color:'amber',tpl:'tpl-check'},
+    {id:'meeting',label:'Meeting',group:'Email outreach',color:'violet',tpl:'tpl-thanks'},
+    {id:'applied',label:'Applied',group:'Job application',color:'teal',tpl:'tpl-app'},
+    {id:'rejected',label:'Rejected',group:'Job application',color:'red',tpl:''},
+    {id:'interview',label:'Interview',group:'Job application',color:'violet',tpl:'tpl-thanks'}
+  ]},
+  {id:'outcome',name:'Outcome',type:'status',onSheet:true,showWhen:{col:'status',values:['meeting','interview']},options:[
+    {id:'hopeful',label:'Hopeful',group:'',color:'green',tpl:''},
+    {id:'offer',label:'Offer!',group:'',color:'teal',tpl:''},
+    {id:'badfit',label:'Bad fit',group:'',color:'grey',tpl:''},
+    {id:'rejected',label:'Rejected',group:'',color:'red',tpl:''}
+  ]},
+  {id:'priority',name:'Priority',type:'values',onSheet:true,options:['Dream','Strong','Backup']},
+  {id:'role',name:'Role I want',type:'text',onSheet:true},
+  {id:'city',name:'City',type:'text',onSheet:true},
+  {id:'contact',name:'Main contact',type:'person',onSheet:true},
+  {id:'tags',name:'Company type',type:'tags',onSheet:true,options:['Studio','Broadcast','Agency','In-house']},
+  {id:'website',name:'Website',type:'link',onSheet:false},
+  {id:'size',name:'Size',type:'values',onSheet:false,options:['Small (under 50)','Mid (50–200)','Large (200+)']},
+  {id:'why',name:'Why them',type:'longtext',onSheet:false},
+  {id:'prep',name:'Prep',type:'checklist',onSheet:false}
+]};
+/* Preview-only sample data, used when this view has no saved database (marked as examples). */
+const DEMO={"me":{"name":"Zack","portfolio":"zackzand.com","reel":"","phone":"","intro":"I'm finishing my MA in Motion Media Design at SCAD this November. Before grad school I worked in 2D TV animation as a rigging artist and animator on shows like Wild Kratts and The Loud House, and I've been moving into motion design and broadcast graphics."},"templates":[{"id":"tpl-intro","name":"First outreach","subject":"Motion designer interested in {{company}}","body":"Hi {{first_name}},\n\n{{my_intro}}\n\n{{why_them}}\n\nI'd love to be considered for {{role_i_want}} work at {{company}}, whether that's a staff role or freelance. My reel and portfolio are at {{my_portfolio}}.\n\nWould you have 15 minutes in the next couple of weeks to talk about how your team is staffing up?\n\nThanks,\n{{my_name}}"},{"id":"tpl-check","name":"Check-in (no reply yet)","subject":"Re: Motion designer interested in {{company}}","body":"Hi {{first_name}},\n\nJust floating this back to the top of your inbox. I'm still very interested in {{role_i_want}} work at {{company}}, and I'm moving to New York after I graduate in November.\n\nReel and portfolio: {{my_portfolio}}\n\nThanks again,\n{{my_name}}"},{"id":"tpl-app","name":"Application follow-up","subject":"Following up on my {{role_i_want}} application","body":"Hi {{first_name}},\n\nI applied for the {{role_i_want}} role at {{company}} recently and wanted to follow up directly. {{why_them}}\n\nMy portfolio is at {{my_portfolio}}. Happy to send anything else you need.\n\nBest,\n{{my_name}}"},{"id":"tpl-thanks","name":"Thank you after interview","subject":"Thank you, {{first_name}}","body":"Hi {{first_name}},\n\nThanks for taking the time to talk today. I enjoyed learning more about the team at {{company}}, and I'm even more excited about the {{role_i_want}} role.\n\nLet me know if there's anything else I can send your way.\n\nBest,\n{{my_name}}"},{"id":"tpl-referral","name":"Ask a friend for a referral","subject":"Quick favor about {{company}}","body":"Hey {{first_name}},\n\nHope you're doing well! I'm going after {{role_i_want}} roles at {{company}} and wanted to ask if you'd be open to passing my name along, or pointing me to the right person on the production side.\n\nHere's my portfolio: {{my_portfolio}}\n\nNo pressure at all, and thanks either way.\n{{my_name}}"}],"companies":[{"id":"co-buck","name":"Buck","order":1,"example":true,"meta":{"priority":"Dream","role":"Motion Designer","city":"New York","contact":{"name":"Jordan Placeholder","role":"Producer","email":""},"website":"https://buck.co","tags":["Studio"],"prep":[{"t":"Cut a reel version that leads with character work","done":true},{"t":"Find a producer's email in Apollo","done":false}],"status":"gathering"},"auto":{},"due":null},{"id":"co-psyop","name":"Psyop","order":2,"example":true,"meta":{"priority":"Strong","role":"Motion Designer","city":"New York","contact":{"name":"Sam Example","role":"Recruiter","email":"sam@example.com"},"website":"https://www.psyop.com","why":"Your team's mix of 2D character animation and design-driven spots is exactly the kind of work I want to be doing.","tags":["Studio"],"status":"reached"},"auto":{},"due":"2026-10-27"},{"id":"co-loyal","name":"loyalkaspar","order":3,"example":true,"meta":{"priority":"Dream","role":"Broadcast Designer","city":"New York","contact":{"name":"Alex Sample","role":"Head of Production","email":"alex@example.com"},"website":"https://loyalkaspar.com","why":"Your network rebrands are a big reason I moved toward broadcast graphics.","tags":["Broadcast","Studio"],"prep":[{"t":"Broadcast-first reel","done":false}],"status":"wroteback"},"auto":{},"due":null},{"id":"co-if","name":"Imaginary Forces","order":4,"example":true,"meta":{"priority":"Dream","role":"Designer / Animator","city":"New York","website":"https://www.imaginaryforces.com","tags":["Studio"],"status":"meeting","outcome":"hopeful"},"auto":{},"due":null},{"id":"co-gretel","name":"Gretel","order":5,"example":true,"meta":{"priority":"Strong","role":"Motion Designer","city":"New York","tags":["Studio"]},"auto":{},"due":null},{"id":"co-msg","name":"MSG Networks","order":6,"example":true,"meta":{"priority":"Backup","role":"Broadcast Graphics Designer","city":"New York","tags":["Broadcast","In-house"],"status":"applied"},"auto":{},"due":null}],"chains":{"ch-ex1":{"id":"ch-ex1","companyId":"co-psyop","title":"Intro to Sam","started":"2026-10-20","summary":null,"messages":[{"id":"m-ex1","dir":"out","date":"2026-10-20","text":"Subject: Motion designer interested in Psyop\n\nHi Sam,\n\nI'm finishing my MA in Motion Media Design at SCAD this November... (example email)\n\nThanks,\nZack"}]},"ch-ex2":{"id":"ch-ex2","companyId":"co-loyal","title":"Broadcast Designer application","started":"2026-10-14","summary":null,"messages":[{"id":"m-ex2","dir":"out","date":"2026-10-14","text":"Subject: Following up on my Broadcast Designer application\n\nHi Alex, I applied for the Broadcast Designer role recently and wanted to follow up directly... (example email)"},{"id":"m-ex3","dir":"in","date":"2026-10-26","text":"Hi Zack, thanks for following up. We're reviewing reels for the broadcast team over the next two weeks. Could you send a version of your reel that leads with your broadcast work? Happy to set up a call after that.\n\nAlex (example reply)"}]}},"pages":{"co-if":{"notes":[{"id":"n-ex1","date":"2026-10-21","text":"Met their design director at a portfolio review. (example)"}],"applications":[],"meetings":[{"id":"mt-ex1","date":"2026-10-24","kind":"meeting","with":"Design director (example)","notes":"Liked the rigging work; said to check back in December."}]},"co-msg":{"notes":[],"applications":[{"id":"a-ex1","date":"2026-10-18","role":"Broadcast Graphics Designer","link":"","result":""}],"meetings":[]}}};
+
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=p=>p+'-'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+const clone=o=>o==null?o:JSON.parse(JSON.stringify(o));
+const slug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const isPlain=o=>o&&typeof o==='object'&&!Array.isArray(o);
+function deepMerge(a,b){const out=isPlain(a)?{...a}:{};for(const k in b){out[k]=isPlain(b[k])&&isPlain(out[k])?deepMerge(out[k],b[k]):b[k]}return out}
+function todayISO(){const t=new Date();return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
+function addDays(iso,n){const[y,m,d]=iso.split('-').map(Number);const t=new Date(y,m-1,d+n);return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
+function daysUntil(iso){const[y,m,d]=iso.split('-').map(Number);const a=new Date(y,m-1,d);const t=new Date();return Math.round((a-new Date(t.getFullYear(),t.getMonth(),t.getDate()))/864e5)}
+const validDate=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d);
+function fmtDate(iso,long){if(!validDate(iso))return iso||'';const[y,m,d]=iso.split('-').map(Number);const o=long?{month:'long',day:'numeric',year:'numeric'}:{month:'short',day:'numeric'};if(!long&&y!==new Date().getFullYear())o.year='numeric';return new Date(y,m-1,d).toLocaleDateString(undefined,o)}
+function hostOf(u){try{return new URL(/^https?:/i.test(u)?u:'https://'+u).hostname.replace(/^www\./,'')}catch(e){return u}}
+const hrefOf=u=>/^https?:\/\//i.test(u)?u:'https://'+u;
+const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;
+
+/* ---------- state ---------- */
+const S={db:null,sample:null,aiOff:false};
+const st={mode:'loading',board:null,companies:[],chains:{},pages:{},templates:[],me:{},
+  view:'sheet',overlay:null,q:'',filter:'all',panel:null,pop:null,compose:{},draft:{},open:{},expanded:{},
+  tplSel:null,tplDraft:null,tplFocus:'body',aiBusy:null,notice:null,refocusNew:false};
+try{const v=localStorage.getItem('sot-view');if(v==='sheet'||v==='board')st.view=v}catch(e){}
+
+const board=()=>st.board&&st.board.version===2?st.board:DEFAULT_BOARD;
+const colById=id=>board().columns.find(c=>c.id===id);
+const statusCol=()=>colById('status');
+const company=id=>st.companies.find(c=>c.id===id);
+const meta=(c,colId)=>c&&c.meta?c.meta[colId]:undefined;
+const optList=col=>(col.options||[]).map(o=>typeof o==='string'?{id:o,label:o,group:'',color:''}:o);
+function optionOf(col,id){return optList(col).find(o=>o.id===id)}
+const optLabel=o=>(o.icon?esc(o.icon)+' ':'')+esc(o.label);
+function colorFor(col,val,i){const o=optionOf(col,val);if(o&&o.color)return o.color;const idx=(col.options||[]).indexOf(val);return COLORS[((idx<0?norm(val).length:idx)%(COLORS.length-1))+1]}
+function colShows(col,c){if(!col.showWhen)return true;const v=meta(c,col.showWhen.col);return (col.showWhen.values||[]).includes(v)}
+const chainsOf=cid=>Object.values(st.chains).filter(ch=>ch.companyId===cid).sort((a,b)=>(a.started||'')<(b.started||'')?-1:1);
+const pageOf=cid=>{const p=st.pages[cid]||{};return {notes:p.notes||[],applications:p.applications||[],meetings:p.meetings||[]}};
+const hasStatus=id=>!!optionOf(statusCol(),id);
+
+/* ---------- storage (live db, or in-memory preview) ---------- */
+const queues={};
+function enqueue(path,fn){const p=(queues[path]||Promise.resolve()).then(fn).catch(dbFail);queues[path]=p;return p}
+function dbFail(e){console.warn(e);const code=e&&e.code;
+  if(code==='quota_exceeded')toast('Storage is full. Delete some companies or emails, then try again.');
+  else if(code==='invalid_argument')toast("That change couldn't be saved. You may only have view access.");
+  else toast("Couldn't save that change. Try again in a moment.")}
+function localApply(path,data,op){
+  const [col,id]=path.split('/');
+  const upsertArr=(arr)=>{const i=arr.findIndex(x=>x.id===id);if(op==='del'){if(i>=0)arr.splice(i,1)}else if(op==='patch'){if(i>=0)arr[i]=deepMerge(arr[i],data)}else{const v={id,...clone(data)};if(i>=0)arr[i]=v;else arr.push(v)}};
+  if(col==='companies')upsertArr(st.companies);
+  else if(col==='templates')upsertArr(st.templates);
+  else if(col==='chains'){if(op==='del')delete st.chains[id];else st.chains[id]={id,...(op==='patch'?deepMerge(st.chains[id],data):clone(data))}}
+  else if(col==='pages'){if(op==='del')delete st.pages[id];else st.pages[id]=op==='patch'?deepMerge(st.pages[id],data):clone(data)}
+  else if(path==='config/board')st.board=clone(data);
+  else if(path==='settings/me')st.me=clone(data);
+  render();
+}
+function put(path,data){if(!S.db){localApply(path,data,'set');return Promise.resolve()}return enqueue(path,()=>S.db.doc(path).set(data))}
+function patch(path,data){if(!S.db){localApply(path,data,'patch');return Promise.resolve()}return enqueue(path,()=>S.db.doc(path).update(data))}
+function del(path){if(!S.db){localApply(path,null,'del');return Promise.resolve()}return enqueue(path,()=>S.db.doc(path).delete())}
+function saveBoard(b){b.version=2;st.board=b;render();return put('config/board',b)}
+function setMeta(cid,colId,v){const c=company(cid);const m={[colId]:v};
+  board().columns.forEach(col=>{if(col.showWhen&&col.showWhen.col===colId&&!(col.showWhen.values||[]).includes(v)&&meta(c,col.id)!=null)m[col.id]=null});
+  return patch('companies/'+cid,{meta:m,auto:{[colId]:null}})}
+function savePage(cid,p){st.pages[cid]=clone(p);render();return put('pages/'+cid,{notes:p.notes||[],applications:p.applications||[],meetings:p.meetings||[]})}
+function saveChain(ch){const data={companyId:ch.companyId,title:ch.title||'Email chain',started:ch.started||todayISO(),messages:ch.messages||[],summary:ch.summary||null};st.chains[ch.id]={id:ch.id,...clone(data)};render();return put('chains/'+ch.id,data)}
+
+/* ---------- value display ---------- */
+function valueText(col,v){
+  if(v==null||v==='')return '';
+  switch(col.type){
+    case 'status':{const o=optionOf(col,v);return o?o.label:''}
+    case 'checkbox':return v?'Yes':'No';
+    case 'date':return fmtDate(v,true);
+    case 'person':return v.name||'';
+    case 'tags':return (v||[]).join(', ');
+    case 'checklist':return '';
+    default:return String(v);
+  }
+}
+function cellHTML(col,v){
+  const empty='<span class="empty-v">—</span>';
+  switch(col.type){
+    case 'status':{const o=optionOf(col,v);return o?`<span class="tag c-${o.color||'grey'}">${optLabel(o)}</span>`:empty}
+    case 'checkbox':return `<span class="cb ${v?'on':''}">${v?'<svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.2 4 7.6 8.6 2.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>':''}</span>`;
+    case 'date':return v?esc(fmtDate(v)):empty;
+    case 'link':return v?`<a class="lnk" href="${esc(hrefOf(v))}" target="_blank" rel="noopener" data-act="noop">${esc(hostOf(v))}</a>`:empty;
+    case 'person':return v&&(v.name||v.email)?`<span class="person"><span>${esc(v.name||v.email)}</span>${v.role?`<small>${esc(v.role)}</small>`:''}</span>`:empty;
+    case 'values':return v?`<span class="tag c-${colorFor(col,v)}">${esc(v)}</span>`:empty;
+    case 'tags':return v&&v.length?v.map(t=>`<span class="tag c-${colorFor(col,t)}">${esc(t)}</span>`).join(''):empty;
+    case 'checklist':{const it=v||[];if(!it.length)return empty;const d=it.filter(i=>i.done).length;return `<span class="cl"><span class="bar"><span style="width:${Math.round(d/it.length*100)}%"></span></span>${d}/${it.length}</span>`}
+    case 'longtext':return v?esc(String(v).split('\n')[0]):empty;
+    default:return v!==''&&v!=null?esc(v):empty;
+  }
+}
+function mdy(iso){const[y,m,d]=iso.split('-').map(Number);return `${m}/${d}`}
+function nextMeeting(cid){const t=todayISO();return pageOf(cid).meetings.filter(m=>m.date>=t).sort((a,b)=>a.date===b.date?((a.start||'')<(b.start||'')?-1:1):a.date<b.date?-1:1)[0]}
+function whenHTML(c){const m=c&&nextMeeting(c.id);if(!m)return dueHTML(c);
+  const head=`${mdy(m.date)}${m.start?' at '+fmtTime(m.start)+(m.end?'–'+fmtTime(m.end):''):''}`;const sub=`${m.kind==='interview'?'Interview':'Meeting'}${m.with?' with '+m.with:''}`;
+  return `<span class="due when" data-tip="${esc(head)}" data-tip2="${esc(sub)}" tabindex="0">${mdy(m.date)}</span>`}
+function dueHTML(c){
+  if(!c||!c.due)return '';const d=daysUntil(c.due);
+  if(d<0)return `<span class="due late" title="Follow up was due ${esc(fmtDate(c.due,true))}">${-d}d late</span>`;
+  if(d===0)return '<span class="due today">follow up today</span>';
+  return `<span class="due" title="Follow up ${esc(fmtDate(c.due,true))}">${d}d</span>`;
+}
+function chipHTML(c,col){
+  const o=optionOf(col,meta(c,col.id));
+  return o?`<button class="schip c-${o.color||'grey'}" data-act="pick" data-cid="${esc(c.id)}" data-col="${esc(col.id)}">${optLabel(o)}</button>`
+          :`<button class="schip empty" data-act="pick" data-cid="${esc(c.id)}" data-col="${esc(col.id)}">${col.id==='status'?'No status':'Set'}</button>`;
+}
+const aiMark=()=>'';
+function needsMe(c){return meta(c,'status')==='wroteback'||(c.due&&daysUntil(c.due)<=0)}
+const ALIASES={la:'los angeles',nyc:'new york',ny:'new york',sf:'san francisco',dc:'washington',atl:'atlanta',chi:'chicago',bk:'brooklyn',philly:'philadelphia',nola:'new orleans',ldn:'london',tor:'toronto',van:'vancouver',mtl:'montreal',sav:'savannah',pdx:'portland',sea:'seattle',bos:'boston',atx:'austin',slc:'salt lake city',lv:'las vegas',hk:'hong kong',uk:'united kingdom',us:'united states',usa:'united states',mograph:'motion graphics',vfx:'visual effects',fx:'effects',ad:'advertising',ads:'advertising',tv:'television'};
+const normSearch=s=>norm(String(s||'').toLowerCase().replace(/[a-z]+/g,w=>ALIASES[w]||w));
+function visible(){
+  let list=[...st.companies].sort((a,b)=>(a.order||0)-(b.order||0));
+  const q=norm(st.q),qa=normSearch(st.q);
+  const hit=v=>{const t=String(v||'');return norm(t).includes(q)||normSearch(t).includes(qa)};
+  if(q)list=list.filter(c=>hit(c.name)||board().columns.some(col=>hit(valueText(col,meta(c,col.id)))));
+  if(st.filter==='needs')list=list.filter(needsMe);
+  return list;
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll('[data-act="view"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===st.view)));
+  $('#view-sheet').hidden=st.view!=='sheet';$('#view-board').hidden=st.view!=='board';
+  const m=$('#mode');if(st.mode==='preview'){m.hidden=false;m.textContent='Preview · not saved'}else m.hidden=true;
+  $('#prod-line').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  renderBanner();
+  if(st.view==='sheet')renderSheet();else renderBoard();
+  if(st.panel)renderPanel();
+  if(st.overlay==='templates')renderTemplates();
+  renderNotice();
+}
+function renderBanner(){
+  const b=$('#banner');const ex=st.companies.filter(c=>c.example).length;
+  if(!ex){b.hidden=true;return}
+  b.hidden=false;b.className='banner';
+  b.innerHTML=`<span><b>${ex} example ${ex===1?'company':'companies'}</b> (marked EX) show how it works. The contacts are made up.</span><button class="btn small" data-act="clear-examples">Clear examples</button>`;
+}
+function sheetCols(list){return board().columns.filter(col=>col.id!=='status'&&col.onSheet!==false&&(!col.showWhen||list.some(c=>colShows(col,c)||meta(c,col.id))))}
+function renderSheet(){
+  const host=$('#grid-host');
+  if(st.mode==='loading'){host.innerHTML='<div class="empty-grid">Loading your list…</div>';return}
+  const list=visible();const sc=statusCol();const cols=sheetCols(list);
+  $('#count').textContent=`${list.length} of ${st.companies.length} companies`;
+  const counts={};list.forEach(c=>{const k=meta(c,'status')||'';counts[k]=(counts[k]||0)+1});const tot=list.length||1;
+  const dist=optList(sc).filter(o=>counts[o.id]).map(o=>`<span class="c-${o.color||'grey'}" style="width:${counts[o.id]/tot*100}%"></span>`).join('');
+  const head=`<tr><th class="sticky-col"><div class="th-plain">Company</div></th>
+    <th><button class="h-btn" data-act="col-menu" data-id="status"><span>${esc(sc.name)}</span><span class="dist">${dist}</span></button></th>`+
+    cols.map(col=>`<th><button class="h-btn" data-act="col-menu" data-id="${esc(col.id)}"><span>${esc(col.name)}</span><span class="h-type">${esc(TYPES[col.type]||col.type)}</span></button></th>`).join('')+
+    `<th class="add-col-th"></th></tr>`;
+  const rows=list.map(c=>{
+    const metas=cols.map(col=>{
+      if(col.type==='status')return `<td class="st-cell">${colShows(col,c)?chipHTML(c,col):''}</td>`;
+      const v=meta(c,col.id);const act=col.type==='checkbox'?'toggle-check':col.type==='values'?'pick':'edit-cell';
+      const cls=col.type==='number'?' num':col.type==='date'?' date':'';
+      return `<td class="m-cell${cls}" data-act="${act}" data-cid="${esc(c.id)}" data-col="${esc(col.id)}">${cellHTML(col,v)}${aiMark(c,col.id)}</td>`}).join('');
+    return `<tr class="${st.panel===c.id?'open':''}"><td class="sticky-col"><div class="co-cell"><button class="co-name" data-act="open-company" data-cid="${esc(c.id)}" title="Open ${esc(c.name)}">${esc(c.name||'Untitled')}</button>${c.example?'<span class="ex">EX</span>':''}<button class="icon-btn" data-act="row-menu" data-cid="${esc(c.id)}" aria-label="Company options">⋯</button></div></td>
+      <td class="st-cell"><span class="st-wrap">${chipHTML(c,sc)}${whenHTML(c)}</span></td>${metas}<td></td></tr>`;
+  }).join('');
+  const span=cols.length+2;
+  const empty=!st.companies.length?`<tr><td class="sticky-col"></td><td colspan="${span}" class="muted" style="padding:16px 10px;white-space:normal">No companies yet. Type a name below, or tell Quick update what happened.</td></tr>`:(!list.length?`<tr><td class="sticky-col"></td><td colspan="${span}" class="muted" style="padding:16px 10px">Nothing matches.</td></tr>`:'');
+  host.innerHTML=`<table class="grid"><thead>${head}</thead><tbody>${rows}${empty}<tr class="add-row"><td class="sticky-col"><input id="new-company" placeholder="+ Add a company" aria-label="Add a company"></td><td colspan="${span}"></td></tr></tbody></table>`;
+  if(st.refocusNew){st.refocusNew=false;const i=$('#new-company');i&&i.focus()}
+}
+let laneCollapsed={};try{laneCollapsed=JSON.parse(localStorage.getItem('sot-lanes')||'{}')||{}}catch(e){}
+function renderBoard(){
+  const host=$('#board-host');
+  if(st.mode==='loading'){host.innerHTML='<div class="empty-grid">Loading your list…</div>';return}
+  const list=visible();const sc=statusCol();
+  $('#board-count').textContent=`${list.length} companies`;
+  const lanes=[{id:'',label:'No status',group:'',color:'grey'},...optList(sc)];
+  const firstVals=board().columns.find(c=>c.type==='values');const out=colById('outcome');
+  host.innerHTML=lanes.map(l=>{
+    const cards=list.filter(c=>(meta(c,'status')||'')===l.id||(!l.id&&!hasStatus(meta(c,'status'))&&meta(c,'status')));
+    const lk=l.id||'_none';const col=!!laneCollapsed[lk];
+    return `<div class="lane c-${l.color||'grey'} ${col?'collapsed':''}" data-lane="${esc(l.id)}" ${col?`data-act="toggle-lane" data-id="${esc(lk)}" title="Show ${esc(l.label)}"`:''}><div class="lane-h c-${l.color||'grey'}" ${col?'':`data-act="toggle-lane" data-id="${esc(lk)}" role="button" title="Collapse ${esc(l.label)}"`}><span class="g">${esc(l.group||'')}</span><span class="t"><span class="lane-name">${l.icon?esc(l.icon)+' ':''}${esc(l.label)}</span><span class="n">${cards.length}</span></span><span class="bar"></span></div><div class="lane-body">${cards.map(c=>{
+      const v=firstVals&&meta(c,firstVals.id);const p=board().columns.filter(x=>x.type==='person').map(x=>meta(c,x.id)).find(x=>x&&x.name);
+      const oo=out&&colShows(out,c)&&optionOf(out,meta(c,'outcome'));
+      return `<div class="card" role="button" tabindex="0" draggable="true" data-act="open-company" data-cid="${esc(c.id)}"><span class="card-name">${esc(c.name)}</span><span class="card-meta">${c.example?'<span class="ex">EX</span>':''}${oo?`<span class="tag c-${oo.color}">${esc(oo.label)}</span>`:''}${v?`<span class="tag c-${colorFor(firstVals,v)}">${esc(v)}</span>`:''}${p?`<span>${esc(p.name)}</span>`:''}${whenHTML(c)}</span></div>`;
+    }).join('')||'<div class="lane-empty">Nothing here</div>'}</div></div>`;
+  }).join('');
+}
+
+/* ---------- emails: tokens + compose ---------- */
+const ME_TOKENS=[['my_name','Your name'],['my_portfolio','Portfolio'],['my_reel','Reel link'],['my_intro','Intro paragraph'],['my_phone','Phone']];
+function tokenGroups(){
+  return [
+    {name:'Contact',items:[['first_name','First name'],['contact_name','Full name'],['contact_role','Role']]},
+    {name:'Company',items:[['company','Company name'],...board().columns.filter(c=>c.type!=='checklist').map(c=>[slug(c.name),c.name])]},
+    {name:'You',items:ME_TOKENS}
+  ];
+}
+function personsOf(c){return board().columns.filter(x=>x.type==='person').map(col=>({col,p:meta(c,col.id)})).filter(x=>x.p&&(x.p.name||x.p.email))}
+function tokenMap(c,p){
+  const m={};const name=(p&&p.name||'').trim();
+  m.first_name=name.split(/\s+/)[0]||'';m.contact_name=name;m.contact_role=p&&p.role||'';m.company=c&&c.name||'';
+  board().columns.forEach(col=>{m[slug(col.name)]=valueText(col,meta(c,col.id))});
+  const me=st.me||{};m.my_name=me.name||'';m.my_portfolio=me.portfolio||'';m.my_reel=me.reel||'';m.my_intro=me.intro||'';m.my_phone=me.phone||'';
+  return m;
+}
+const TOK=/\{\{\s*([a-z0-9_]+)\s*\}\}/g;
+const fillText=(t,m)=>String(t||'').replace(TOK,(x,k)=>m[k]?m[k]:x);
+function fillHTML(t,m){t=String(t||'');let out='',last=0;t.replace(TOK,(x,k,i)=>{out+=esc(t.slice(last,i));out+=m[k]?`<span class="tok-fill">${esc(m[k])}</span>`:`<mark class="tok-miss">${esc(tokenLabel(k))}</mark>`;last=i+x.length;return x});return out+esc(t.slice(last))}
+function missingOf(t,m){const s=new Set();String(t||'').replace(TOK,(x,k)=>{if(!m[k])s.add(k);return x});return [...s]}
+function tokenLabel(k){for(const g of tokenGroups())for(const [id,l] of g.items)if(id===k)return (g.name==='Contact'?'Contact '+l.toLowerCase():l);return `{{${k}}}`}
+function tokenFix(k,c){
+  if(['first_name','contact_name','contact_role'].includes(k)){const pc=board().columns.find(x=>x.type==='person');return pc?`<button class="more" data-act="edit-cell" data-cid="${esc(c.id)}" data-col="${esc(pc.id)}">add it</button>`:''}
+  if(k.startsWith('my_'))return `<button class="more" data-act="open-me">add it</button>`;
+  const col=board().columns.find(x=>slug(x.name)===k);
+  if(col){const act=col.type==='checkbox'?'toggle-check':col.type==='values'||col.type==='status'?'pick':'edit-cell';return `<button class="more" data-act="${act}" data-cid="${esc(c.id)}" data-col="${esc(col.id)}">set it</button>`}
+  return '(not a field, check the template)';
+}
+function defaultCompose(cid){
+  const c=company(cid);const cur=meta(c,'status');const o=optionOf(statusCol(),cur);
+  const chs=chainsOf(cid);const last=chs[chs.length-1];
+  const inChain=last&&['reached','wroteback','replied','meeting'].includes(cur);
+  let tpl=o&&o.tpl?o.tpl:(cur?'':'tpl-intro');
+  if(!st.templates.find(t=>t.id===tpl))tpl='';
+  if(!tpl&&!cur&&st.templates[0])tpl=st.templates[0].id;
+  return {target:inChain?last.id:'new',tplId:tpl,personCol:'',edit:null,fromAI:false,followDays:7};
+}
+const placeholder=k=>'['+tokenLabel(k)+']';
+const fillPH=(t,m)=>String(t||'').replace(TOK,(x,k)=>m[k]?m[k]:placeholder(k));
+function buildEmail(c){
+  const ps=personsOf(c);const sel=ps.find(x=>x.col.id===st.compose.personCol)||ps[0];const p=sel&&sel.p;
+  const m=tokenMap(c,p);const tpl=st.templates.find(t=>t.id===st.compose.tplId);
+  let ed=st.compose.edit;
+  if(!ed||!ed.dirty){ed={subject:fillPH(tpl&&tpl.subject,m),body:fillPH(tpl&&tpl.body,m),dirty:false};st.compose.edit=ed}
+  else for(const k in m){if(!m[k])continue;const ph=placeholder(k);if(ed.subject.includes(ph))ed.subject=ed.subject.split(ph).join(m[k]);if(ed.body.includes(ph))ed.body=ed.body.split(ph).join(m[k])}
+  const keys=new Set(Object.keys(m));String((tpl&&tpl.subject||'')+(tpl&&tpl.body||'')).replace(TOK,(x,k)=>{keys.add(k);return x});
+  const missing=[...keys].filter(k=>!m[k]&&(ed.subject.includes(placeholder(k))||ed.body.includes(placeholder(k))));
+  return {ps,sel,p,m,subject:ed.subject,body:ed.body,to:p&&p.email||'',missing};
+}
+const GENERIC=/^(info|hello|hi|hey|jobs|job|careers|career|contact|team|hr|recruit|recruiting|recruitment|talent|studio|admin|office|press|work|apply|hiring|general|mail|inquiries|enquiries|production|newbiz|support|people)$/;
+function guessName(email){const local=String(email).split('@')[0].toLowerCase().replace(/\d+/g,'');const parts=local.split(/[._-]+/).filter(x=>x.length>1&&/^[a-z]+$/.test(x));
+  if(!parts.length||parts.some(x=>GENERIC.test(x)))return '';const cap=x=>x[0].toUpperCase()+x.slice(1);return parts.length>=2?parts.slice(0,2).map(cap).join(' '):''}
+async function saveRecipientEmail(value){
+  const cid=st.panel;const c=company(cid);if(!c)return;const E=buildEmail(c);const v=value.trim();
+  const col=E.sel?E.sel.col:board().columns.find(x=>x.type==='person');
+  if(!col){toast('Add a Person column first (+ Column → Person)');return}
+  const cur=meta(c,col.id)||{name:'',role:'',email:''};let name=cur.name||'';
+  if(v===(cur.email||'')){return}
+  const local=v.split('@')[0].toLowerCase();const first=norm((cur.name||'').split(/\s+/)[0]);
+  const newPerson=!name||(cur.email&&first&&!norm(local).includes(first));
+  if(v&&newPerson){name=guessName(v)||'';
+    if(!name&&S.sample&&!S.aiOff&&!GENERIC.test(v.split('@')[0].toLowerCase())){try{const r=await S.sample.json(`Guess the person's name from this work email address: ${v}\nReply with only JSON {"name": "First Last"}. Use "" if it's a shared inbox or you can't tell. A lone first name is fine.`,{modelTier:'quick'});name=String(r&&r.name||'').trim()}catch(e){}}}
+  await setMeta(cid,col.id,{name,role:newPerson&&cur.email?'':(cur.role||''),email:v});
+  toast(v?`Saved to ${col.name}${name?`: ${name}`:'. Add their name on the Details card.'}`:`Removed the email from ${col.name}`);
+}
+
+/* ---------- company page ---------- */
+const SECTIONS=['details','chains','notes','apps','meetings'];
+let secCollapsed={};try{secCollapsed=JSON.parse(localStorage.getItem('sot-collapsed')||'{}')||{}}catch(e){}
+function secOrder(){let o=[];try{o=JSON.parse(localStorage.getItem('sot-sections')||'[]')||[]}catch(e){}o=o.filter(x=>SECTIONS.includes(x));SECTIONS.forEach(x=>{if(!o.includes(x))o.push(x)});return o}
+function saveSecPrefs(order){try{if(order)localStorage.setItem('sot-sections',JSON.stringify(order));localStorage.setItem('sot-collapsed',JSON.stringify(secCollapsed))}catch(e){}}
+function secWrap(id,title,count,right,body){
+  const col=!!secCollapsed[id];
+  return `<section class="sec psec ${col?'collapsed':''}" data-sec="${id}"><div class="sec-h" draggable="true" data-grip="${id}" title="Drag to reorder"><span class="grip" aria-hidden="true">⋮⋮</span><button class="sec-t" data-act="toggle-sec" data-id="${id}" aria-expanded="${String(!col)}"><span class="chev">${col?'▸':'▾'}</span><h3>${esc(title)}${count!=null?`<span class="n">${count}</span>`:''}</h3></button>${right||''}</div><div class="sec" style="gap:10px">${body}</div></section>`;
+}
+function grow(t){t.style.height='auto';t.style.height=Math.max(200,t.scrollHeight)+'px'}
+function fmtTime(t){if(!t)return '';const [h,m]=t.split(':').map(Number);return `${h%12||12}${m?':'+String(m).padStart(2,'0'):''} ${h>=12?'pm':'am'}`}
+function gcalLink(c,x){
+  const d=x.date.replace(/-/g,'');let dates;
+  if(x.start){let end=x.end;if(!end){const [h,m]=x.start.split(':').map(Number);const t=h*60+m+30;end=`${String(Math.floor(t/60)%24).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`}
+    dates=`${d}T${x.start.replace(':','')}00/${d}T${end.replace(':','')}00`}
+  else dates=`${d}/${addDays(x.date,1).replace(/-/g,'')}`;
+  let tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}
+  const text=`${x.kind==='interview'?'Interview':'Meeting'}: ${c.name}`;
+  const details=[x.with?`With ${x.with}`:'',x.notes||''].filter(Boolean).join('\n');
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&dates=${dates}&details=${encodeURIComponent(details)}${tz?`&ctz=${encodeURIComponent(tz)}`:''}`;
+}
+function openCompany(cid){
+  if(st.panel!==cid){st.compose=defaultCompose(cid);st.draft={};st.expanded={};st.open={};const chs=chainsOf(cid);if(chs.length)st.open[chs[chs.length-1].id]=true}
+  st.panel=cid;closePop();render();
+}
+function closePanel(){savePW();st.panel=null;$('#panel').hidden=true;document.body.classList.remove('panel-open','panel-push');$('#resizer').hidden=true;render()}
+const dv=k=>esc(st.draft[k]??'');
+function renderPanel(){
+  const el=$('#panel');const c=company(st.panel);
+  if(!c){st.panel=null;el.hidden=true;document.body.classList.remove('panel-open');$('#resizer').hidden=true;return}
+  const scroll=el.scrollTop;const sc=statusCol();
+  const ae=document.activeElement;let focusKey=null,sel=null;
+  if(ae&&el.contains(ae)&&ae.dataset){if(ae.dataset.cedit)focusKey=`[data-cedit="${ae.dataset.cedit}"]`;else if(ae.dataset.bind)focusKey=`[data-bind="${ae.dataset.bind}"]`;try{sel=[ae.selectionStart,ae.selectionEnd]}catch(_){}}
+  const pg=pageOf(c.id);const chs=chainsOf(c.id);const aiAvail=!!S.sample&&!S.aiOff;
+  const props=board().columns.filter(col=>col.id!=='status'&&!(col.type==='status'&&col.showWhen));
+  const otherStatus=board().columns.filter(col=>col.type==='status'&&col.id!=='status'&&col.showWhen);
+  const E=buildEmail(c);const ed=st.compose.edit;void ed;
+  const subjF=fillText(E.subject,E.m),bodyF=fillText(E.body,E.m);
+  const mailto=E.to&&E.body.trim()?`mailto:${encodeURIComponent(E.to)}?subject=${encodeURIComponent(subjF)}&body=${encodeURIComponent(bodyF)}`:'';
+  const pcol=E.sel?E.sel.col:board().columns.find(x=>x.type==='person');
+  const enterHint='Enter to add · Shift+Enter for a new line';
+
+  const details=`<div class="props">${props.map(col=>{const act=col.type==='checkbox'?'toggle-check':col.type==='values'?'pick':'edit-cell';
+      return `<div class="prop-k">${esc(col.name)}${col.onSheet===false?'<span class="hidden-note" title="Hidden from the sheet">PAGE ONLY</span>':''}</div><div class="prop-v ${col.type==='longtext'?'long':''}" data-act="${act}" data-cid="${esc(c.id)}" data-col="${esc(col.id)}">${col.type==='longtext'&&meta(c,col.id)?esc(meta(c,col.id)):cellHTML(col,meta(c,col.id))}</div>`}).join('')}</div>
+    ${aiAvail?`<div><button class="btn ghost small" data-act="lookup" data-cid="${esc(c.id)}">Look up company details</button></div>`:''}`;
+
+  const chainList=chs.slice().reverse().map(ch=>{
+    const open=!!st.open[ch.id];const msgs=(ch.messages||[]).slice().sort(byDate);const sum=ch.summary;const stale=sum?msgs.length-(sum.count||0):0;
+    const range=msgs.length?(msgs[0].date===msgs[msgs.length-1].date?fmtDate(msgs[0].date):`${fmtDate(msgs[0].date)} – ${fmtDate(msgs[msgs.length-1].date)}`):'No emails yet';
+    const dir=st.draft['dir:'+ch.id]||'in';
+    return `<div class="chain"><div class="chain-h"><button class="icon-btn" data-act="toggle-chain" data-id="${esc(ch.id)}" aria-label="${open?'Collapse':'Expand'}">${open?'▾':'▸'}</button><button class="ttl" data-act="rename-chain" data-id="${esc(ch.id)}" title="Rename">${esc(ch.title)}</button><span class="meta">${msgs.length} · ${esc(range)}</span><button class="icon-btn" data-act="chain-menu" data-id="${esc(ch.id)}" aria-label="Chain options">⋯</button></div>
+    ${open?`<div class="chain-b">
+      <div class="row" style="justify-content:space-between"><span class="eyebrow">AI summary</span>${aiAvail?`<button class="btn small" data-act="summarize" data-id="${esc(ch.id)}" ${msgs.length&&st.aiBusy!=='sum:'+ch.id?'':'disabled'}>${st.aiBusy==='sum:'+ch.id?'Summarizing…':sum?'Refresh':'Summarize'}</button>`:''}</div>
+      ${sum?`<div class="summary">${esc(sum.text)}</div>${stale>0?`<div class="stale">${stale} new ${stale===1?'email':'emails'} since this summary.</div>`:''}`:`<div class="summary none">${msgs.length?(aiAvail?'Summarize to see where this chain stands and what you owe them.':'AI summaries work on the saved, published page.'):'Paste the first email below.'}</div>`}
+      ${msgs.map(x=>{const long=String(x.text).length>320;const o=st.expanded[x.id];return `<div class="msg ${x.dir==='in'?'in':'out'}"><div class="msg-h"><span class="who">${x.dir==='in'?'Them':'You'}</span><span>${esc(fmtDate(x.date,true))}</span><button class="icon-btn x" data-act="del-msg" data-chain="${esc(ch.id)}" data-id="${esc(x.id)}" aria-label="Delete email">×</button></div><div class="msg-body ${o||!long?'open':''}">${esc(x.text)}</div>${long?`<button class="more" data-act="toggle-msg" data-id="${esc(x.id)}">${o?'Show less':'Show all'}</button>`:''}</div>`}).join('')}
+      <div class="addform"><div class="row"><div class="seg" role="group" aria-label="Who sent it">${[['in','From them'],['out','From me']].map(([k,l])=>`<button data-act="chain-dir" data-chain="${esc(ch.id)}" data-d="${k}" aria-pressed="${String(dir===k)}">${l}</button>`).join('')}</div><input class="inp" style="width:auto" type="date" data-bind="date:${esc(ch.id)}" value="${esc(st.draft['date:'+ch.id]||todayISO())}" aria-label="Date"></div>
+        <textarea class="inp" rows="3" data-bind="paste:${esc(ch.id)}" placeholder="Paste an email into this chain">${dv('paste:'+ch.id)}</textarea>
+        <div class="row"><button class="btn small" data-act="add-email" data-chain="${esc(ch.id)}">Add email</button><button class="btn ghost small" data-act="reply-in" data-chain="${esc(ch.id)}">Write a reply ↓</button></div></div>
+    </div>`:''}</div>`;
+  }).join('');
+
+  const compose=`<div class="sec" id="compose-sec" style="gap:8px;margin-top:6px">
+      <div class="row" style="justify-content:space-between"><span class="eyebrow">Write an email</span>${aiAvail?`<button class="btn small" data-act="ai-draft" ${st.aiBusy==='draft'?'disabled':''}>${st.aiBusy==='draft'?'Writing…':st.compose.fromAI?'Try another':'Draft with AI'}</button>`:''}</div>
+      <div class="row">
+        <select class="inp" style="width:auto;max-width:100%" data-change="target" aria-label="Which chain"><option value="new" ${st.compose.target==='new'?'selected':''}>Start a new chain</option>${chs.slice().reverse().map(ch=>`<option value="${esc(ch.id)}" ${st.compose.target===ch.id?'selected':''}>Reply in: ${esc(ch.title)}</option>`).join('')}</select>
+        <select class="inp" style="width:auto;max-width:100%" data-change="tpl" aria-label="Template"><option value="">${ed.dirty?(st.compose.fromAI?'AI draft':'Your edits'):'Pick a template…'}</option>${st.templates.map(t=>`<option value="${esc(t.id)}" ${!ed.dirty&&t.id===st.compose.tplId?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
+        ${E.ps.length>1?`<select class="inp" style="width:auto" data-change="person" aria-label="Recipient">${E.ps.map(x=>`<option value="${esc(x.col.id)}" ${E.sel&&E.sel.col.id===x.col.id?'selected':''}>${esc(x.p.name||x.p.email)}</option>`).join('')}</select>`:''}
+      </div>
+      <div class="compose">
+        <div class="c-row"><span class="k">To</span><span class="v row" style="gap:8px;flex-wrap:nowrap"><input type="email" data-change="to-email" placeholder="Type their email, the name fills in" value="${esc(E.to)}" aria-label="Recipient email" title="Saved to ${esc(pcol?pcol.name:'the contact')}">${E.p&&E.p.name?`<span class="to-who">${esc(E.p.name)}</span>`:''}</span>${E.to?'<button class="btn ghost small" data-act="copy-part" data-part="to">Copy</button>':''}</div>
+        <div class="c-row"><span class="k">Subject</span><span class="v"><input data-cedit="subject" value="${esc(ed.subject)}" placeholder="Subject" aria-label="Subject"></span>${E.subject?'<button class="btn ghost small" data-act="copy-part" data-part="subject">Copy</button>':''}</div>
+        <textarea class="c-edit" data-cedit="body" aria-label="Email body" placeholder="${meta(c,'status')==='wroteback'&&aiAvail?'They wrote back. Draft with AI for a reply, pick a template, or just start typing.':'Pick a template, draft with AI, or just start typing.'}">${esc(ed.body)}</textarea>
+        ${ed.dirty?`<div class="c-tools">${st.compose.fromAI?'AI draft':'Edited'}<button class="btn ghost small" data-act="edit-reset">Back to template</button></div>`:''}
+      </div>
+      ${E.missing.length?`<div class="warn">Fill in before sending: ${E.missing.map(k=>`<b>${esc(placeholder(k))}</b> ${tokenFix(k,c)}`).join(' · ')}</div>`:''}
+      <div class="row"><button class="btn primary" data-act="copy-part" data-part="body">Copy email</button>${mailto?`<a class="btn" href="${esc(mailto)}" data-act="noop">Open in mail app</a>`:''}
+        <button class="btn" data-act="log-sent">Log as sent</button><span class="small muted">follow up in</span>
+        <select class="inp" style="width:auto" data-change="follow" aria-label="Follow up in">${[3,5,7,10,14].map(n=>`<option value="${n}" ${st.compose.followDays===n?'selected':''}>${n} days</option>`).join('')}</select></div>
+    </div>`;
+
+  const notes=`${pg.notes.slice().sort(byDate).reverse().map(n=>`<div class="entry"><span class="d">${esc(fmtDate(n.date))}</span><span class="b">${esc(n.text)}</span><button class="icon-btn" data-act="del-entry" data-kind="notes" data-id="${esc(n.id)}" aria-label="Delete note">×</button></div>`).join('')}
+    <div class="addform"><textarea class="inp" rows="2" data-bind="note" data-enter="add-note" placeholder="What happened? e.g. Met their EP at the SCAD career fair.">${dv('note')}</textarea><div class="row"><input class="inp" style="width:auto" type="date" data-bind="note_date" value="${esc(st.draft.note_date||todayISO())}" aria-label="Date"><button class="btn small" data-act="add-note">Add note</button><span class="hint">${enterHint}</span></div></div>`;
+
+  const apps=`${pg.applications.slice().sort(byDate).reverse().map(a=>`<div class="entry"><span class="d">${esc(fmtDate(a.date))}</span><span class="b"><b>${esc(a.role||'Application')}</b>${a.link?` · <a class="lnk" href="${esc(hrefOf(a.link))}" target="_blank" rel="noopener" data-act="noop">posting</a>`:''}${a.result?`<br><span class="sub">${esc(a.result)}</span>`:''}</span><button class="icon-btn" data-act="del-entry" data-kind="applications" data-id="${esc(a.id)}" aria-label="Delete application">×</button></div>`).join('')}
+    <div class="addform"><div class="row"><input class="inp grow" data-bind="app_role" data-enter="add-app" placeholder="Role, e.g. ${esc(meta(c,'role')||'Motion Designer')}" value="${dv('app_role')}"><input class="inp" style="width:auto" type="date" data-bind="app_date" value="${esc(st.draft.app_date||todayISO())}" aria-label="Date applied"></div>
+      <div class="row"><input class="inp grow" data-bind="app_link" data-enter="add-app" placeholder="Job posting link" value="${dv('app_link')}"><input class="inp grow" data-bind="app_result" data-enter="add-app" placeholder="Result, if any" value="${dv('app_result')}"></div>
+      <div class="row"><button class="btn small" data-act="add-app">Add application</button><span class="hint">Enter to add</span></div></div>`;
+
+  const today=todayISO();
+  const meets=`${pg.meetings.slice().sort(byDate).reverse().map(x=>`<div class="entry"><span class="d">${esc(fmtDate(x.date))}${x.start?`<br>${esc(fmtTime(x.start))}${x.end?'–'+esc(fmtTime(x.end)):''}`:''}</span><span class="b"><b>${x.kind==='interview'?'Interview':'Meeting'}</b>${x.with?` with ${esc(x.with)}`:''}${x.date>=today?'<span class="upcoming">Upcoming</span>':''}${x.notes?`<br><span class="sub">${esc(x.notes)}</span>`:''}<br><a class="lnk small" href="${esc(gcalLink(c,x))}" target="_blank" rel="noopener" data-act="noop">Add to Google Calendar</a></span><button class="icon-btn" data-act="del-entry" data-kind="meetings" data-id="${esc(x.id)}" aria-label="Delete">×</button></div>`).join('')}
+    <div class="addform"><div class="row"><div class="seg" role="group" aria-label="Kind">${[['meeting','Meeting'],['interview','Interview']].map(([k,l])=>`<button data-act="mkind" data-k="${k}" aria-pressed="${String((st.draft.mkind||'meeting')===k)}">${l}</button>`).join('')}</div><input class="inp" style="width:auto" type="date" data-bind="m_date" value="${esc(st.draft.m_date||todayISO())}" aria-label="Date"><input class="inp" style="width:auto" type="time" data-bind="m_start" value="${esc(st.draft.m_start||'')}" aria-label="Start time"><span class="small muted">to</span><input class="inp" style="width:auto" type="time" data-bind="m_end" value="${esc(st.draft.m_end||'')}" aria-label="End time"></div>
+      <input class="inp" data-bind="m_with" data-enter="add-meeting" placeholder="With whom" value="${dv('m_with')}">
+      <textarea class="inp" rows="2" data-bind="m_notes" data-enter="add-meeting" placeholder="How did it go? Or what to prepare.">${dv('m_notes')}</textarea><div class="row"><button class="btn small" data-act="add-meeting">Add</button><span class="hint">${enterHint}</span></div></div>`;
+
+  const blocks={
+    details:secWrap('details','Details',null,'<button class="btn ghost small" data-act="add-col">+ Property</button>',details),
+    chains:secWrap('chains','Email chains',chs.length,'<button class="btn small" data-act="new-chain">+ New chain</button>',(chainList||'<div class="muted small">No email chains yet. Start one, or write the first email below.</div>')+compose),
+    notes:secWrap('notes','Notes',pg.notes.length,'',notes),
+    apps:secWrap('apps','Applications',pg.applications.length,'',apps),
+    meetings:secWrap('meetings','Meetings & interviews',pg.meetings.length,'',meets)
+  };
+
+  el.innerHTML=`
+  <div class="p-head"><button class="p-title" data-act="edit-name" data-cid="${esc(c.id)}" title="Rename"><div class="eyebrow">Company${c.example?' · example':''}</div><h2>${esc(c.name)}</h2></button>
+    <button class="icon-btn" data-act="row-menu" data-cid="${esc(c.id)}" aria-label="Company options" style="font-size:18px">⋯</button><button class="icon-btn" data-act="panel-close" aria-label="Close" style="font-size:22px">×</button></div>
+  <div class="p-status">
+    <div class="field"><span>${esc(sc.name)}</span>${chipHTML(c,sc)}</div>
+    ${otherStatus.filter(col=>colShows(col,c)).map(col=>`<div class="field"><span>${esc(col.name)}</span>${chipHTML(c,col)}</div>`).join('')}
+    <div class="field"><span>Follow up on</span><div class="row"><input class="inp" style="width:auto" type="date" data-change="due" value="${esc(c.due||'')}">${c.due?`<button class="btn ghost small" data-act="clear-due">Clear</button>${dueHTML(c)}`:''}</div></div>
+  </div>
+  ${secOrder().map(id=>blocks[id]).join('')}`;
+  el.hidden=false;el.scrollTop=scroll;
+  el.querySelectorAll('textarea.c-edit').forEach(grow);
+  if(focusKey){const f=el.querySelector(focusKey);if(f){f.focus();try{if(sel)f.setSelectionRange(sel[0],sel[1])}catch(_){}}}
+  document.body.classList.add('panel-open');$('#resizer').hidden=false;updatePush();
+}
+
+/* ---------- status automation ---------- */
+function autoStatus(cid,event,kind){
+  const c=company(cid);if(!c)return null;const cur=meta(c,'status')||'';
+  const outreach=['','gathering','reached','wroteback','replied'];let next=null;
+  if(event==='sent'){if(cur===''||cur==='gathering')next='reached';else if(cur==='wroteback')next='replied'}
+  else if(event==='received'){if(outreach.includes(cur))next='wroteback'}
+  else if(event==='applied'){if(cur===''||cur==='gathering')next='applied'}
+  else if(event==='meeting'){if(cur!=='meeting'&&cur!=='interview')next=(kind==='interview'||cur==='applied'||cur==='rejected')&&hasStatus('interview')?'interview':'meeting'}
+  if(next&&hasStatus(next)&&next!==cur){setMeta(cid,'status',next);return optionOf(statusCol(),next).label}
+  return null;
+}
+
+/* ---------- popovers: picker + cell editor ---------- */
+function showPop(anchor,html){
+  const p=$('#pop');p.innerHTML=html;p.hidden=false;
+  const r=anchor.getBoundingClientRect();const w=p.offsetWidth,h=p.offsetHeight;
+  let left=Math.max(12,Math.min(r.left,window.innerWidth-w-12));let top=r.bottom+6;if(top+h>window.innerHeight-12)top=Math.max(12,r.top-h-6);
+  p.style.left=left+'px';p.style.top=top+'px';
+  const f=p.querySelector('input:not([type=checkbox]),textarea,select');if(f)f.focus();
+}
+function closePop(){st.pop=null;$('#pop').hidden=true}
+function pickerItems(){
+  const col=colById(st.pop.colId);const q=norm(st.pop.q);const opts=optList(col);
+  if(!q)return opts.map((o,i)=>({o,s:0,i}));
+  const scored=opts.map((o,i)=>{const l=norm(o.label);const words=String(o.label).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const s=l.startsWith(q)?0:words.some(w=>w.startsWith(q))?1:l.includes(q)?2:-1;return {o,s,i}}).filter(x=>x.s>=0);
+  if(scored.length)return scored.sort((a,b)=>a.s-b.s||a.i-b.i);
+  return opts.map((o,i)=>({o,s:3,i})).filter(x=>norm(x.o.group).includes(q));
+}
+function hiMatch(label,q){q=String(q||'').trim().toLowerCase();if(!q)return esc(label);const i=label.toLowerCase().indexOf(q);if(i<0)return esc(label);return esc(label.slice(0,i))+'<mark>'+esc(label.slice(i,i+q.length))+'</mark>'+esc(label.slice(i+q.length))}
+function pickerListHTML(){
+  const col=colById(st.pop.colId);const cur=meta(company(st.pop.cid),col.id);const items=pickerItems();const q=st.pop.q.trim();let g=null;
+  if(st.pop.hi>=items.length)st.pop.hi=Math.max(0,items.length-1);
+  return items.map(({o},i)=>{let gh='';if(!q&&o.group!==g){g=o.group;gh=o.group?`<div class="pk-group">${esc(o.group)}</div>`:''}
+    return gh+`<button class="pk-item c-${o.color||colorFor(col,o.id)} ${i===st.pop.hi?'hi':''}" data-act="pick-opt" data-i="${i}"><span class="dot"></span>${o.icon?esc(o.icon)+' ':''}${hiMatch(o.label,q)}${o.id===cur?'<span class="cur">current</span>':''}${q&&o.group?`<span class="grp">${esc(o.group)}</span>`:''}${i===st.pop.hi?'<span class="pk-enter">↵</span>':''}</button>`}).join('')||'<div class="small muted" style="padding:6px">No match. Edit choices from the column header.</div>';
+}
+function openPicker(anchor,cid,colId){
+  const col=colById(colId);if(!col)return;st.pop={type:'picker',cid,colId,q:'',hi:0};
+  showPop(anchor,`<div class="pop-h">${esc(col.name)}<span class="pt">type, then Enter</span></div><input class="inp" id="pk-q" placeholder="Search…" autocomplete="off"><div class="pk-list" id="pk-list">${pickerListHTML()}</div><div class="row"><button class="btn ghost small" data-act="pop-clear">Clear</button><button class="btn ghost small" data-act="edit-choices" data-id="${esc(colId)}">Edit choices</button></div>`);
+}
+function pickOption(i){
+  const items=pickerItems();const o=items[i]&&items[i].o;if(!o)return;const p=st.pop;closePop();
+  setMeta(p.cid,p.colId,o.id);
+  if(p.colId==='status'){const c=company(p.cid);const outc=colById('outcome');if(outc&&outc.showWhen&&outc.showWhen.values.includes(o.id)&&!meta(c,'outcome'))toast(`${o.label}: you can now set ${outc.name}`)}
+}
+function openCellEditor(anchor,cid,colId){
+  const col=colById(colId);const c=company(cid);if(!col||!c)return;
+  if(col.type==='status'||col.type==='values'){openPicker(anchor,cid,colId);return}
+  const v=meta(c,colId);st.pop={type:'cell',cid,colId};
+  let h=`<div class="pop-h">${esc(col.name)}<span class="pt">${esc(TYPES[col.type])}</span></div>`;
+  const actions=`<div class="row"><button class="btn primary small" data-act="pop-save">Save</button><button class="btn ghost small" data-act="pop-clear">Clear</button></div>`;
+  switch(col.type){
+    case 'text':h+=`<input class="inp" id="pe-val" value="${esc(v||'')}">`+actions;break;
+    case 'number':h+=`<input class="inp" id="pe-val" type="number" step="any" value="${esc(v??'')}">`+actions;break;
+    case 'date':h+=`<input class="inp" id="pe-val" type="date" value="${esc(v||'')}">`+actions;break;
+    case 'link':h+=`<input class="inp" id="pe-val" type="url" placeholder="https://" value="${esc(v||'')}">`+actions;break;
+    case 'longtext':h+=`<textarea class="inp" id="pe-val" rows="6">${esc(v||'')}</textarea><div class="small muted">Ctrl+Enter to save</div>`+actions;break;
+    case 'person':h+=`<input class="inp" id="pe-name" placeholder="Name" value="${esc(v&&v.name||'')}"><input class="inp" id="pe-role" placeholder="Role, e.g. Recruiter" value="${esc(v&&v.role||'')}"><input class="inp" id="pe-email" type="email" placeholder="Email" value="${esc(v&&v.email||'')}">`+actions;break;
+    case 'tags':h+=`<div class="pk-list">${(col.options||[]).map(o=>`<label class="opt"><input type="checkbox" data-change="tag-toggle" value="${esc(o)}" ${(v||[]).includes(o)?'checked':''}><span class="tag c-${colorFor(col,o)}">${esc(o)}</span></label>`).join('')}</div><button class="btn ghost small" data-act="edit-choices" data-id="${esc(colId)}">Edit choices</button>`;break;
+    case 'checklist':st.pop.items=clone(v||[]);h+=checklistHTML(st.pop.items);break;
+  }
+  showPop(anchor,h);
+}
+function checklistHTML(items){return `<div class="pk-list">${items.map((it,i)=>`<div class="cl-item"><input type="checkbox" data-change="cl-toggle" data-i="${i}" ${it.done?'checked':''} aria-label="Done"><span class="${it.done?'done':''}">${esc(it.t)}</span><button class="icon-btn" data-act="cl-del" data-i="${i}" aria-label="Remove">×</button></div>`).join('')||'<div class="small muted">No items yet.</div>'}</div><div class="row"><input class="inp grow" id="cl-new" placeholder="Add an item"><button class="btn small" data-act="cl-add">Add</button></div>`}
+function refreshChecklist(){const p=$('#pop');const head=p.querySelector('.pop-h').outerHTML;p.innerHTML=head+checklistHTML(st.pop.items);setMeta(st.pop.cid,st.pop.colId,st.pop.items);const n=$('#cl-new');n&&n.focus()}
+function popSave(){
+  const pop=st.pop;if(!pop)return;
+  if(pop.type==='name'){const v=$('#pe-val').value.trim();if(v)patch('companies/'+pop.cid,{name:v});closePop();return}
+  if(pop.type==='chain-title'){const v=$('#pe-val').value.trim();const ch=st.chains[pop.id];if(v&&ch)saveChain({...clone(ch),title:v});closePop();return}
+  const col=colById(pop.colId);let v;
+  if(col.type==='person'){const n=$('#pe-name').value.trim(),r=$('#pe-role').value.trim(),e=$('#pe-email').value.trim();v=n||r||e?{name:n,role:r,email:e}:null}
+  else{v=$('#pe-val').value;if(col.type==='number')v=v===''?null:Number(v);else if(col.type==='link'){v=v.trim();if(v&&!/^https?:\/\//i.test(v))v='https://'+v;v=v||null}else v=v.trim()===''?null:v}
+  setMeta(pop.cid,pop.colId,v);closePop();
+}
+function openColMenu(anchor,id){
+  const col=colById(id);if(!col)return;st.pop={type:'colmenu',id};
+  const cols=board().columns;const idx=cols.indexOf(col);const hasChoices=['values','tags','status'].includes(col.type);
+  showPop(anchor,`<div class="pop-h">${esc(col.name)}<span class="pt">${esc(TYPES[col.type])}</span></div>
+  <label class="field"><span>Name</span><input id="m-name" value="${esc(col.name)}"></label>
+  ${col.id==='status'?'':`<label class="row small"><input type="checkbox" id="m-sheet" ${col.onSheet!==false?'checked':''}> Show on the sheet</label>`}
+  <div class="row"><button class="btn primary small" data-act="menu-save">Save</button>${hasChoices?`<button class="btn small" data-act="edit-choices" data-id="${esc(col.id)}">Edit choices</button>`:''}</div>
+  ${col.id==='status'?'':`<div class="row"><button class="btn small" data-act="menu-move" data-dir="-1" ${idx<=1?'disabled':''}>← Move</button><button class="btn small" data-act="menu-move" data-dir="1" ${idx===cols.length-1?'disabled':''}>Move →</button></div>
+  <button class="btn danger small" data-act="menu-delete">Delete column</button>`}
+  ${col.id==='status'?'<div class="small muted">Company and Status are always on the sheet.</div>':''}`);
+}
+
+function columnsPopHTML(){const cols=board().columns.filter(c=>c.id!=='status');
+  return `<div class="pop-h">Sheet columns<span class="pt">drag order with arrows</span></div><div class="pk-list">${cols.map((c,i)=>`<div class="cl-item"><input type="checkbox" data-change="col-sheet" data-id="${esc(c.id)}" ${c.onSheet!==false?'checked':''} aria-label="Show ${esc(c.name)} on the sheet"><span>${esc(c.name)} <span class="small muted">${esc(TYPES[c.type])}</span></span><button class="icon-btn" data-act="col-move" data-id="${esc(c.id)}" data-dir="-1" ${i===0?'disabled':''} aria-label="Move up">↑</button><button class="icon-btn" data-act="col-move" data-id="${esc(c.id)}" data-dir="1" ${i===cols.length-1?'disabled':''} aria-label="Move down">↓</button></div>`).join('')}</div><div class="hint">Company and Status always show. Hidden columns still appear on each company page.</div>`}
+/* ---------- modals ---------- */
+function openModal(html,wide){const m=$('#modal');m.innerHTML=`<div class="modal-card ${wide?'wide':''}" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false;const f=m.querySelector('input,select,textarea');f&&f.focus()}
+function closeModal(){$('#modal').hidden=true;st.choices=null}
+function addColModal(){openModal(`<h3>Add Metadata Column</h3>
+  <label class="field"><span>Name</span><input id="mc-name" placeholder="e.g. Salary range"></label>
+  <label class="field"><span>Type</span><select id="mc-type" data-change="mc-type">${Object.entries(TYPES).filter(([k])=>k!=='status').concat([['status','Status (chips)']]).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></label>
+  <label class="field" id="mc-opts-wrap" hidden><span>Choices · one per line</span><textarea id="mc-opts" rows="4" placeholder="Remote&#10;Hybrid&#10;On-site"></textarea></label>
+  <label class="row small"><input type="checkbox" id="mc-sheet" checked> Show on the sheet (it always shows on the company page)</label>
+  <div class="row"><button class="btn primary" data-act="mc-save">Add column</button><button class="btn ghost" data-act="modal-close">Cancel</button></div>`)}
+function choicesModal(colId){
+  const col=colById(colId);if(!col)return;
+  st.choices={colId,opts:optList(col).map(o=>({...o})),showWhen:col.showWhen?clone(col.showWhen):null,isStatus:col.type==='status'};
+  renderChoices();
+}
+function renderChoices(){
+  const ch=st.choices;const col=colById(ch.colId);
+  const tplOpts=t=>`<option value="">No template</option>`+st.templates.map(x=>`<option value="${esc(x.id)}" ${x.id===t?'selected':''}>${esc(x.name)}</option>`).join('');
+  const groups=[...new Set(ch.opts.map(o=>o.group).filter(Boolean))];
+  openModal(`<h3>${esc(col.name)} choices</h3>
+  ${ch.isStatus?'<p class="small muted" style="margin:0">Group choices into categories (like Email outreach). Add an emoji to flag the important ones. The template is what the company page suggests at that status.</p>':''}
+  <datalist id="grp-list">${groups.map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
+  ${ch.isStatus?'<div class="opt-edit"><span class="opt-edit-h">Icon</span><span class="opt-edit-h">Label</span><span class="opt-edit-h">Category</span><span class="opt-edit-h">Color</span><span class="opt-edit-h">Email template</span><span></span></div>':''}
+  ${ch.opts.map((o,i)=>ch.isStatus?`<div class="opt-edit"><input class="inp" data-copt="${i}:icon" value="${esc(o.icon||'')}" placeholder="—" maxlength="4" aria-label="Icon or emoji" style="text-align:center"><input class="inp" data-copt="${i}:label" value="${esc(o.label)}" aria-label="Label"><input class="inp" list="grp-list" data-copt="${i}:group" value="${esc(o.group||'')}" placeholder="No category" aria-label="Category"><select class="inp" data-copt="${i}:color" aria-label="Color">${COLORS.map(cn=>`<option value="${cn}" ${o.color===cn?'selected':''}>${cn}</option>`).join('')}</select><select class="inp" data-copt="${i}:tpl" aria-label="Template">${tplOpts(o.tpl)}</select><span class="row" style="gap:0;flex-wrap:nowrap"><button class="icon-btn" data-act="copt-move" data-i="${i}" data-dir="-1" aria-label="Move up">↑</button><button class="icon-btn" data-act="copt-move" data-i="${i}" data-dir="1" aria-label="Move down">↓</button><button class="icon-btn" data-act="copt-del" data-i="${i}" aria-label="Remove">×</button></span></div>`
+    :`<div class="row"><input class="inp grow" data-copt="${i}:label" value="${esc(o.label)}" aria-label="Choice"><button class="icon-btn" data-act="copt-move" data-i="${i}" data-dir="-1" aria-label="Move up">↑</button><button class="icon-btn" data-act="copt-move" data-i="${i}" data-dir="1" aria-label="Move down">↓</button><button class="icon-btn" data-act="copt-del" data-i="${i}" aria-label="Remove">×</button></div>`).join('')}
+  <div><button class="btn small" data-act="copt-add">+ Add choice</button></div>
+  ${ch.isStatus&&col.id!=='status'?`<div class="field"><span>Only show this column when Status is</span><div class="row">${optList(statusCol()).map(o=>`<label class="row small" style="gap:4px"><input type="checkbox" data-sw="${esc(o.id)}" ${ch.showWhen&&ch.showWhen.values.includes(o.id)?'checked':''}>${esc(o.label)}</label>`).join('')}</div><span class="hint">Leave all unchecked to always show it.</span></div>`:''}
+  <div class="row"><button class="btn primary" data-act="choices-save">Save choices</button><button class="btn ghost" data-act="modal-close">Cancel</button></div>`,ch.isStatus);
+}
+function syncChoices(){document.querySelectorAll('[data-copt]').forEach(el=>{const [i,k]=el.dataset.copt.split(':');if(st.choices.opts[i])st.choices.opts[i][k]=el.value})}
+function meModal(){const me=st.me||{};openModal(`<h3>Your details</h3><p class="muted small" style="margin:0">These fill the {{my_…}} fields in every email.</p>
+  <label class="field"><span>Name · {{my_name}}</span><input id="me-name" value="${esc(me.name||'')}"></label>
+  <label class="field"><span>Portfolio · {{my_portfolio}}</span><input id="me-portfolio" value="${esc(me.portfolio||'')}"></label>
+  <label class="field"><span>Reel link · {{my_reel}}</span><input id="me-reel" value="${esc(me.reel||'')}"></label>
+  <label class="field"><span>Phone · {{my_phone}}</span><input id="me-phone" value="${esc(me.phone||'')}"></label>
+  <label class="field"><span>Intro paragraph · {{my_intro}}</span><textarea id="me-intro" rows="5">${esc(me.intro||'')}</textarea></label>
+  <div class="row"><button class="btn primary" data-act="me-save">Save</button><button class="btn ghost" data-act="modal-close">Cancel</button></div>
+  <div class="row small muted" style="border-top:1px solid var(--line);padding-top:12px"><span style="flex:1">Your data is yours. Export everything as one file anytime.</span><button class="btn small" data-act="export">Export data</button></div>`)}
+
+/* ---------- templates overlay ---------- */
+function tplPrevId(){if(st.tplPrev&&company(st.tplPrev))return st.tplPrev;if(st.panel&&company(st.panel))return st.panel;const c=st.companies[0];return c&&c.id}
+function tplPreviewHTML(){const d=st.tplDraft;if(!d)return '';const c=company(tplPrevId());const ps=c?personsOf(c):[];const m=tokenMap(c,ps[0]&&ps[0].p);
+  return `<div class="compose" style="border:0"><div class="c-row"><span class="k">Subject</span><span class="v">${fillHTML(d.subject,m)||'<span class="muted">—</span>'}</span></div><div class="c-body">${fillHTML(d.body,m)}</div></div>`}
+function renderTemplates(){
+  const el=$('#overlay');const tpls=[...st.templates].sort((a,b)=>String(a.name).localeCompare(b.name));
+  if(!st.tplDraft){const first=tpls.find(t=>t.id===st.tplSel)||tpls[0];if(first){st.tplSel=first.id;st.tplDraft=clone(first)}}
+  const d=st.tplDraft;const usedBy=d?board().columns.filter(c=>c.type==='status').flatMap(c=>optList(c).filter(o=>o.tpl===d.id).map(o=>o.label)):[];
+  el.innerHTML=`<div class="overlay-h"><h2>Email templates</h2><button class="btn" data-act="close-templates">Done</button></div>
+  <div class="tpl-layout"><nav class="tpl-list">${tpls.map(t=>`<button class="tpl-item" data-act="tpl-select" data-id="${esc(t.id)}" aria-current="${String(!!d&&d.id===t.id)}"><span>${esc(t.name)}</span><small>${esc(t.subject||'No subject')}</small></button>`).join('')||'<div class="muted small" style="padding:8px">No templates yet.</div>'}<button class="btn ghost" data-act="tpl-new" style="margin-top:6px">+ New template</button></nav>
+  ${d?`<section class="tpl-edit">
+    <label class="field"><span>Template name</span><input id="tpl-name" data-tpl="name" value="${esc(d.name)}"></label>
+    <label class="field"><span>Subject</span><input id="tpl-subject" data-tpl="subject" value="${esc(d.subject)}"></label>
+    <label class="field"><span>Body</span><textarea id="tpl-body" data-tpl="body" rows="14">${esc(d.body)}</textarea></label>
+    <div class="field"><span>Fill-in fields · click to insert at the cursor</span>${tokenGroups().map(g=>`<div class="tok-group"><b>${esc(g.name)}</b><div class="tokens">${g.items.map(([k,l])=>`<button class="tok" data-act="tpl-token" data-k="${esc(k)}" title="Inserts {{${esc(k)}}}">${esc(l)}</button>`).join('')}</div></div>`).join('')}<div class="hint">Every column you add shows up under Company.</div></div>
+    <div class="field"><span>Preview</span><div class="row"><select class="inp" style="width:auto" data-change="tpl-prev" aria-label="Preview with company">${st.companies.slice().sort((a,b)=>String(a.name).localeCompare(b.name)).map(c=>`<option value="${esc(c.id)}" ${c.id===tplPrevId()?'selected':''}>Filled in for ${esc(c.name)}</option>`).join('')||'<option>No companies yet</option>'}</select></div>
+      <div class="tpl-preview" id="tpl-prev">${tplPreviewHTML()}</div><div class="hint">Green = filled in from the company. Yellow = blank for this company.</div></div>
+    <div class="small muted">${usedBy.length?`Suggested at: ${esc(usedBy.join(', '))}`:'Not suggested at any status yet. Set that in Status → Edit choices.'}</div>
+    <div class="row"><button class="btn primary" data-act="tpl-save">Save template</button><button class="btn danger" data-act="tpl-delete">Delete</button></div>
+  </section>`:'<section class="tpl-edit"><div class="muted">Pick a template or make a new one.</div></section>'}</div>`;
+  el.hidden=false;
+}
+
+/* ---------- toast + clipboard ---------- */
+let toastT;function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2800)}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast('Copied')}catch(e){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();toast(ok?'Copied':'Copy was blocked. Select the text and press Ctrl+C.')}}
+
+/* ---------- AI ---------- */
+const AI_HIDE=['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'];
+function aiFail(e){const code=e&&e.code;if(code==='cancelled')return;
+  if(AI_HIDE.includes(code)){S.aiOff=true;toast('AI is turned off for this page.')}
+  else if(code==='rate_limited')toast('AI is busy or you hit a usage limit. Try again in a bit.');
+  else if(code==='invalid_json')toast("The AI's answer didn't come back in the right shape. Try again.");
+  else toast("The AI didn't answer. Try again.")}
+const MEDIA="media companies: motion design and animation studios, advertising agencies, production companies, post houses, TV networks and broadcasters, film studios, video game studios, and in-house creative teams at brands";
+function companyContext(c){
+  const pg=pageOf(c.id);const facts=board().columns.map(col=>{const t=valueText(col,meta(c,col.id));return t?`${col.name}: ${t}`:''}).filter(Boolean).join('\n');
+  const notes=pg.notes.slice().sort(byDate).map(n=>`[${n.date}] NOTE: ${n.text}`).join('\n');
+  const meets=pg.meetings.slice().sort(byDate).map(m=>`[${m.date}] ${m.kind==='interview'?'INTERVIEW':'MEETING'}${m.with?' with '+m.with:''}: ${m.notes||''}`).join('\n');
+  return `Company: ${c.name}\n${facts}${notes?'\nNotes:\n'+notes:''}${meets?'\nMeetings:\n'+meets:''}`.slice(0,8000);
+}
+const chainText=msgs=>msgs.slice().sort(byDate).map(m=>`[${m.date}] ${m.dir==='in'?'THEM':'ME'}: ${String(m.text).slice(0,4000)}`).join('\n\n').slice(-60000);
+async function summarize(chainId){
+  const ch=st.chains[chainId];if(!ch||!S.sample)return;const c=company(ch.companyId);
+  st.aiBusy='sum:'+chainId;renderPanel();
+  const prompt=`You help a job seeker (a motion designer) keep track of email chains with companies. Today is ${todayISO()}.
+${companyContext(c)}
+
+Email chain "${ch.title}", oldest first (ME = the job seeker, THEM = the company):
+${chainText(ch.messages||[])}
+
+Write exactly three short lines in plain text, no markdown:
+Where it stands: ...
+You owe them: ... (write "Nothing right now" if nothing)
+Next step: ...`;
+  try{const r=await S.sample(prompt,{modelTier:'quick',cache:false});const cur=st.chains[chainId];saveChain({...clone(cur),summary:{text:r.text.trim(),at:todayISO(),count:(cur.messages||[]).length}})}
+  catch(e){aiFail(e)}finally{st.aiBusy=null;render()}
+}
+async function aiDraft(){
+  const c=company(st.panel);if(!S.sample||!c)return;const E=buildEmail(c);const me=st.me||{};
+  const ch=st.compose.target!=='new'?st.chains[st.compose.target]:null;
+  st.aiBusy='draft';renderPanel();
+  const prompt=`Write the next email a job seeker should send. Plain, warm, specific, under 140 words. Use only the facts given; don't invent projects, dates or names. Sign off with the sender's first name.
+Sender: ${me.name||'the sender'}. Portfolio: ${me.portfolio||'n/a'}. About the sender: ${me.intro||'n/a'}
+Recipient: ${E.p?`${E.p.name||''} (${E.p.role||''})`:'unknown, so open with "Hi there,"'}
+Status: ${valueText(statusCol(),meta(c,'status'))||'none yet'}
+${companyContext(c)}
+${ch?`This is a reply in the email chain "${ch.title}", oldest first:\n${chainText(ch.messages||[])}`:'This starts a new email chain.'}
+
+Reply with only JSON: {"subject": "...", "body": "..."}`;
+  try{const r=await S.sample.json(prompt,{cache:false});if(r&&typeof r.body==='string'){st.compose.edit={subject:String(r.subject||''),body:r.body,dirty:true};st.compose.fromAI=true}else toast("The AI's answer was empty. Try again.")}
+  catch(e){aiFail(e)}finally{st.aiBusy=null;render()}
+}
+
+/* ---------- notices (quick update + lookup) ---------- */
+let noticeT=null;
+function scheduleHide(ms){clearTimeout(noticeT);noticeT=setTimeout(()=>{const el=$('#notice');if(el.matches(':hover')){scheduleHide(1500);return}st.notice=null;renderNotice()},ms)}
+function renderNotice(){
+  const el=$('#notice');const n=st.notice;const go=$('#quick-go');
+  const busy=!!(n&&n.busy);go.disabled=busy&&n.kind==='quick';go.textContent=busy&&n.kind==='quick'?'Thinking…':'Update';
+  if(!n){el.hidden=true;clearTimeout(noticeT);return}
+  el.hidden=false;el.className='notice';
+  if(n.busy){el.innerHTML=`<div class="muted">${esc(n.text)}…</div>`;return}
+  if(n.kind==='lookup'){
+    el.innerHTML=`<div class="n-msg">${esc(n.msg)}</div>${n.cands&&n.cands.length?`${n.done?'<div class="small muted">Not it? Did you mean:</div>':''}<div class="cands">${n.cands.map((x,i)=>`<button class="cand" data-act="pick-cand" data-i="${i}"><b>${esc(x.name)}</b><small>${esc(x.about)}</small></button>`).join('')}</div>`:''}${n.ask?'<div class="n-actions"><button class="btn ghost small" data-act="notice-dismiss">None of these</button></div>':''}`;
+    if(!n.ask)scheduleHide(n.cands&&n.cands.length?6000:3500);return}
+  if(n.error){el.innerHTML=`<div>${esc(n.error)}</div>`;scheduleHide(4000);return}
+  if(n.kind==='done'){el.className='notice done';el.innerHTML=`<div class="n-head"><b>Updated</b><span class="row" style="gap:6px"><button class="btn small" data-act="quick-undo">Undo</button><button class="icon-btn" data-act="notice-dismiss" aria-label="Close">×</button></span></div><ul>${n.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`;scheduleHide(7000);return}
+  if(!n.lines.length){el.innerHTML=`<div class="n-msg">${esc(n.reply||'Nothing to change.')}</div>`;scheduleHide(6000);return}
+  el.innerHTML=`${n.reply?`<div class="n-msg">${esc(n.reply)}</div>`:''}<ul>${n.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul><div class="n-actions"><button class="btn primary small" data-act="quick-apply">Apply</button><button class="btn ghost small" data-act="notice-dismiss">Discard</button></div>`;
+}
+function findCompany(name,extra){const n=norm(name);if(!n)return null;const all=st.companies.concat(extra||[]);
+  return all.find(c=>norm(c.name)===n)||all.find(c=>norm(c.name).startsWith(n)||n.startsWith(norm(c.name)))||null}
+function colByName(name){const n=norm(name);return board().columns.find(c=>norm(c.name)===n)}
+function coerce(col,v){
+  if(v==null||v==='')return undefined;
+  switch(col.type){
+    case 'number':{const n=Number(v);return isNaN(n)?undefined:n}
+    case 'checkbox':return !!v;
+    case 'tags':return (Array.isArray(v)?v:String(v).split(',')).map(x=>String(x).trim()).filter(Boolean);
+    case 'person':return isPlain(v)?{name:String(v.name||''),role:String(v.role||''),email:String(v.email||'')}:{name:String(v),role:'',email:''};
+    case 'link':{const s=String(v).trim();return s?hrefOf(s):undefined}
+    case 'date':return validDate(v)?v:undefined;
+    case 'status':{const o=optList(col).find(x=>norm(x.label)===norm(v)||x.id===v);return o?o.id:undefined}
+    case 'checklist':return undefined;
+    default:return String(v);
+  }
+}
+function addMissingOptions(col,vals){
+  if(col.type!=='values'&&col.type!=='tags')return;const opts=col.options||[];
+  const add=(Array.isArray(vals)?vals:[vals]).filter(x=>!opts.some(o=>norm(o)===norm(x)));
+  if(add.length){const b=clone(board());b.columns.find(x=>x.id===col.id).options=[...opts,...add];saveBoard(b)}
+}
+function matchOpt(col,v){if(col.type==='values'){const o=(col.options||[]).find(x=>norm(x)===norm(v));return o||v}if(col.type==='tags')return v.map(t=>(col.options||[]).find(x=>norm(x)===norm(t))||t);return v}
+const sn=(col,id)=>{const o=optionOf(col,id);return o?o.label:id};
+function describe(a){
+  switch(a.type){
+    case 'add_company':return `Add ${a.company}`;
+    case 'set_status':return `${a.company} · ${a.column} → ${a.value}`;
+    case 'log_email':return `${a.company} · email chain “${a.chain}”: ${a.dir==='in'?'email from them':'email you sent'} on ${fmtDate(a.date,true)}: “${a.text}”`;
+    case 'add_note':return `${a.company} · note on ${fmtDate(a.date,true)}: “${a.text}”`;
+    case 'add_application':return `${a.company} · application${a.role?' for '+a.role:''} on ${fmtDate(a.date,true)}${a.result?` (${a.result})`:''}`;
+    case 'add_meeting':return `${a.company} · ${a.kind==='interview'?'interview':'meeting'}${a.with?' with '+a.with:''} on ${fmtDate(a.date,true)}${a.start?`, ${fmtTime(a.start)}${a.end?'–'+fmtTime(a.end):''}`:''}${a.notes?`: “${a.notes}”`:''}`;
+    case 'set_follow_up':return `${a.company} · follow up on ${fmtDate(a.date,true)}`;
+    case 'set_field':{const col=colByName(a.column);return `${a.company} · ${col?col.name:a.column}: ${Array.isArray(a.value)?a.value.join(', '):isPlain(a.value)?[a.value.name,a.value.role,a.value.email].filter(Boolean).join(', '):a.value}`}
+  }return '';
+}
+function cleanActions(list){
+  const out=[];
+  for(const a of Array.isArray(list)?list:[]){
+    if(!a||typeof a!=='object'||!a.company)continue;a.company=String(a.company).trim();
+    const d=k=>{if(!validDate(a[k]))a[k]=todayISO()};
+    switch(a.type){
+      case 'add_company':out.push(a);break;
+      case 'set_status':{const col=colByName(a.column||'Status');if(col&&col.type==='status'&&coerce(col,a.value)){a.column=col.name;a.value=sn(col,coerce(col,a.value));out.push(a)}break}
+      case 'log_email':if(a.text){d('date');a.dir=a.dir==='in'?'in':'out';a.chain=String(a.chain||'Email chain');a.text=String(a.text);out.push(a)}break;
+      case 'add_note':if(a.text){d('date');a.text=String(a.text);out.push(a)}break;
+      case 'add_application':d('date');out.push(a);break;
+      case 'add_meeting':{d('date');a.kind=a.kind==='interview'?'interview':'meeting';const tm=x=>typeof x==='string'&&/^\d{2}:\d{2}$/.test(x);if(!tm(a.start))a.start='';if(!tm(a.end))a.end='';out.push(a);break}
+      case 'set_follow_up':if(validDate(a.date))out.push(a);break;
+      case 'set_field':{const col=colByName(a.column);if(col&&col.type!=='status'&&coerce(col,a.value)!==undefined)out.push(a);break}
+    }
+  }
+  return out;
+}
+const MEANING={gathering:'researching them',reached:'I emailed or messaged them first',wroteback:'they replied or reached out, and I owe a response',replied:'I answered them and I am waiting on them',meeting:'we talked (call, coffee chat, video)',applied:'applied through a job posting',rejected:'turned down',interview:'formal interview after applying'};
+function statusMeanings(){return optList(statusCol()).map(o=>`${o.label} = ${MEANING[o.id]||'(the job seeker\'s own choice)'}`).join('; ')}
+async function runQuick(text){
+  if(!S.sample||S.aiOff){st.notice={kind:'quick',error:S.sample?'AI is turned off for this page.':'Quick updates use AI, which works on the saved, published page. This view is a preview.'};renderNotice();return}
+  st.notice={kind:'quick',busy:true,text:`Reading “${text}”`};renderNotice();
+  const b=board();
+  const statusCols=b.columns.filter(c=>c.type==='status').map(c=>`"${c.name}": ${optList(c).map(o=>`${o.label}${o.group?` (${o.group})`:''}`).join(', ')}${c.showWhen?` [only used once Status is ${c.showWhen.values.map(v=>sn(statusCol(),v)).join(' or ')}]`:''}`).join('\n');
+  const prompt=`You update a job seeker's tracker from a short note they typed. They're a motion designer looking for work at ${MEDIA}. Today is ${todayISO()}.
+
+Status columns and their choices:
+${statusCols}
+Status meanings: ${statusMeanings()}
+Other fields: ${b.columns.filter(c=>c.type!=='status'&&c.type!=='checklist').map(c=>`${c.name} (${c.type}${c.options?`: ${c.options.join(', ')}`:''})`).join('; ')}
+Companies already tracked: ${st.companies.map(c=>`${c.name} [Status: ${valueText(statusCol(),meta(c,'status'))||'none'}; chains: ${chainsOf(c.id).map(x=>x.title).join(' | ')||'none'}]`).join('; ')||'none'}
+
+The note: """${text}"""
+
+Reply with only JSON: {"confirm": false, "reply": "one short sentence saying what you understood", "actions": [ ... ]}
+Set "confirm" to true only when you're genuinely unsure (which company is meant, an ambiguous date, conflicting details), and put the question in "reply". Otherwise false: the changes are applied straight away.
+Action shapes:
+{"type":"add_company","company":"Official name"}   only if not already tracked
+{"type":"set_status","company":"Name","column":"Status","value":"<choice label>"}
+{"type":"log_email","company":"Name","chain":"short chain title, reuse an existing title if it's the same thread","dir":"out"|"in","date":"YYYY-MM-DD","text":"one line on what the email said"}
+{"type":"add_note","company":"Name","date":"YYYY-MM-DD","text":"short, past tense, in the job seeker's words"}
+{"type":"add_application","company":"Name","date":"YYYY-MM-DD","role":"...","link":"","result":""}
+{"type":"add_meeting","company":"Name","date":"YYYY-MM-DD","start":"HH:MM" or "","end":"HH:MM" or "","kind":"meeting"|"interview","with":"","notes":"how it went, or what it is if it hasn't happened yet"}
+{"type":"set_follow_up","company":"Name","date":"YYYY-MM-DD"}
+{"type":"set_field","company":"Name","column":"<field name>","value": ...}
+Rules:
+- Every separate event gets its own action with its own date. If the note says January for one thing and February for another, use two different dates.
+- Record only what the note says. Never add an email, meeting, interview, application or outcome the note doesn't describe.
+- Reaching out / emailing = log_email (dir "out"). A conversation, call, chat, coffee chat or virtual coffee = add_meeting (kind "meeting", or "interview" if they call it that). Feelings, impressions and things they learned = add_note.
+- If the company reached out to the job seeker (email, LinkedIn, anywhere) and asked for something, Status is "${sn(statusCol(),'wroteback')}" (their move is done, the job seeker owes a reply). If they asked for a coffee chat or call with no date yet, add a note saying so; add_meeting only once there's a date.
+- Set Status to the latest state. Set Outcome only when a meeting or interview happened and the note says how it went (e.g. not a good fit = Bad fit).
+- Scheduled future meetings and interviews are add_meeting with their future date and 24-hour start/end times (12-12:20 pm = 12:00 to 12:20). Don't add a follow-up unless the note asks for a reminder.
+- A month with no day means the 1st. A past event with no year is the most recent past one, never in the future. "Next week" etc. are relative to today.
+- Use the tracked company's exact name when the note refers to it. Use the company's official spelling for new ones (e.g. BigStar, not Big Star).
+- Treat abbreviations as the full thing (LA = Los Angeles, NYC = New York) and store full names in fields.
+- If the note is too unclear to act on, return no actions and ask one short question in "reply".`;
+  try{const r=await S.sample.json(prompt,{cache:false});const actions=cleanActions(r&&r.actions);const lines=actions.map(describe);
+    if(actions.length&&!(r&&r.confirm===true)){const undo=applyQuick(actions,text);st.notice={kind:'done',lines,undo};$('#quick-input').value=''}
+    else st.notice={kind:'quick',reply:String(r&&r.reply||''),actions,lines,text}}
+  catch(e){aiFail(e);st.notice={kind:'quick',error:"Couldn't read that update. Try rephrasing it."}}
+  renderNotice();
+}
+function snapshotFor(names){const snap={companies:{},pages:{},chains:{},cids:[]};
+  for(const nm of names){const c=findCompany(nm);if(c&&!snap.companies[c.id]){snap.cids.push(c.id);snap.companies[c.id]=clone(c);snap.pages[c.id]=st.pages[c.id]?clone(st.pages[c.id]):null;snap.chains[c.id]=chainsOf(c.id).map(clone)}}return snap}
+async function undoQuick(u){
+  for(const id of u.created)await deleteCompany(id);
+  for(const cid of u.snap.cids){const {id,...d}=u.snap.companies[cid];await put('companies/'+cid,d);
+    if(u.snap.pages[cid])await put('pages/'+cid,u.snap.pages[cid]);else if(st.pages[cid])await del('pages/'+cid);
+    const keep=new Set(u.snap.chains[cid].map(x=>x.id));for(const ch of chainsOf(cid))if(!keep.has(ch.id)){await del('chains/'+ch.id);delete st.chains[ch.id]}
+    for(const ch of u.snap.chains[cid]){const {id,...d}=ch;await put('chains/'+id,d)}}
+  if(JSON.stringify(u.board)!==JSON.stringify(board()))await put('config/board',u.board);
+  toast('Undone');render();
+}
+function applyQuick(actions,context){
+  const snap=snapshotFor(actions.map(a=>a.company));const boardBefore=clone(board());
+  const created=[];const touchedChains={};const touchedPages={};
+  const getCo=name=>{let c=findCompany(name,created);if(!c){c={id:uid('co'),name,order:Date.now()+created.length,meta:{},auto:{}};created.push(c);put('companies/'+c.id,{name:c.name,order:c.order,meta:{},auto:{},due:null})}return c};
+  const pageFor=cid=>touchedPages[cid]||(touchedPages[cid]=clone(pageOf(cid)));
+  for(const a of actions){
+    const c=getCo(a.company);
+    if(a.type==='set_status'){const col=colByName(a.column);const v=coerce(col,a.value);if(v){setMeta(c.id,col.id,v);c.meta=c.meta||{};c.meta[col.id]=v}}
+    else if(a.type==='log_email'){let ch=Object.values(touchedChains).find(x=>x.companyId===c.id&&norm(x.title)===norm(a.chain))||chainsOf(c.id).find(x=>norm(x.title)===norm(a.chain));
+      ch=ch?(touchedChains[ch.id]||clone(ch)):{id:uid('ch'),companyId:c.id,title:a.chain,started:a.date,messages:[],summary:null};
+      ch.messages=[...(ch.messages||[]),{id:uid('m'),dir:a.dir,date:a.date,text:a.text}];if(!ch.started||a.date<ch.started)ch.started=a.date;touchedChains[ch.id]=ch}
+    else if(a.type==='add_note'){pageFor(c.id).notes.push({id:uid('n'),date:a.date,text:a.text})}
+    else if(a.type==='add_application'){pageFor(c.id).applications.push({id:uid('a'),date:a.date,role:String(a.role||''),link:String(a.link||''),result:String(a.result||'')})}
+    else if(a.type==='add_meeting'){pageFor(c.id).meetings.push({id:uid('mt'),date:a.date,kind:a.kind,with:String(a.with||''),notes:String(a.notes||''),start:a.start||'',end:a.end||''})}
+    else if(a.type==='set_follow_up'){patch('companies/'+c.id,{due:a.date})}
+    else if(a.type==='set_field'){const col=colByName(a.column);let v=coerce(col,a.value);v=matchOpt(col,v);addMissingOptions(col,v);patch('companies/'+c.id,{meta:{[col.id]:v},auto:{[col.id]:null}})}
+  }
+  for(const id in touchedChains)saveChain(touchedChains[id]);
+  for(const cid in touchedPages)savePage(cid,touchedPages[cid]);
+  render();
+  if(created.length)setTimeout(()=>lookupCompany(created[0].id,created[0].name,{quiet:true,context}),500);
+  return {created:created.map(c=>c.id),snap,board:boardBefore};
+}
+
+/* ---------- company lookup ---------- */
+const PERSONAL=/priority|role i want|why|note|prep|interest|fit|contact/i;
+const fillableCols=()=>board().columns.filter(col=>['text','number','link','values','tags','checkbox'].includes(col.type)&&!PERSONAL.test(col.name));
+async function lookupCompany(cid,typed,opts={}){
+  const c=company(cid);if(!c)return;
+  if(!S.sample||S.aiOff){toast('Company lookup uses AI, which works on the saved, published page.');return}
+  if(!opts.quiet){st.notice={kind:'lookup',busy:true,text:`Looking up “${typed||c.name}”`};renderNotice()}
+  const cols=fillableCols();
+  const prompt=`A motion designer is adding a company to their job-hunt tracker. They work with ${MEDIA}.
+They typed: "${typed||c.name}" (spacing, spelling or capitalization may be off).
+${opts.context?`What they wrote about it: "${opts.context}"
+`:''}Work out which real company they mean. List up to 4 candidates, best first. Set "sure": true when one is the obvious match: it's far better known (NBA = the basketball league), or the context makes it clear. Set "sure": false only when genuinely different companies are equally likely.
+For each candidate give its official name, a one-line description (what they do and their main city), and these fields when you're confident (write city names in full, e.g. Los Angeles, not LA):
+${cols.map(col=>`- ${col.name} (${col.type}${col.options?`, choose from: ${col.options.join(' | ')}`:''})`).join('\n')}
+Tags fields are a list of strings. Links are full https URLs. City = main office most relevant to creative hiring.
+Reply with only JSON: {"sure": true|false, "candidates": [{"name": "...", "about": "...", "fields": {"<field name>": <value>}}]}
+If you don't know any matching company, return {"sure": false, "candidates": []}.`;
+  try{
+    const r=await S.sample.json(prompt,{cache:false});
+    const cands=(r&&Array.isArray(r.candidates)?r.candidates:[]).filter(x=>x&&x.name).slice(0,4).map(x=>({name:String(x.name),about:String(x.about||''),fields:isPlain(x.fields)?x.fields:{}}));
+    if(opts.quiet&&(!cands.length||r.sure)){if(cands.length){applyCandidate(cid,cands[0]);toast(`Filled in details for ${cands[0].name}`)}return}
+    if(!cands.length)st.notice={kind:'lookup',cid,msg:`Couldn't find a media company called “${typed||c.name}”. Check the spelling, or fill the details in yourself.`,cands:[]};
+    else if(r.sure){const filled=applyCandidate(cid,cands[0]);st.notice={kind:'lookup',cid,done:true,msg:`Filled in ${cands[0].name}${filled.length?`: ${filled.join(', ')}`:''}.`,cands:cands.slice(1)}}
+    else st.notice={kind:'lookup',cid,ask:true,msg:`Which “${typed||c.name}” did you mean?`,cands};
+  }catch(e){aiFail(e);if(opts.quiet)return;st.notice={kind:'lookup',cid,msg:`Couldn't look up ${c.name}. Try again from its page.`,cands:[]}}
+  renderNotice();
+}
+function applyCandidate(cid,cand){
+  const c=company(cid);if(!c)return [];const m={},auto={},names=[];
+  for(const [k,v] of Object.entries(cand.fields||{})){
+    const col=colByName(k);if(!col||!fillableCols().includes(col))continue;
+    const cur=meta(c,col.id);const curEmpty=cur==null||cur===''||(Array.isArray(cur)&&!cur.length);
+    if(!curEmpty&&!(c.auto&&c.auto[col.id]))continue;
+    let val=coerce(col,v);if(val===undefined)continue;val=matchOpt(col,val);addMissingOptions(col,val);
+    m[col.id]=val;auto[col.id]=true;names.push(col.name);
+  }
+  const upd={meta:m,auto};if(cand.name&&cand.name!==c.name)upd.name=cand.name;
+  patch('companies/'+cid,upd);return names;
+}
+
+/* ---------- actions ---------- */
+let armedT;
+function arm(btn,label,fn){if(btn.dataset.armed){delete btn.dataset.armed;fn();return}btn.dataset.armed='1';btn.dataset.orig=btn.textContent;btn.textContent=label;clearTimeout(armedT);armedT=setTimeout(()=>{if(btn.isConnected){delete btn.dataset.armed;btn.textContent=btn.dataset.orig}},3500)}
+async function addCompany(name){
+  name=name.trim();if(!name)return;const ex=findCompany(name);if(ex&&norm(ex.name)===norm(name)){toast(`${ex.name} is already on the list`);return}
+  const id=uid('co');st.refocusNew=true;await put('companies/'+id,{name,order:Date.now(),meta:{},auto:{},due:null});
+  if(S.sample&&!S.aiOff)lookupCompany(id,name);
+}
+async function deleteCompany(cid){
+  if(st.panel===cid){st.panel=null;$('#panel').hidden=true}
+  await del('companies/'+cid);if(st.pages[cid])await del('pages/'+cid);
+  for(const ch of chainsOf(cid))await del('chains/'+ch.id);
+}
+function bindVal(k){const el=document.querySelector(`[data-bind="${k}"]`);return el?el.value:(st.draft[k]||'')}
+const H={
+  noop(){},
+  view(t){st.view=t.dataset.view;try{localStorage.setItem('sot-view',st.view)}catch(e){}closePop();render()},
+  filter(t){st.filter=t.dataset.f;document.querySelectorAll('[data-act="filter"]').forEach(b=>b.setAttribute('aria-pressed',String(b===t)));render()},
+  'open-templates'(){st.overlay='templates';renderTemplates()},
+  'close-templates'(){st.overlay=null;$('#overlay').hidden=true},
+  'open-me'(){meModal()},
+  async export(){const data={exported:new Date().toISOString(),board:board(),companies:st.companies,chains:Object.values(st.chains),pages:st.pages,templates:st.templates,me:st.me};
+    const dl=await (window.claude&&window.claude.use?window.claude.use('downloads'):null);if(!dl){toast('Export works on the saved, published page.');return}
+    try{await dl.save({filename:`studio-outreach-tracker-${todayISO()}.json`,data:JSON.stringify(data,null,2)});toast('Exported')}catch(e){if(!(e&&e.code==='declined'))toast("Couldn't export. Try again.")}},
+  'me-save'(){put('settings/me',{name:$('#me-name').value.trim(),portfolio:$('#me-portfolio').value.trim(),reel:$('#me-reel').value.trim(),phone:$('#me-phone').value.trim(),intro:$('#me-intro').value.trim()});closeModal();toast('Saved your details')},
+  'add-col'(){addColModal()},
+  'mc-save'(){const name=$('#mc-name').value.trim();const type=$('#mc-type').value;if(!name){toast('Give the column a name');return}
+    if(colByName(name)){toast('There’s already a column with that name');return}
+    const b=clone(board());const col={id:uid('col'),name,type,onSheet:$('#mc-sheet').checked};
+    const lines=$('#mc-opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(type==='values'||type==='tags')col.options=lines;
+    if(type==='status')col.options=lines.map((l,i)=>({id:slug(l)||uid('o'),label:l,group:'',color:COLORS[(i+1)%COLORS.length],tpl:''}));
+    b.columns.push(col);saveBoard(b);closeModal();toast(`Added ${name}`)},
+  'modal-close'(){closeModal()},
+  'col-menu'(t){openColMenu(t,t.dataset.id)},
+  'menu-save'(){const id=st.pop.id;const b=clone(board());const col=b.columns.find(x=>x.id===id);const n=$('#m-name').value.trim();
+    if(n&&norm(n)!==norm(col.name)&&b.columns.some(x=>norm(x.name)===norm(n))){toast('There’s already a column with that name');return}
+    if(n)col.name=n;const sh=$('#m-sheet');if(sh)col.onSheet=sh.checked;saveBoard(b);closePop();toast('Saved')},
+  'menu-move'(t){const id=st.pop.id;const b=clone(board());const i=b.columns.findIndex(x=>x.id===id);const j=i+Number(t.dataset.dir);if(j<1||j>=b.columns.length)return;[b.columns[i],b.columns[j]]=[b.columns[j],b.columns[i]];saveBoard(b);closePop()},
+  'menu-delete'(t){const id=st.pop.id;arm(t,'Click again to delete',()=>{const b=clone(board());b.columns=b.columns.filter(x=>x.id!==id);saveBoard(b);closePop()})},
+  'edit-choices'(t){const id=t.dataset.id;closePop();choicesModal(id)},
+  'copt-add'(){syncChoices();const ch=st.choices;ch.opts.push(ch.isStatus?{id:uid('o'),label:'New choice',group:(ch.opts[ch.opts.length-1]||{}).group||'',color:'grey',tpl:''}:{id:'',label:''});renderChoices()},
+  'copt-del'(t){syncChoices();st.choices.opts.splice(Number(t.dataset.i),1);renderChoices()},
+  'copt-move'(t){syncChoices();const o=st.choices.opts;const i=Number(t.dataset.i),j=i+Number(t.dataset.dir);if(j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];renderChoices()},
+  'choices-save'(){syncChoices();const ch=st.choices;const b=clone(board());const col=b.columns.find(x=>x.id===ch.colId);
+    if(ch.isStatus){col.options=ch.opts.filter(o=>o.label.trim()).map(o=>({id:o.id||uid('o'),label:o.label.trim(),group:(o.group||'').trim(),color:o.color||'grey',tpl:o.tpl||'',icon:(o.icon||'').trim()}));
+      if(col.id!=='status'){const vals=[...document.querySelectorAll('[data-sw]')].filter(x=>x.checked).map(x=>x.dataset.sw);col.showWhen=vals.length?{col:'status',values:vals}:null;if(!col.showWhen)delete col.showWhen}}
+    else col.options=ch.opts.map(o=>o.label.trim()).filter(Boolean);
+    saveBoard(b);closeModal();toast('Choices saved')},
+  'edit-name'(t){const c=company(t.dataset.cid);st.pop={type:'name',cid:c.id};showPop(t,`<div class="pop-h">Company name</div><input class="inp" id="pe-val" value="${esc(c.name)}"><div class="row"><button class="btn primary small" data-act="pop-save">Save</button></div>`)},
+  'open-company'(t){if(dragMoved)return;if(st.panel===t.dataset.cid&&!t.closest('#pop')){closePanel();return}openCompany(t.dataset.cid)},
+  'row-menu'(t){const c=company(t.dataset.cid);st.pop={type:'row',cid:c.id};showPop(t,`<div class="pop-h">${esc(c.name)}</div><button class="btn small" data-act="open-company" data-cid="${esc(c.id)}">Open page</button>${S.sample&&!S.aiOff?'<button class="btn small" data-act="row-lookup">Look up company details</button>':''}<button class="btn danger small" data-act="row-delete">Delete company</button><div class="small muted">Deleting also removes its emails and notes.</div>`)},
+  'row-lookup'(){const cid=st.pop.cid;closePop();lookupCompany(cid)},
+  lookup(t){lookupCompany(t.dataset.cid)},
+  'row-delete'(t){const cid=st.pop.cid;arm(t,'Click again to delete',()=>{closePop();deleteCompany(cid);toast('Deleted')})},
+  pick(t){openPicker(t,t.dataset.cid,t.dataset.col)},
+  'pick-opt'(t){pickOption(Number(t.dataset.i))},
+  'edit-cell'(t){openCellEditor(t,t.dataset.cid,t.dataset.col)},
+  'toggle-check'(t){const c=company(t.dataset.cid);setMeta(c.id,t.dataset.col,!meta(c,t.dataset.col))},
+  'pop-save'(){popSave()},
+  'pop-clear'(){const p=st.pop;if(p&&(p.type==='cell'||p.type==='picker'))setMeta(p.cid,p.colId,null);closePop()},
+  'cl-add'(){const n=$('#cl-new');const v=n.value.trim();if(!v)return;st.pop.items.push({t:v,done:false});refreshChecklist()},
+  'cl-del'(t){st.pop.items.splice(Number(t.dataset.i),1);refreshChecklist()},
+  'panel-close'(){closePanel()},
+  'clear-due'(){patch('companies/'+st.panel,{due:null})},
+  'toggle-chain'(t){st.open[t.dataset.id]=!st.open[t.dataset.id];renderPanel()},
+  'rename-chain'(t){const ch=st.chains[t.dataset.id];st.pop={type:'chain-title',id:ch.id};showPop(t,`<div class="pop-h">Chain name</div><input class="inp" id="pe-val" value="${esc(ch.title)}"><div class="row"><button class="btn primary small" data-act="pop-save">Save</button></div>`)},
+  'chain-menu'(t){const ch=st.chains[t.dataset.id];st.pop={type:'chain',id:ch.id};showPop(t,`<div class="pop-h">${esc(ch.title)}</div><button class="btn danger small" data-act="chain-delete">Delete this chain</button>`)},
+  'chain-delete'(t){const id=st.pop.id;arm(t,'Click again to delete',()=>{closePop();del('chains/'+id);delete st.chains[id];if(st.compose.target===id)st.compose.target='new';render()})},
+  'new-chain'(){const cid=st.panel;const ch={id:uid('ch'),companyId:cid,title:`Email chain ${fmtDate(todayISO())}`,started:todayISO(),messages:[],summary:null};st.open[ch.id]=true;saveChain(ch);toast('New chain started. Paste the first email, or rename it.')},
+  'chain-dir'(t){st.draft['paste:'+t.dataset.chain]=bindVal('paste:'+t.dataset.chain);st.draft['dir:'+t.dataset.chain]=t.dataset.d;renderPanel()},
+  'toggle-msg'(t){st.expanded[t.dataset.id]=!st.expanded[t.dataset.id];renderPanel()},
+  'add-email'(t){const id=t.dataset.chain;const ch=st.chains[id];const text=bindVal('paste:'+id).trim();if(!text){toast('Paste the email first');return}
+    const dir=st.draft['dir:'+id]||'in';const date=bindVal('date:'+id)||todayISO();
+    saveChain({...clone(ch),messages:[...(ch.messages||[]),{id:uid('m'),dir,date,text}]});st.draft['paste:'+id]='';
+    const label=autoStatus(ch.companyId,dir==='in'?'received':'sent');if(dir==='in'&&company(ch.companyId).due)patch('companies/'+ch.companyId,{due:null});
+    toast(label?`Added. Status → ${label}`:'Email added');render()},
+  'del-msg'(t){const ch=st.chains[t.dataset.chain];arm(t,'Delete?',()=>saveChain({...clone(ch),messages:(ch.messages||[]).filter(m=>m.id!==t.dataset.id)}))},
+  'reply-in'(t){st.compose.target=t.dataset.chain;st.compose.edit=null;st.compose.fromAI=false;renderPanel();const s=$('#compose-sec');s&&s.scrollIntoView({behavior:'smooth',block:'start'})},
+  summarize(t){summarize(t.dataset.id)},
+  'ai-draft'(){aiDraft()},
+  'edit-reset'(){st.compose.edit=null;st.compose.fromAI=false;renderPanel()},
+  'focus-to-name'(){const i=$('#to-name');if(i){i.focus();i.scrollIntoView({block:'center'})}},
+  'toggle-sec'(t){const id=t.dataset.id;secCollapsed[id]=!secCollapsed[id];saveSecPrefs();renderPanel()},
+  'toggle-lane'(t){const id=t.dataset.id;laneCollapsed[id]=!laneCollapsed[id];try{localStorage.setItem('sot-lanes',JSON.stringify(laneCollapsed))}catch(e){}renderBoard()},
+  'columns-menu'(t){st.pop={type:'columns'};showPop(t,columnsPopHTML())},
+  'col-move'(t){const b=clone(board());const i=b.columns.findIndex(x=>x.id===t.dataset.id);const j=i+Number(t.dataset.dir);if(j<1||j>=b.columns.length)return;[b.columns[i],b.columns[j]]=[b.columns[j],b.columns[i]];saveBoard(b);$('#pop').innerHTML=columnsPopHTML()},
+  'copy-part'(t){const E=buildEmail(company(st.panel));const p=t.dataset.part;const v=p==='to'?E.to:p==='subject'?E.subject:E.body;if(!v.trim()){toast('Nothing to copy yet');return}copyText(v)},
+  'log-sent'(){const cid=st.panel;const E=buildEmail(company(cid));const subj=E.subject.trim();const body=E.body;if(!body.trim()){toast('Write the email first');return}
+    const today=todayISO();const msg={id:uid('m'),dir:'out',date:today,text:(subj?`Subject: ${subj}\n\n`:'')+body};
+    let ch;if(st.compose.target==='new'){ch={id:uid('ch'),companyId:cid,title:subj||`Email chain ${fmtDate(today)}`,started:today,messages:[msg],summary:null}}
+    else{const cur=st.chains[st.compose.target];ch={...clone(cur),messages:[...(cur.messages||[]),msg]}}
+    saveChain(ch);st.open[ch.id]=true;const due=addDays(today,st.compose.followDays);patch('companies/'+cid,{due});
+    const label=autoStatus(cid,'sent');st.compose.target=ch.id;st.compose.edit=null;st.compose.fromAI=false;
+    toast(`Logged${label?`. Status → ${label}`:''}. Follow up ${fmtDate(due,true)}`);render()},
+  'add-note'(){const cid=st.panel;const text=bindVal('note').trim();if(!text){toast('Write the note first');return}const p=clone(pageOf(cid));p.notes.push({id:uid('n'),date:bindVal('note_date')||todayISO(),text});st.draft.note='';savePage(cid,p);toast('Note added')},
+  'add-app'(){const cid=st.panel;const role=bindVal('app_role').trim()||meta(company(cid),'role')||'';const p=clone(pageOf(cid));
+    p.applications.push({id:uid('a'),date:bindVal('app_date')||todayISO(),role,link:bindVal('app_link').trim(),result:bindVal('app_result').trim()});
+    ['app_role','app_link','app_result'].forEach(k=>st.draft[k]='');savePage(cid,p);const l=autoStatus(cid,'applied');toast(l?`Application added. Status → ${l}`:'Application added')},
+  mkind(t){['m_with','m_notes','m_start','m_end','m_date'].forEach(k=>st.draft[k]=bindVal(k));st.draft.mkind=t.dataset.k;renderPanel()},
+  'add-meeting'(){const cid=st.panel;const kind=st.draft.mkind||'meeting';const p=clone(pageOf(cid));
+    p.meetings.push({id:uid('mt'),date:bindVal('m_date')||todayISO(),start:bindVal('m_start'),end:bindVal('m_end'),kind,with:bindVal('m_with').trim(),notes:bindVal('m_notes').trim()});
+    ['m_with','m_notes','m_start','m_end'].forEach(k=>st.draft[k]='');savePage(cid,p);const l=autoStatus(cid,'meeting',kind);toast(l?`Added. Status → ${l}`:'Added')},
+  'del-entry'(t){const cid=st.panel;const kind=t.dataset.kind;arm(t,'Delete?',()=>{const p=clone(pageOf(cid));p[kind]=p[kind].filter(x=>x.id!==t.dataset.id);savePage(cid,p)})},
+  'clear-examples'(t){arm(t,'Click again to clear',async()=>{for(const c of st.companies.filter(c=>c.example))await deleteCompany(c.id);toast('Examples cleared')})},
+  'tpl-select'(t){const tp=st.templates.find(x=>x.id===t.dataset.id);st.tplSel=tp.id;st.tplDraft=clone(tp);renderTemplates()},
+  'tpl-new'(){const id=uid('tpl');st.tplSel=id;st.tplDraft={id,name:'New template',subject:'',body:'Hi {{first_name}},\n\n\n\nThanks,\n{{my_name}}'};renderTemplates();const n=$('#tpl-name');n&&n.select()},
+  'tpl-save'(){const d=st.tplDraft;if(!d)return;put('templates/'+d.id,{name:d.name||'Untitled',subject:d.subject||'',body:d.body||''});toast('Template saved')},
+  'tpl-delete'(t){const d=st.tplDraft;arm(t,'Click again to delete',()=>{del('templates/'+d.id);st.tplDraft=null;st.tplSel=null;toast('Template deleted')})},
+  'tpl-token'(t){const d=st.tplDraft;if(!d)return;const field=st.tplFocus==='subject'?'subject':'body';const el=field==='subject'?$('#tpl-subject'):$('#tpl-body');const tok=`{{${t.dataset.k}}}`;
+    const s=el.selectionStart??el.value.length,e=el.selectionEnd??el.value.length;el.value=el.value.slice(0,s)+tok+el.value.slice(e);d[field]=el.value;el.focus();el.selectionStart=el.selectionEnd=s+tok.length;const pv=$('#tpl-prev');if(pv)pv.innerHTML=tplPreviewHTML()},
+  'quick-apply'(){const n=st.notice;if(!n||!n.actions)return;const undo=applyQuick(n.actions,n.text);st.notice={kind:'done',lines:n.lines,undo};$('#quick-input').value='';renderNotice()},
+  'quick-undo'(){const n=st.notice;if(!n||!n.undo)return;const u=n.undo;st.notice=null;renderNotice();undoQuick(u)},
+  'notice-dismiss'(){st.notice=null;renderNotice()},
+  'pick-cand'(t){const n=st.notice;const cand=n.cands[Number(t.dataset.i)];if(!cand)return;const filled=applyCandidate(n.cid,cand);
+    st.notice={kind:'lookup',cid:n.cid,done:true,msg:`Filled in ${cand.name}${filled.length?`: ${filled.join(', ')}`:''}.`,cands:[]};renderNotice()}
+};
+
+function closePanelSoft(){savePW();st.panel=null;$('#panel').hidden=true;document.body.classList.remove('panel-open','panel-push');$('#resizer').hidden=true;setTimeout(render,0)}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]');const inPop=e.target.closest('#pop');
+  if(st.panel&&!e.target.closest('#panel,#pop,#modal,#overlay,#resizer,.quick-wrap,#toast')&&!(t&&t.dataset.act==='open-company'))closePanelSoft();
+  if(!inPop&&st.pop&&!(t&&t.closest('#modal')))closePop();
+  if(!t||t.disabled)return;
+  const fn=H[t.dataset.act];if(fn){if(t.dataset.act!=='noop')e.preventDefault();fn(t,e)}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;const k=t.dataset&&t.dataset.change;if(!k)return;
+  if(k==='due')patch('companies/'+st.panel,{due:t.value||null});
+  else if(k==='person'){st.compose.personCol=t.value;renderPanel()}
+  else if(k==='tpl'){if(t.value){st.compose.tplId=t.value;st.compose.edit=null;st.compose.fromAI=false}renderPanel()}
+  else if(k==='to-email')saveRecipientEmail(t.value);
+  else if(k==='tpl-prev'){st.tplPrev=t.value;$('#tpl-prev').innerHTML=tplPreviewHTML()}
+  else if(k==='col-sheet'){const b=clone(board());const col=b.columns.find(x=>x.id===t.dataset.id);col.onSheet=t.checked;saveBoard(b)}
+  else if(k==='target'){st.compose.target=t.value;renderPanel()}
+  else if(k==='follow')st.compose.followDays=Number(t.value);
+  else if(k==='tag-toggle'){const p=st.pop;const c=company(p.cid);const cur=new Set(meta(c,p.colId)||[]);t.checked?cur.add(t.value):cur.delete(t.value);const col=colById(p.colId);setMeta(p.cid,p.colId,(col.options||[]).filter(o=>cur.has(o)).concat([...cur].filter(o=>!(col.options||[]).includes(o))))}
+  else if(k==='cl-toggle'){st.pop.items[Number(t.dataset.i)].done=t.checked;refreshChecklist()}
+  else if(k==='mc-type')$('#mc-opts-wrap').hidden=!['values','tags','status'].includes(t.value);
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='search'){st.q=t.value;render();return}
+  if(t.id==='pk-q'){st.pop.q=t.value;st.pop.hi=0;$('#pk-list').innerHTML=pickerListHTML();return}
+  if(t.dataset&&t.dataset.bind){st.draft[t.dataset.bind]=t.value;return}
+  if(t.dataset&&t.dataset.cedit&&st.compose.edit){st.compose.edit[t.dataset.cedit]=t.value;st.compose.edit.dirty=true;if(t.tagName==='TEXTAREA')grow(t);return}
+  if(t.dataset&&t.dataset.tpl&&st.tplDraft){st.tplDraft[t.dataset.tpl]=t.value;const pv=$('#tpl-prev');if(pv)pv.innerHTML=tplPreviewHTML()}
+});
+document.addEventListener('focusin',e=>{const t=e.target;if(t.id==='tpl-subject')st.tplFocus='subject';else if(t.id==='tpl-body')st.tplFocus='body'});
+document.addEventListener('keydown',e=>{
+  const t=e.target;
+  if(t.id==='pk-q'){const n=pickerItems().length;
+    if(e.key==='ArrowDown'){e.preventDefault();st.pop.hi=Math.min(n-1,st.pop.hi+1);$('#pk-list').innerHTML=pickerListHTML();return}
+    if(e.key==='ArrowUp'){e.preventDefault();st.pop.hi=Math.max(0,st.pop.hi-1);$('#pk-list').innerHTML=pickerListHTML();return}
+    if(e.key==='Enter'){e.preventDefault();pickOption(st.pop.hi);return}}
+  if(e.key==='Enter'&&t.dataset&&t.dataset.change==='to-email'){e.preventDefault();t.blur();return}
+  if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&t.dataset&&t.dataset.enter&&H[t.dataset.enter]){e.preventDefault();H[t.dataset.enter]();return}
+  if(e.key==='Escape'){if(st.pop){closePop();return}if(!$('#modal').hidden){closeModal();return}if(st.overlay){H['close-templates']();return}if(st.panel){closePanel();return}}
+  if(t.id==='new-company'&&e.key==='Enter'){e.preventDefault();addCompany(t.value);return}
+  if(t.id==='cl-new'&&e.key==='Enter'){e.preventDefault();H['cl-add']();return}
+  if(t.closest&&t.closest('#pop')&&e.key==='Enter'&&st.pop){if(t.tagName==='TEXTAREA'&&!(e.ctrlKey||e.metaKey))return;if(t.type==='checkbox')return;e.preventDefault();
+    if(['cell','name','chain-title'].includes(st.pop.type))popSave();else if(st.pop.type==='colmenu')H['menu-save']()}
+});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+$('#quick-form').addEventListener('submit',e=>{e.preventDefault();const v=$('#quick-input').value.trim();if(v&&!(st.notice&&st.notice.busy))runQuick(v)});
+
+/* hover popups */
+let tipT=null,tipEl=null;
+document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('[data-tip]');const tp=$('#tip');
+  if(el===tipEl)return;tipEl=el;clearTimeout(tipT);tp.hidden=true;if(!el)return;
+  tipT=setTimeout(()=>{if(tipEl!==el||!el.isConnected)return;showTip(el)},350)});
+function showTip(el){const tp=$('#tip');
+  tp.innerHTML=`<b>${esc(el.dataset.tip)}</b>${el.dataset.tip2?`<span>${esc(el.dataset.tip2)}</span>`:''}`;tp.hidden=false;
+  const r=el.getBoundingClientRect();const w=tp.offsetWidth,h=tp.offsetHeight;tp.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,window.innerWidth-w-8))+'px';tp.style.top=(r.top-h-8<8?r.bottom+8:r.top-h-8)+'px'}
+document.addEventListener('scroll',()=>{clearTimeout(tipT);tipEl=null;$('#tip').hidden=true},true);
+/* drag: board cards + page sections */
+let dragId=null,dragMoved=false,dragSec=null;
+document.addEventListener('dragstart',e=>{
+  const g=e.target.closest&&e.target.closest('[data-grip]');
+  if(g){dragSec=g.dataset.grip;const sec=g.closest('.psec');sec&&sec.classList.add('dragging');try{e.dataTransfer.setData('text/plain',dragSec);e.dataTransfer.effectAllowed='move';if(sec)e.dataTransfer.setDragImage(sec,20,20)}catch(_){}return}
+  const c=e.target.closest&&e.target.closest('.card');if(!c)return;dragId=c.dataset.cid;dragMoved=true;c.classList.add('dragging');try{e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.effectAllowed='move'}catch(_){}});
+document.addEventListener('dragend',()=>{document.querySelectorAll('.dragging,.over').forEach(x=>x.classList.remove('dragging','over'));dragSec=null;dragId=null;setTimeout(()=>dragMoved=false,50)});
+document.addEventListener('dragover',e=>{
+  if(dragSec){const sec=e.target.closest&&e.target.closest('.psec');if(!sec)return;e.preventDefault();document.querySelectorAll('.psec.over').forEach(x=>x!==sec&&x.classList.remove('over'));sec.classList.add('over');return}
+  const l=e.target.closest&&e.target.closest('.lane');if(!l||!dragId)return;e.preventDefault();document.querySelectorAll('.lane.over').forEach(x=>x!==l&&x.classList.remove('over'));l.classList.add('over')});
+document.addEventListener('drop',e=>{
+  if(dragSec){const sec=e.target.closest&&e.target.closest('.psec');if(!sec)return;e.preventDefault();const to=sec.dataset.sec;const from=dragSec;dragSec=null;if(to===from)return;
+    const order=secOrder().filter(x=>x!==from);const r=sec.getBoundingClientRect();let i=order.indexOf(to);if(e.clientY>r.top+r.height/2)i++;order.splice(i,0,from);saveSecPrefs(order);renderPanel();return}
+  const l=e.target.closest&&e.target.closest('.lane');if(!l||!dragId)return;e.preventDefault();l.classList.remove('over');const cid=dragId;dragId=null;const v=l.dataset.lane||null;
+  const c=company(cid);if(!c||(meta(c,'status')||null)===v)return;setMeta(cid,'status',v);toast(`${c.name} → ${v?sn(statusCol(),v):'No status'}`)});
+
+/* panel resize (drag the left edge, like Kitsu) */
+let curPW=640;
+function setPW(w){w=Math.round(Math.max(380,Math.min(w,window.innerWidth-160)));curPW=w;document.documentElement.style.setProperty('--pw',w+'px');updatePush();return w}
+function savePW(){try{localStorage.setItem('sot-pw',String(curPW))}catch(_){}}
+function updatePush(){document.body.classList.toggle('panel-push',!!st.panel&&window.innerWidth-curPW>=560)}
+window.addEventListener('resize',updatePush);
+try{const w=Number(localStorage.getItem('sot-pw'));if(w)setPW(w)}catch(e){}
+(()=>{const rz=$('#resizer');let w=null;
+  rz.addEventListener('pointerdown',e=>{e.preventDefault();try{rz.setPointerCapture(e.pointerId)}catch(_){}rz.classList.add('drag');document.body.style.userSelect='none'});
+  rz.addEventListener('pointermove',e=>{if(rz.classList.contains('drag'))w=setPW(window.innerWidth-e.clientX)});
+  const end=()=>{if(!rz.classList.contains('drag'))return;rz.classList.remove('drag');document.body.style.userSelect='';savePW()};
+  rz.addEventListener('pointerup',end);rz.addEventListener('pointercancel',end);
+})();
+
+/* ---------- boot ---------- */
+render();
+(async()=>{
+  let db=null,sample=null;
+  try{db=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){db=null}
+  try{sample=window.claude&&window.claude.use?await window.claude.use('sample'):null}catch(e){sample=null}
+  S.sample=sample;
+  if(!db){st.mode='preview';const d=clone(DEMO)||{};st.me=d.me||{};st.templates=d.templates||[];st.companies=d.companies||[];st.chains=d.chains||{};st.pages=d.pages||{};render();return}
+  S.db=db;
+  const onErr=e=>{console.warn(e);if(e&&e.code!=='revoked')toast('Lost the connection to your saved data. Reload the page.')};
+  db.doc('config/board').onSnapshot(s=>{st.board=s.exists?clone(s.data()):null;render()},onErr);
+  db.collection('companies').onSnapshot(s=>{st.companies=s.docs.map(d=>({id:d.id,...clone(d.data())}));st.mode='live';render()},onErr);
+  db.collection('chains').onSnapshot(s=>{const m={};s.docs.forEach(d=>m[d.id]={id:d.id,...clone(d.data())});st.chains=m;render()},onErr);
+  db.collection('pages').onSnapshot(s=>{const m={};s.docs.forEach(d=>m[d.id]=clone(d.data()));st.pages=m;render()},onErr);
+  db.collection('templates').onSnapshot(s=>{st.templates=s.docs.map(d=>({id:d.id,...clone(d.data())}));render()},onErr);
+  db.doc('settings/me').onSnapshot(s=>{st.me=s.exists?clone(s.data()):{};render()},onErr);
+})();
+</script>
