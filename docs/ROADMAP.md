@@ -8,11 +8,11 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M3** (the company page) on Reacher Test. Test list in the M3 section.
+1. ⏳ **Test M3** (the company page) and **M4** (Board) on Reacher Test. Test lists in those sections.
 
 ## Now
 
-M3 published. Building M4 (Board: drag cards between lanes, collapsible lanes).
+M3 and M4 published. Building M5 (AI: quick update, company lookup, chain summary, draft, name guess).
 
 ## Links
 
@@ -141,8 +141,13 @@ M3 published. Building M4 (Board: drag cards between lanes, collapsible lanes).
   9. Click a section title to collapse it; drag the ⋮⋮ grip (appears on hover) to reorder sections. Reload: both are remembered.
   10. On Board, click a card: its page opens.
 
-### M4: Board ⬜
-- Lanes per status with category labels and color bars, cards, drag to change status, collapsible lanes (remembered).
+### M4: Board 🔨 (published, waiting on Zack's test)
+- ✅ Lanes per status with category labels and color bars, cards, drag to change status (dnd-kit: mouse drag, or press and hold on touch), collapsible lanes (remembered).
+- **Test list:**
+  1. On Board, drag a card to another lane. The lane lights up as you hover it; drop it and a message says "Name → Status". The Sheet shows the new status too.
+  2. A plain click on a card opens its page.
+  3. Click a lane's header: it shrinks to a thin strip with the name running vertically and the count on top. Click the strip to open it again. Reload: collapsed lanes stay collapsed.
+  4. Drop a card onto a collapsed strip: that works too.
 
 ### M5: AI features ⬜
 - One AI module for every Claude call.
