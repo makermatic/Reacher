@@ -9,8 +9,8 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 ## Waiting on Zack
 
 1. ⏳ **Approve "Reacher runs inside Claude"** (see Stack). A yes is enough.
-2. ⏳ **Allow `zackzand.com`** in this cloud environment's network settings, so Claude can study the site's motion. Environment menu in the session title bar → Edit → Network access → add `zackzand.com` under Allowed domains, leaving "Allow package managers" ticked. Steps: https://code.claude.com/docs/en/cloud-environments#network-access
-3. ⏳ **Connect Gmail and Google Calendar** in claude.ai (Settings → Connectors). This isn't urgent. It lets Claude check early what the connectors can do.
+2. ⏳ **Allow two more domains** for the portfolio site's styles, scripts and video: `static.cmcdn.net` and `carbon-media.accelerator.net` (`zackzand.com` is already allowed).
+3. ⏳ **Connect Gmail and Google Calendar** at https://claude.ai/customize/connectors. This isn't urgent (needed for M8 and M9). Connectors load when a session starts, so Claude sees them in the next session.
 
 ## Now
 
@@ -140,6 +140,7 @@ Stack decision. Once it's approved: M1.
 | 2026-10-28 | Repo reorganized to match CLAUDE.md. Handoff zip unpacked and removed (it's still in git history). |
 | 2026-10-28 | Audience: Zack first, then friends, then public. Build multi-user from the start. |
 | 2026-10-28 | No separate AI billing. Recommended: run as a Claude artifact on each user's own plan (waiting on Zack's yes). |
+| 2026-10-28 | Source of truth is this GitHub repo. The artifact is only the built output, published from the repo. |
 | 2026-10-28 | Design references: Kitsu, ClickUp, Notion, zackzand.com (eased fades, smooth transitions). |
 
 ## Notes and risks
