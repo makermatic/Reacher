@@ -11,17 +11,8 @@ import { StatusChip } from './StatusChip';
 const cellButton =
   'block w-full max-w-60 overflow-hidden text-ellipsis px-2.5 py-[7px] text-left outline-none focus-visible:bg-accent-soft';
 
-/**
- * One editable sheet cell. Checkboxes toggle on click, lists open the picker,
- * everything else opens the cell editor (SPEC section 2).
- */
+/** One editable sheet cell (SPEC section 2). */
 export function MetaCell({ company, col }: { company: Company; col: Column }) {
-  const { actions, companies } = useWorkspace();
-  const [open, setOpen] = useState(false);
-  const value = meta(company, col.id);
-  const save = (v: unknown) => actions.setMeta(company.id, col.id, v);
-  const numeric = col.type === 'number' ? 'text-right' : '';
-
   if (col.type === 'status') {
     return (
       <td className="px-2 py-1.5">
@@ -29,64 +20,94 @@ export function MetaCell({ company, col }: { company: Company; col: Column }) {
       </td>
     );
   }
+  return (
+    <td>
+      <EditableValue company={company} col={col} className={cellButton} />
+    </td>
+  );
+}
+
+/**
+ * A company's value for one column, editable in place: checkboxes toggle on
+ * click, lists open the picker, everything else opens the cell editor. Used by
+ * sheet cells and the company page's Details.
+ */
+export function EditableValue({
+  company,
+  col,
+  className,
+  full = false,
+}: {
+  company: Company;
+  col: Column;
+  className: string;
+  /** Show long text in full (company page) rather than its first line (sheet). */
+  full?: boolean;
+}) {
+  const { actions, companies } = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const value = meta(company, col.id);
+  const save = (v: unknown) => actions.setMeta(company.id, col.id, v);
+
+  if (col.type === 'status') return <StatusChip company={company} col={col} />;
 
   if (col.type === 'checkbox') {
     return (
-      <td>
-        <button
-          type="button"
-          className={cellButton}
-          aria-label={`${col.name}: ${value ? 'yes' : 'no'}. Toggle`}
-          onClick={() => save(!value)}
-        >
-          <CellValue col={col} value={value} />
-        </button>
-      </td>
+      <button
+        type="button"
+        className={className}
+        aria-label={`${col.name}: ${value ? 'yes' : 'no'}. Toggle`}
+        onClick={() => save(!value)}
+      >
+        <CellValue col={col} value={value} />
+      </button>
     );
   }
 
   const trigger = (
     <button
       type="button"
-      className={`${cellButton} ${numeric}`}
+      className={`${className} ${col.type === 'number' && !full ? 'text-right' : ''}`}
       aria-label={`Edit ${col.name} for ${company.name}`}
     >
-      <CellValue col={col} value={value} />
+      {full && col.type === 'longtext' && value ? (
+        <span className="whitespace-pre-wrap">{String(value)}</span>
+      ) : (
+        <CellValue col={col} value={value} />
+      )}
     </button>
   );
 
   return (
-    <td>
-      <Popover
-        open={open}
-        onOpenChange={setOpen}
-        trigger={trigger}
-        label={`${col.name} for ${company.name}`}
-        width={col.type === 'longtext' ? 360 : 300}
-      >
-        {col.type === 'values' ? (
-          <OptionPicker
-            col={col}
-            current={value}
-            onPick={(v) => {
-              save(v);
-              setOpen(false);
-            }}
-            onClear={() => {
-              save(null);
-              setOpen(false);
-            }}
-          />
-        ) : (
-          <CellEditor
-            col={col}
-            value={value}
-            onSave={save}
-            onDone={() => setOpen(false)}
-            used={col.type === 'text' ? companies.map((c) => meta(c, col.id)) : undefined}
-          />
-        )}
-      </Popover>
-    </td>
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger={trigger}
+      label={`${col.name} for ${company.name}`}
+      width={col.type === 'longtext' ? 360 : 300}
+    >
+      {col.type === 'values' ? (
+        <OptionPicker
+          col={col}
+          current={value}
+          onPick={(v) => {
+            save(v);
+            setOpen(false);
+          }}
+          onClear={() => {
+            save(null);
+            setOpen(false);
+          }}
+        />
+      ) : (
+        <CellEditor
+          col={col}
+          value={value}
+          onSave={save}
+          onDone={() => setOpen(false)}
+          used={col.type === 'text' ? companies.map((c) => meta(c, col.id)) : undefined}
+        />
+      )}
+    </Popover>
   );
 }

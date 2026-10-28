@@ -8,11 +8,11 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. Nothing right now. Next test round is M3 (the company page).
+1. ⏳ **Test M3** (the company page) on Reacher Test. Test list in the M3 section.
 
 ## Now
 
-Building M3, the company page. Then the UI overhaul (Notion, ClickUp, Kitsu).
+M3 published. Building M4 (Board: drag cards between lanes, collapsible lanes).
 
 ## Links
 
@@ -123,16 +123,23 @@ Building M3, the company page. Then the UI overhaul (Notion, ClickUp, Kitsu).
 - **Import:** an "Import from prototype" button that loads the prototype's Export JSON.
 - **Test:** import your export, check every company and column came across, edit cells, search "LA".
 
-### M3: Company page ⬜
+### M3: Company page 🔨 (published, waiting on Zack's test)
 - Docked side panel: resize (min 380px, remembered), shift vs overlay, click outside or Escape to close.
 - Header: rename, ⋯ menu, Status, Outcome, Follow up on.
 - Sections (collapsible, drag to reorder, remembered): Details, Email chains (manual add, no AI yet), Notes, Applications, Meetings & interviews with Add to Google Calendar links.
 - Automatic status changes and "Status → X" toasts.
-
-### UI overhaul ⬜ (moved here from M7, 2026-10-28)
-- Right after M3: the Sheet and company page exist with real data, so the redesign is grounded, and M4–M6 get built once in the new style.
-- Zack directs the look. Claude builds options, Zack picks and gives notes in rounds.
-- Waiting on Zack: his overhaul notes from the prototype chat.
+- Built: `src/company/` (panel, sections, chains, entries) and `src/model/automation.ts` (status rules and calendar links, unit tested). AI summary (M5) and Write an email (M6) aren't in yet.
+- **Test list (Reacher Test):**
+  1. Click a company name. Its page slides in on the right and the sheet shifts left to make room. Click the same name again: it closes.
+  2. Drag the panel's left edge to resize it. Close it and open another company: the width is remembered.
+  3. Press Escape, or click an empty part of the sheet: the page closes. Clicking inside a menu or picker doesn't close it.
+  4. Click the company name at the top of the page to rename it. Change Status and Follow up on from the header.
+  5. In Details, click any value to edit it; hidden columns say PAGE ONLY. + Property adds a column.
+  6. Email chains: open a chain, choose From them, paste an email, Add email. Status moves to Wrote back!! and the follow-up date clears. Try From me on a Gathering company: it moves to Reached out. + New chain starts one; click its title to rename; ⋯ deletes it.
+  7. Notes: type and press Enter (Shift+Enter for a new line). Applications: add one on a company with no status: it becomes Applied.
+  8. Meetings & interviews: pick Interview, set a future date and time, add it. Status moves to Interview, the entry says Upcoming, and Add to Google Calendar opens a filled-in event. The sheet shows its date next to the status.
+  9. Click a section title to collapse it; drag the ⋮⋮ grip (appears on hover) to reorder sections. Reload: both are remembered.
+  10. On Board, click a card: its page opens.
 
 ### M4: Board ⬜
 - Lanes per status with category labels and color bars, cards, drag to change status, collapsible lanes (remembered).
@@ -150,8 +157,9 @@ Building M3, the company page. Then the UI overhaul (Notion, ClickUp, Kitsu).
 - Your details and Export data.
 - **Milestone: feature parity. Zack moves his real data into Reacher and stops using the prototype.**
 
-### M7: Motion and polish pass ⬜
-- The UI overhaul itself moved to right after M3. This is the final pass over everything: panel open and close, chip changes, board drags, toasts, the quick update card, view transitions.
+### M7: UI overhaul and motion pass ⬜
+- After feature parity (M6). Zack directs the look; references: Notion, ClickUp, Kitsu. Claude builds options, Zack picks and gives notes in rounds.
+- Motion stays subtle, fast and functional (see Decisions).
 
 ### M8: Google Calendar ⬜
 - Through the viewer's Google Calendar connector: meetings and interviews show up on the calendar, and upcoming events can be pulled in. What the connector can write gets confirmed first; the one-click link stays as a fallback.
@@ -176,7 +184,7 @@ Building M3, the company page. Then the UI overhaul (Notion, ClickUp, Kitsu).
 | 2026-10-28 | Audience: Zack first, then friends, then public. Build multi-user from the start. |
 | 2026-10-28 | No separate AI billing: Reacher runs as a Claude artifact on each user's own plan. Approved. |
 | 2026-10-28 | Database access: each user writes only their own private space; shared data is owner-only. Friends must be shared as **Contributor**. |
-| 2026-10-28 | UI overhaul moves to right after M3 (was M7). References: Notion, ClickUp, Kitsu. |
+| 2026-10-28 | UI overhaul: briefly moved to after M3, then back to M7 at Zack's call (build everything first). References: Notion, ClickUp, Kitsu. |
 | 2026-10-28 | Motion: subtle, fast and functional. 120–250ms, opacity and small transforms, ease-out, no bounce (`src/motion.ts`). Hover popups wait 1.5s. |
 | 2026-10-28 | Text cells autofill from values already in the column, with abbreviations expanded ("LA" → "Los Angeles"). |
 | 2026-10-28 | M1 keeps the prototype's palette and fonts so it feels familiar; the redesign is M7. |

@@ -4,6 +4,7 @@ import { asPerson, colorFor, colShows, optionOf, optList, statusCol } from '../m
 import { visibleCompanies } from '../model/search';
 import type { Option } from '../model/types';
 import { itemInOut } from '../motion';
+import { useSheetUI } from '../sheet/SheetUI';
 import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 
@@ -14,6 +15,7 @@ import { useWorkspace } from '../workspace/WorkspaceProvider';
  */
 export function BoardView() {
   const { loading, board, companies, pages } = useWorkspace();
+  const { openCompanyId, toggleCompany } = useSheetUI();
   const sc = statusCol(board);
   const list = useMemo(() => visibleCompanies(board, companies, '', 'all'), [board, companies]);
   const firstValues = board.columns.find((c) => c.type === 'values');
@@ -73,8 +75,20 @@ export function BoardView() {
                         <motion.div
                           key={c.id}
                           layout
+                          role="button"
+                          tabIndex={0}
+                          data-keep-panel
+                          onClick={() => toggleCompany(c.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleCompany(c.id);
+                            }
+                          }}
                           {...itemInOut}
-                          className="grid gap-1.5 rounded-lg border border-line bg-surface px-3 py-2.5 shadow-xs"
+                          className={`grid cursor-pointer gap-1.5 rounded-lg border bg-surface px-3 py-2.5 shadow-xs transition-colors hover:border-line-strong ${
+                            openCompanyId === c.id ? 'border-accent' : 'border-line'
+                          }`}
                         >
                           <span className="font-semibold">{c.name}</span>
                           <span className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted">

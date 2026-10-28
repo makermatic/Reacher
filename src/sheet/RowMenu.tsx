@@ -7,7 +7,13 @@ import { useToast } from '../components/Toast';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 
 /** The ⋯ menu at the end of a company's name cell. */
-export function RowMenu({ company }: { company: Company }) {
+export function RowMenu({
+  company,
+  alwaysVisible = false,
+}: {
+  company: Company;
+  alwaysVisible?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Popover
@@ -19,7 +25,7 @@ export function RowMenu({ company }: { company: Company }) {
         <button
           type="button"
           aria-label={`Options for ${company.name}`}
-          className={`${btn.icon} opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100`}
+          className={`${btn.icon} ${alwaysVisible ? 'text-base' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'}`}
         >
           ⋯
         </button>

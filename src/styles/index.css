@@ -293,6 +293,9 @@ input:-webkit-autofill:focus {
     z-index: 3;
     background: var(--surface-2);
   }
+  .sheet-grid tbody tr.is-open > td {
+    background: var(--accent-soft);
+  }
   .sheet-grid tbody td {
     transition: background-color 0.15s;
   }

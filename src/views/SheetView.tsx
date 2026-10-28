@@ -6,13 +6,11 @@ import type { Column, Company } from '../model/types';
 import { btn } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { glide, itemInOut } from '../motion';
-import { AddColumnDialog } from '../sheet/AddColumnDialog';
-import { ChoicesDialog } from '../sheet/ChoicesDialog';
 import { ColumnHeader } from '../sheet/ColumnMenu';
 import { ColumnsPopover } from '../sheet/ColumnsPopover';
 import { MetaCell } from '../sheet/MetaCell';
 import { RowMenu } from '../sheet/RowMenu';
-import { SheetUIContext } from '../sheet/SheetUI';
+import { useSheetUI } from '../sheet/SheetUI';
 import { StatusChip } from '../sheet/StatusChip';
 import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
@@ -22,8 +20,7 @@ export function SheetView({ onImport }: { onImport: () => void }) {
   const { loading, board, companies, pages } = useWorkspace();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [addColumn, setAddColumn] = useState(false);
-  const [choicesFor, setChoicesFor] = useState<string | null>(null);
+  const { addColumn, openCompanyId, toggleCompany } = useSheetUI();
 
   const list = useMemo(
     () => visibleCompanies(board, companies, query, filter),
@@ -32,10 +29,9 @@ export function SheetView({ onImport }: { onImport: () => void }) {
   const cols = sheetColumns(board, list);
   const sc = statusCol(board);
   const span = cols.length + 1;
-  const ui = useMemo(() => ({ editChoices: setChoicesFor }), []);
 
   return (
-    <SheetUIContext.Provider value={ui}>
+    <>
       <section aria-label="Sheet" className="flex h-full min-h-0 flex-col gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -52,7 +48,7 @@ export function SheetView({ onImport }: { onImport: () => void }) {
             {list.length} of {companies.length} companies
           </span>
           <ColumnsPopover />
-          <button type="button" className={btn.base} onClick={() => setAddColumn(true)}>
+          <button type="button" className={btn.base} onClick={addColumn}>
             + Column
           </button>
         </div>
@@ -73,15 +69,22 @@ export function SheetView({ onImport }: { onImport: () => void }) {
             <tbody>
               <AnimatePresence initial={false}>
                 {list.map((c) => (
-                  <motion.tr key={c.id} className="group" {...itemInOut}>
+                  <motion.tr
+                    key={c.id}
+                    className={`group ${openCompanyId === c.id ? 'is-open' : ''}`}
+                    {...itemInOut}
+                  >
                     <td className="sticky-col max-w-68">
                       <div className="flex items-center gap-1 pr-1">
-                        <span
-                          className="min-w-0 flex-1 truncate px-3 py-2.5 font-semibold"
-                          title={c.name}
+                        <button
+                          type="button"
+                          data-keep-panel
+                          onClick={() => toggleCompany(c.id)}
+                          className="min-w-0 flex-1 truncate px-3 py-2.5 text-left font-semibold decoration-line-strong underline-offset-2 hover:underline"
+                          title={`Open ${c.name}`}
                         >
                           {c.name || 'Untitled'}
-                        </span>
+                        </button>
                         <RowMenu company={c} />
                       </div>
                     </td>
@@ -116,9 +119,7 @@ export function SheetView({ onImport }: { onImport: () => void }) {
           ) : null}
         </div>
       </section>
-      <AddColumnDialog open={addColumn} onOpenChange={setAddColumn} />
-      <ChoicesDialog colId={choicesFor} onClose={() => setChoicesFor(null)} />
-    </SheetUIContext.Provider>
+    </>
   );
 }
 

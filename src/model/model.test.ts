@@ -6,6 +6,7 @@ import { describeImport, ImportError, parseExport } from './importData';
 import { rankOptions, splitMatch } from './picker';
 import { matchesSearch, needsMe, visibleCompanies } from './search';
 import { textSuggestions } from './suggest';
+import { googleCalendarLink, nextStatus } from './automation';
 import type { Company } from './types';
 
 const board = DEFAULT_BOARD;
@@ -201,5 +202,62 @@ describe('text autofill', () => {
       'Designer / Animator',
       'Motion Designer',
     ]);
+  });
+});
+
+describe('automatic status changes', () => {
+  const at = (status: string) => co('X', status ? { status } : {});
+  const next = (status: string, e: Parameters<typeof nextStatus>[2]) =>
+    nextStatus(board, at(status), e);
+
+  it('moves forward when I send an email', () => {
+    expect(next('', { kind: 'sent' })).toBe('reached');
+    expect(next('gathering', { kind: 'sent' })).toBe('reached');
+    expect(next('wroteback', { kind: 'sent' })).toBe('replied');
+    expect(next('applied', { kind: 'sent' })).toBeNull();
+  });
+
+  it('marks Wrote back!! when they email, only during outreach', () => {
+    expect(next('reached', { kind: 'received' })).toBe('wroteback');
+    expect(next('replied', { kind: 'received' })).toBe('wroteback');
+    expect(next('wroteback', { kind: 'received' })).toBeNull();
+    expect(next('interview', { kind: 'received' })).toBeNull();
+  });
+
+  it('moves to Applied from empty or Gathering', () => {
+    expect(next('', { kind: 'applied' })).toBe('applied');
+    expect(next('reached', { kind: 'applied' })).toBeNull();
+  });
+
+  it('picks Meeting or Interview', () => {
+    expect(next('reached', { kind: 'meeting', meetingKind: 'meeting' })).toBe('meeting');
+    expect(next('reached', { kind: 'meeting', meetingKind: 'interview' })).toBe('interview');
+    expect(next('applied', { kind: 'meeting', meetingKind: 'meeting' })).toBe('interview');
+    expect(next('meeting', { kind: 'meeting', meetingKind: 'interview' })).toBeNull();
+  });
+});
+
+describe('Google Calendar link', () => {
+  const m = {
+    id: 'm',
+    date: '2026-11-06',
+    start: '12:30',
+    end: '',
+    kind: 'interview' as const,
+    with: 'Alex',
+    notes: 'Bring reel',
+  };
+
+  it('builds a timed event, 30 minutes when there is no end', () => {
+    const url = new URL(googleCalendarLink('New York Life', m, 'America/New_York'));
+    expect(url.searchParams.get('text')).toBe('Interview: New York Life');
+    expect(url.searchParams.get('dates')).toBe('20261106T123000/20261106T130000');
+    expect(url.searchParams.get('details')).toBe('With Alex\nBring reel');
+    expect(url.searchParams.get('ctz')).toBe('America/New_York');
+  });
+
+  it('makes untimed meetings all-day', () => {
+    const url = new URL(googleCalendarLink('Buck', { ...m, start: '', kind: 'meeting' }));
+    expect(url.searchParams.get('dates')).toBe('20261106/20261107');
   });
 });

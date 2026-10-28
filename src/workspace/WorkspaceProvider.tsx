@@ -8,10 +8,23 @@ import {
   type ReactNode,
 } from 'react';
 import { useToast } from '../components/Toast';
-import { boardOrDefault, metaPatch } from '../model/board';
+import { nextStatus, type StatusEvent } from '../model/automation';
+import { boardOrDefault, metaPatch, optionOf, statusCol } from '../model/board';
+import { todayISO } from '../model/dates';
 import type { ImportData } from '../model/importData';
 import { norm, uid } from '../model/text';
-import type { Board, Chain, Company, Me, Page, Template } from '../model/types';
+import type {
+  Application,
+  Board,
+  Chain,
+  Company,
+  Me,
+  Meeting,
+  Message,
+  Note,
+  Page,
+  Template,
+} from '../model/types';
 import { useRuntime } from '../runtime/RuntimeProvider';
 import type { Json, Store } from '../runtime/store';
 
@@ -133,7 +146,7 @@ function makeActions(
   const company = (id: string) => companies.find((c) => c.id === id);
   const guard = (p: Promise<unknown>) => p.catch(fail);
 
-  return {
+  const api = {
     /** An exact (by letters and digits) match on name, for duplicate checks. */
     findByName(name: string) {
       const n = norm(name);
@@ -186,6 +199,97 @@ function makeActions(
       void guard(store.setDoc('board', { ...next, version: 2 }));
     },
 
+    // ---------- company page ----------
+
+    /**
+     * Applies the automatic status change for an event (SPEC section 3), plus
+     * any other company fields in the same write. Returns the new status's
+     * label for the "Status → X" toast, or null when nothing moved.
+     */
+    autoStatus(id: string, event: StatusEvent, also: Record<string, unknown> = {}) {
+      const c = company(id);
+      if (!c) return null;
+      const next = nextStatus(board, c, event);
+      const patch = next ? { ...metaPatch(board, c, 'status', next), ...also } : also;
+      if (Object.keys(patch).length) void guard(store.updateItem('companies', id, patch));
+      return next ? (optionOf(statusCol(board), next)?.label ?? next) : null;
+    },
+
+    pageOf(id: string): Page {
+      const p = pages[id];
+      return {
+        notes: p?.notes ?? [],
+        applications: p?.applications ?? [],
+        meetings: p?.meetings ?? [],
+      };
+    },
+
+    savePage(id: string, page: Page) {
+      void guard(store.setItem('pages', id, page as unknown as Json));
+    },
+
+    addNote(id: string, note: Omit<Note, 'id'>) {
+      const p = api.pageOf(id);
+      api.savePage(id, { ...p, notes: [...p.notes, { id: uid('n'), ...note }] });
+    },
+
+    /** Adds an application; returns the new status label if it moved. */
+    addApplication(id: string, app: Omit<Application, 'id'>) {
+      const p = api.pageOf(id);
+      api.savePage(id, { ...p, applications: [...p.applications, { id: uid('a'), ...app }] });
+      return api.autoStatus(id, { kind: 'applied' });
+    },
+
+    /** Adds a meeting or interview; returns the new status label if it moved. */
+    addMeeting(id: string, meeting: Omit<Meeting, 'id'>) {
+      const p = api.pageOf(id);
+      api.savePage(id, { ...p, meetings: [...p.meetings, { id: uid('mt'), ...meeting }] });
+      return api.autoStatus(id, { kind: 'meeting', meetingKind: meeting.kind });
+    },
+
+    deleteEntry(id: string, kind: keyof Page, entryId: string) {
+      const p = api.pageOf(id);
+      api.savePage(id, {
+        ...p,
+        [kind]: (p[kind] as { id: string }[]).filter((x) => x.id !== entryId),
+      });
+    },
+
+    saveChain(chain: Chain) {
+      void guard(store.setItem('chains', chain.id, body(chain)));
+    },
+
+    /** Starts an empty chain; returns its id. */
+    newChain(companyId: string, title: string) {
+      const ch: Chain = {
+        id: uid('ch'),
+        companyId,
+        title,
+        started: todayISO(),
+        messages: [],
+        summary: null,
+      };
+      api.saveChain(ch);
+      return ch.id;
+    },
+
+    deleteChain(chainId: string) {
+      void guard(store.deleteItem('chains', chainId));
+    },
+
+    /**
+     * Adds a pasted email. From them: Wrote back!! and the follow-up clears.
+     * From me: Reached out or Replied. Returns the new status label if it moved.
+     */
+    addEmail(chain: Chain, msg: Omit<Message, 'id'>) {
+      const started = !chain.started || msg.date < chain.started ? msg.date : chain.started;
+      api.saveChain({ ...chain, started, messages: [...chain.messages, { id: uid('m'), ...msg }] });
+      const c = company(chain.companyId);
+      return msg.dir === 'in'
+        ? api.autoStatus(chain.companyId, { kind: 'received' }, c?.due ? { due: null } : {})
+        : api.autoStatus(chain.companyId, { kind: 'sent' });
+    },
+
     /**
      * Writes an export into this account. Items with the same id are replaced;
      * everything else is added. Columns, templates and Your details are replaced.
@@ -206,6 +310,7 @@ function makeActions(
       await runPaced(writes, onProgress);
     },
   };
+  return api;
 }
 
 /**
