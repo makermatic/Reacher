@@ -27,6 +27,11 @@ export interface Store {
   ): Unsubscribe;
   /** Create or replace one item in a collection. */
   setItem<T extends Json>(collection: string, id: string, value: T): Promise<void>;
+  /**
+   * Merge fields into an existing item: nested objects merge, anything else
+   * (arrays included) replaces. `null` stores null. Rejects if the item doesn't exist.
+   */
+  updateItem(collection: string, id: string, patch: Json): Promise<void>;
   /** Delete one item from a collection. */
   deleteItem(collection: string, id: string): Promise<void>;
 }

@@ -34,4 +34,17 @@ describe('localStore', () => {
     await store.deleteItem('companies', 'a');
     expect(seen.at(-1)).toEqual({ b: { name: 'Gunner' } });
   });
+
+  it('merges updates like the Claude db: objects merge, arrays and values replace', async () => {
+    const store = createLocalStore();
+    await store.setItem('companies', 'a', { name: 'Buck', meta: { city: 'LA', tags: ['Studio'] } });
+    await store.updateItem('companies', 'a', { meta: { tags: ['Agency'], outcome: null } });
+    const seen: Record<string, unknown>[] = [];
+    store.watchCollection('companies', (items) => seen.push(items));
+    await nextTick();
+    expect(seen[0]).toEqual({
+      a: { name: 'Buck', meta: { city: 'LA', tags: ['Agency'], outcome: null } },
+    });
+    await expect(store.updateItem('companies', 'missing', { name: 'x' })).rejects.toThrow();
+  });
 });

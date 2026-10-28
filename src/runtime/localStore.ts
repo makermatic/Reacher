@@ -1,5 +1,17 @@
 import type { Json, Store, Unsubscribe } from './store';
 
+const isObject = (v: unknown): v is Json => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** The same merge the Claude db's update() does: objects merge, everything else replaces. */
+export function deepMerge(base: Json, patch: Json): Json {
+  const out: Json = { ...base };
+  for (const [k, v] of Object.entries(patch)) {
+    const cur = out[k];
+    out[k] = isObject(v) && isObject(cur) ? deepMerge(cur, v) : v;
+  }
+  return out;
+}
+
 /**
  * A Store kept in this browser's localStorage. Used for local development,
  * tests, and as the fallback when Reacher is opened outside Claude.
@@ -69,6 +81,12 @@ export function createLocalStore(prefix = 'reacher:'): Store {
     },
     async setItem(collection, id, value) {
       write(colKey(collection), { ...readCollection(collection), [id]: value });
+    },
+    async updateItem(collection, id, patch) {
+      const items = readCollection(collection);
+      const cur = items[id];
+      if (!isObject(cur)) throw new Error(`No ${collection} item ${id} to update`);
+      write(colKey(collection), { ...items, [id]: deepMerge(cur, patch) });
     },
     async deleteItem(collection, id) {
       const items = { ...readCollection(collection) };

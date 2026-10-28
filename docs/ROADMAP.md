@@ -8,11 +8,12 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M1** on Reacher Test: https://claude.ai/artifact/J86CzpMXjnr8dryxLmbckc (test list in the M1 section below).
+1. ⏳ **Test M2a** on Reacher Test (test list in the M2 section below). Start by exporting from the prototype: Your details → Export data.
+2. ⏳ **Paste your UI overhaul notes** from the prototype chat (for the overhaul round right after M3).
 
 ## Now
 
-M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2.
+M2a (sheet, editing, import) is published to Reacher Test. Next: M3, the company page. Then the UI overhaul.
 
 ## Links
 
@@ -81,7 +82,7 @@ M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2
 - ✅ Stack approved.
 - ✅ Gmail and Google Calendar connectors connected and confirmed.
 
-### M1: Empty app, live link 🔨 (built, waiting on Zack's test)
+### M1: Empty app, live link ✅ (Zack tested 1–4 on desktop; asked for links without https, fixed)
 - ✅ Vite + React + TS, Tailwind, ESLint, Prettier, Vitest, GitHub Actions CI.
 - ✅ Storage adapter (`src/runtime/`): Claude db and browser-only versions behind one interface. The AI adapter comes with M5.
 - ✅ Design tokens: the prototype's palette (light and dark) and fonts. Motion tokens in `src/motion.ts`.
@@ -96,7 +97,26 @@ M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2
   6. Switch your Claude theme between light and dark. Reacher follows it.
   7. Tell Claude about anything that looks off, feels slow, or animates wrong (numbered notes, screenshots welcome).
 
-### M2: Data model, Sheet, import ⬜
+### M2: Data model, Sheet, import 🔨 (M2a published, waiting on Zack's test)
+- ✅ Data model in `src/model/` (same shapes as the prototype), with unit tests for search, the picker ranking, Outcome clearing, dates and import.
+- ✅ Workspace (`src/workspace/`): loads everything live, holds every action. Writes queue one at a time per record.
+- ✅ Sheet: add companies (duplicates caught), status picker, all column types editable, row ⋯ menu (rename, delete), follow-up countdown and upcoming-meeting date with hover details.
+- ✅ Toolbar: search with abbreviations, All / Needs me, count, Columns, + Column, column header menu, Edit choices (with Only show when Status is…).
+- ✅ Import from the prototype's Export file (Sheet empty state, or Your details → Import data).
+- ✅ Board shows cards in lanes (drag and collapse come in M4).
+- Not yet: the company page (M3); clicking a name does nothing until then. Company lookup on add arrives with AI (M5).
+- **Test list (Reacher Test):**
+  1. In the prototype, click Your details → Export data and save the file.
+  2. In Reacher Test, click **Import from the prototype** and pick that file. The confirm step lists your companies, chains, notes and so on. Click Import, then Done.
+  3. Your companies appear in the order you added them, with your own status names and colors.
+  4. Click a status chip, type "re" and press Enter. The top match is picked and underlined letters show what matched.
+  5. Click a City cell, type something, press Enter. Click a Main contact cell: name, role and email. Click a Company type cell: tick tags.
+  6. Set a company to Meeting: the Outcome column shows up and a message says you can set it. Move it to Applied: Outcome clears.
+  7. Search "LA" or "NYC": the abbreviations match the full city names. Click **Needs me**: only Wrote back!! and due or late follow-ups stay.
+  8. Click **+ Column**, add a "List of values" column with a few choices. Click a column header to rename it, hide it, or move it. Use **Columns** to show or hide several at once.
+  9. Hover an upcoming meeting's date next to a status chip: a popup shows the time and who it's with.
+  10. Type a new company name in the last row and press Enter; type an existing one and you're told it's already there. Use the ⋯ at the end of a name to rename or delete (delete needs a second click).
+  11. Switch to Board: every company sits in its status lane.
 - Per-user data: board config (columns), companies, chains, pages (notes, applications, meetings), templates, Your details.
 - Sheet view: sticky name column, status chip and picker (ranked search, underlined matches, keyboard), all 11 column types editable in cells, add-company row, row ⋯ menu.
 - Toolbar: search with abbreviation expansion, All / Needs me, count, Columns dialog, + Column dialog, Edit choices dialog, `showWhen` for Outcome.
@@ -109,6 +129,11 @@ M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2
 - Header: rename, ⋯ menu, Status, Outcome, Follow up on.
 - Sections (collapsible, drag to reorder, remembered): Details, Email chains (manual add, no AI yet), Notes, Applications, Meetings & interviews with Add to Google Calendar links.
 - Automatic status changes and "Status → X" toasts.
+
+### UI overhaul ⬜ (moved here from M7, 2026-10-28)
+- Right after M3: the Sheet and company page exist with real data, so the redesign is grounded, and M4–M6 get built once in the new style.
+- Zack directs the look. Claude builds options, Zack picks and gives notes in rounds.
+- Waiting on Zack: his overhaul notes from the prototype chat.
 
 ### M4: Board ⬜
 - Lanes per status with category labels and color bars, cards, drag to change status, collapsible lanes (remembered).
@@ -126,9 +151,8 @@ M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2
 - Your details and Export data.
 - **Milestone: feature parity. Zack moves his real data into Reacher and stops using the prototype.**
 
-### M7: UI rework and animation ⬜
-- Zack directs the look. Claude builds options, Zack picks and gives notes in rounds.
-- Motion pass: panel open and close, chip changes, board drags, toasts, the quick update card, view transitions.
+### M7: Motion and polish pass ⬜
+- The UI overhaul itself moved to right after M3. This is the final pass over everything: panel open and close, chip changes, board drags, toasts, the quick update card, view transitions.
 
 ### M8: Google Calendar ⬜
 - Through the viewer's Google Calendar connector: meetings and interviews show up on the calendar, and upcoming events can be pulled in. What the connector can write gets confirmed first; the one-click link stays as a fallback.
@@ -153,6 +177,7 @@ M1 is built and published to Reacher Test. Waiting on Zack's test round; then M2
 | 2026-10-28 | Audience: Zack first, then friends, then public. Build multi-user from the start. |
 | 2026-10-28 | No separate AI billing: Reacher runs as a Claude artifact on each user's own plan. Approved. |
 | 2026-10-28 | Database access: each user writes only their own private space; shared data is owner-only. Friends must be shared as **Contributor**. |
+| 2026-10-28 | UI overhaul moves to right after M3 (was M7). |
 | 2026-10-28 | M1 keeps the prototype's palette and fonts so it feels familiar; the redesign is M7. |
 | 2026-10-28 | Animation starting point: zackzand.com's curve (cubic-bezier(0.4, 0, 0.2, 1)), 350–500ms fades with a small upward drift. Zack expects to change it; every value lives in `src/motion.ts`. |
 | 2026-10-28 | Source of truth is this GitHub repo. The artifact is only the built output, published from the repo. |

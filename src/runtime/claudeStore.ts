@@ -11,6 +11,15 @@ import type { Json, Store } from './store';
  */
 export function createClaudeStore(db: DB, userId: string): Store {
   const base = `data/users/${userId}`;
+
+  // The db wants one write at a time per document: queue writes by path.
+  const queues = new Map<string, Promise<unknown>>();
+  const enqueue = (ref: DocumentReference, write: () => Promise<void>) => {
+    const next = (queues.get(ref.path) ?? Promise.resolve()).catch(() => {}).then(write);
+    queues.set(ref.path, next);
+    return next;
+  };
+
   const doc = (name: string) => db.doc(`${base}/${name}`);
   const collection = (name: string) => db.doc(`${base}/ws`).collection(name);
 
@@ -20,7 +29,8 @@ export function createClaudeStore(db: DB, userId: string): Store {
       return snap.exists ? (snap.data() as T) : null;
     },
     async setDoc(name, value) {
-      await doc(name).set(value);
+      const ref = doc(name);
+      await enqueue(ref, () => ref.set(value));
     },
     watchDoc<T extends Json>(name: string, onChange: (value: T | null) => void) {
       return doc(name).onSnapshot(
@@ -39,10 +49,16 @@ export function createClaudeStore(db: DB, userId: string): Store {
       );
     },
     async setItem(name, id, value) {
-      await collection(name).doc(id).set(value);
+      const ref = collection(name).doc(id);
+      await enqueue(ref, () => ref.set(value));
+    },
+    async updateItem(name, id, patch) {
+      const ref = collection(name).doc(id);
+      await enqueue(ref, () => ref.update(patch));
     },
     async deleteItem(name, id) {
-      await collection(name).doc(id).delete();
+      const ref = collection(name).doc(id);
+      await enqueue(ref, () => ref.delete());
     },
   };
 }

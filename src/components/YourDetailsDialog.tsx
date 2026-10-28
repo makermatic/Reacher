@@ -1,13 +1,10 @@
-import * as Dialog from '@radix-ui/react-dialog';
-import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { normalizeUrl } from '../lib/links';
-import { fade, popIn } from '../motion';
-import { useDoc, useRuntime } from '../runtime/RuntimeProvider';
+import type { Me } from '../model/types';
+import { useRuntime } from '../runtime/RuntimeProvider';
+import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { btn, field, Modal } from './Modal';
 import { useToast } from './Toast';
-
-/** settings/me in the prototype: fills the my_* email template fields. */
-export type Me = { name: string; portfolio: string; reel: string; phone: string; intro: string };
 
 const EMPTY: Me = { name: '', portfolio: '', reel: '', phone: '', intro: '' };
 
@@ -31,56 +28,38 @@ const tidy = (v: Me): Me => ({
   reel: normalizeUrl(v.reel),
 });
 
-const input =
-  'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 outline-none transition-[border-color] duration-200 focus:border-accent';
-
+/** settings/me in the prototype: fills the my_* email template fields. */
 export function YourDetailsDialog({
   open,
   onOpenChange,
+  onImport,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onImport: () => void;
 }) {
-  const me = useDoc<Me>('me');
+  const { loading, me } = useWorkspace();
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <AnimatePresence>
-        {open && (
-          <Dialog.Portal forceMount>
-            <Dialog.Overlay asChild forceMount>
-              <motion.div
-                variants={fade}
-                initial="initial"
-                animate="enter"
-                exit="exit"
-                className="fixed inset-0 z-40 bg-black/30"
-              />
-            </Dialog.Overlay>
-            <Dialog.Content asChild forceMount aria-describedby={undefined}>
-              <motion.div
-                variants={popIn}
-                initial="initial"
-                animate="enter"
-                exit="exit"
-                className="fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-panel"
-              >
-                <Dialog.Title className="m-0 font-display text-xl font-bold">
-                  Your details
-                </Dialog.Title>
-                <p className="mt-1 mb-5 text-muted">
-                  These fill the “You” fields in email templates, like your name and reel link.
-                </p>
-                {me === undefined ? (
-                  <p className="text-muted">Loading…</p>
-                ) : (
-                  <DetailsForm initial={{ ...EMPTY, ...me }} onDone={() => onOpenChange(false)} />
-                )}
-              </motion.div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        )}
-      </AnimatePresence>
-    </Dialog.Root>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Your details"
+      description="These fill the “You” fields in email templates, like your name and reel link."
+    >
+      {loading ? (
+        <p className="text-muted">Loading…</p>
+      ) : (
+        <DetailsForm initial={{ ...EMPTY, ...me }} onDone={() => onOpenChange(false)} />
+      )}
+      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-[13px] text-muted">
+        <span className="min-w-0 flex-1">
+          Coming from the prototype? Bring everything over in one go.
+        </span>
+        <button type="button" className={`${btn.base} ${btn.small}`} onClick={onImport}>
+          Import data
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -93,7 +72,7 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
   const set = (key: keyof Me) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [key]: e.target.value }));
 
-  async function save(e: React.FormEvent) {
+  async function save(e: FormEvent) {
     e.preventDefault();
     if (runtime.status !== 'ready') return;
     setSaving(true);
@@ -126,7 +105,7 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
                 : undefined
             }
             placeholder={f.placeholder}
-            className={input}
+            className={`${field} py-2`}
           />
         </label>
       ))}
@@ -138,19 +117,15 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
           value={values.intro}
           onChange={set('intro')}
           placeholder="A few sentences about you and your work"
-          className={`${input} resize-y`}
+          className={`${field} resize-y py-2`}
         />
       </label>
       {error && <p className="m-0 text-[var(--c-red)]">{error}</p>}
       <div className="flex justify-end gap-2 pt-1">
-        <Dialog.Close className="rounded-lg px-3.5 py-2 font-medium text-muted transition-colors hover:bg-hover">
+        <button type="button" className={btn.ghost} onClick={onDone}>
           Cancel
-        </Dialog.Close>
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-accent px-4 py-2 font-medium text-accent-ink disabled:opacity-60"
-        >
+        </button>
+        <button type="submit" disabled={saving} className={`${btn.primary} px-4 py-2`}>
           {saving ? 'Saving…' : 'Save'}
         </button>
       </div>

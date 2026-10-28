@@ -1,36 +1,110 @@
-import { DEFAULT_STATUSES, type ColorName } from '../model/defaults';
+import { AnimatePresence, motion } from 'motion/react';
+import { useMemo } from 'react';
+import { asPerson, colorFor, colShows, optionOf, optList, statusCol } from '../model/board';
+import { visibleCompanies } from '../model/search';
+import type { Option } from '../model/types';
+import { duration, ease } from '../motion';
+import { When } from '../sheet/When';
+import { useWorkspace } from '../workspace/WorkspaceProvider';
 
-type Lane = { id: string; label: string; group: string; color: ColorName; icon?: string };
+const cardMotion = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.standard } },
+  exit: { opacity: 0, transition: { duration: duration.fast } },
+};
 
-const LANES: Lane[] = [
-  { id: '', label: 'No status', group: '', color: 'grey' },
-  ...DEFAULT_STATUSES,
-];
-
-/** One lane per status; drag a card between lanes to change its status (M4). */
+/**
+ * One lane per status (SPEC section 5). Cards show the name, Outcome, the
+ * first list-of-values field (Priority), the main contact and the date.
+ * Dragging between lanes and collapsing lanes come in M4.
+ */
 export function BoardView() {
+  const { loading, board, companies, pages } = useWorkspace();
+  const sc = statusCol(board);
+  const list = useMemo(() => visibleCompanies(board, companies, '', 'all'), [board, companies]);
+  const firstValues = board.columns.find((c) => c.type === 'values');
+  const outcome = board.columns.find((c) => c.id === 'outcome');
+  const people = board.columns.filter((c) => c.type === 'person');
+  const lanes: Option[] = [
+    { id: '', label: 'No status', group: '', color: 'grey' },
+    ...optList(sc),
+  ];
+  const known = new Set(optList(sc).map((o) => o.id));
+
   return (
-    <section aria-label="Board" className="h-full min-h-0 overflow-x-auto pb-2">
-      <div className="flex h-full gap-3">
-        {LANES.map((lane) => (
-          <div
-            key={lane.id || 'none'}
-            className={`c-${lane.color} flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-line bg-surface-2`}
-          >
-            <div className="h-1 bg-[var(--c)]" />
-            <div className="px-3 pt-2.5 pb-2">
-              <div className="eyebrow min-h-4 text-faint">{lane.group}</div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold">
-                  {lane.icon && <span aria-hidden="true">{lane.icon} </span>}
-                  {lane.label}
-                </span>
-                <span className="font-mono text-xs text-muted tabular-nums">0</span>
+    <section aria-label="Board" className="flex h-full min-h-0 flex-col gap-2.5">
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-xs text-muted tabular-nums">{list.length} companies</span>
+        <span className="text-[12.5px] text-muted">
+          Dragging cards between lanes comes in a later update.
+        </span>
+      </div>
+      <div className="min-h-0 flex-1 overflow-x-auto pb-2">
+        <div className="flex h-full gap-3">
+          {lanes.map((lane) => {
+            const cards = list.filter((c) => {
+              const s = String(c.meta?.status ?? '');
+              return lane.id ? s === lane.id : !s || !known.has(s);
+            });
+            return (
+              <div
+                key={lane.id || 'none'}
+                className={`c-${lane.color || 'grey'} flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-line bg-surface-2`}
+              >
+                <div className="h-1 bg-[var(--c)]" />
+                <div className="px-3 pt-2.5 pb-2">
+                  <div className="eyebrow min-h-4 text-[10px] text-faint">{lane.group}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">
+                      {lane.icon && <span aria-hidden="true">{lane.icon} </span>}
+                      {lane.label}
+                    </span>
+                    <span className="font-mono text-xs text-muted tabular-nums">
+                      {cards.length}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+                  <AnimatePresence initial={false}>
+                    {cards.map((c) => {
+                      const v = firstValues ? c.meta?.[firstValues.id] : undefined;
+                      const o =
+                        outcome && colShows(outcome, c)
+                          ? optionOf(outcome, c.meta?.outcome)
+                          : undefined;
+                      const person = people
+                        .map((p) => asPerson(c.meta?.[p.id]))
+                        .find((p) => p?.name);
+                      return (
+                        <motion.div
+                          key={c.id}
+                          layout
+                          {...cardMotion}
+                          className="grid gap-1.5 rounded-lg border border-line bg-surface px-3 py-2.5 shadow-xs"
+                        >
+                          <span className="font-semibold">{c.name}</span>
+                          <span className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted">
+                            {o && <span className={`tag c-${o.color || 'grey'}`}>{o.label}</span>}
+                            {firstValues && typeof v === 'string' && v && (
+                              <span className={`tag c-${colorFor(firstValues, v)}`}>{v}</span>
+                            )}
+                            {person && <span>{person.name}</span>}
+                            <When company={c} page={pages[c.id]} />
+                          </span>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                  {!cards.length && (
+                    <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-line py-6 text-[12.5px] text-faint">
+                      {loading ? '' : 'Nothing here'}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="mx-2 mb-2 flex-1 rounded-lg border border-dashed border-line" />
-          </div>
-        ))}
+            );
+          })}
+        </div>
       </div>
     </section>
   );

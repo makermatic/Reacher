@@ -1,6 +1,8 @@
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { useState } from 'react';
 import { Header } from './components/Header';
+import { ImportDialog } from './components/ImportDialog';
 import { QuickUpdateBar } from './components/QuickUpdateBar';
 import { ToastProvider } from './components/Toast';
 import type { View } from './components/ViewSwitcher';
@@ -10,6 +12,7 @@ import { viewTransition } from './motion';
 import { RuntimeProvider, useRuntime } from './runtime/RuntimeProvider';
 import { BoardView } from './views/BoardView';
 import { SheetView } from './views/SheetView';
+import { WorkspaceProvider } from './workspace/WorkspaceProvider';
 
 const isView = (v: unknown): v is View => v === 'sheet' || v === 'board';
 
@@ -18,7 +21,11 @@ export function App() {
     <MotionConfig reducedMotion="user">
       <RuntimeProvider>
         <ToastProvider>
-          <Shell />
+          <WorkspaceProvider>
+            <Tooltip.Provider delayDuration={350}>
+              <Shell />
+            </Tooltip.Provider>
+          </WorkspaceProvider>
         </ToastProvider>
       </RuntimeProvider>
     </MotionConfig>
@@ -28,6 +35,7 @@ export function App() {
 function Shell() {
   const [view, setView] = useState<View>(() => readPref('view', 'sheet', isView));
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const changeView = (v: View) => {
     setView(v);
@@ -49,11 +57,19 @@ function Shell() {
             exit="exit"
             className="h-full"
           >
-            {view === 'sheet' ? <SheetView /> : <BoardView />}
+            {view === 'sheet' ? <SheetView onImport={() => setImportOpen(true)} /> : <BoardView />}
           </motion.div>
         </AnimatePresence>
       </main>
-      <YourDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} />
+      <YourDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        onImport={() => {
+          setDetailsOpen(false);
+          setImportOpen(true);
+        }}
+      />
+      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }

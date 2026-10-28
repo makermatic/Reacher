@@ -179,3 +179,121 @@ input:-webkit-autofill:focus {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
+
+/* ---------- sheet pieces (from the prototype) ---------- */
+/* In the components layer so per-element utility classes can override them. */
+@layer components {
+  /* Status chip: solid in its status color. Color changes ease instead of snapping. */
+  .schip {
+    font-family: var(--f-mono);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    border-radius: 5px;
+    padding: 3px 8px;
+    min-width: 84px;
+    text-align: center;
+    border: 1px solid transparent;
+    background: var(--c);
+    color: var(--chip-ink);
+    white-space: nowrap;
+    transition:
+      background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      filter 0.15s;
+  }
+  .schip:hover {
+    filter: brightness(1.07);
+  }
+  .schip.empty {
+    background: transparent;
+    border-color: var(--line-strong);
+    color: var(--faint);
+    font-weight: 500;
+  }
+
+  /* List value / tag: a soft pill tinted with its color. */
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 0 7px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--c) 18%, var(--surface));
+    color: var(--fg);
+    border: 1px solid color-mix(in srgb, var(--c) 35%, var(--surface));
+    margin-right: 3px;
+    white-space: nowrap;
+  }
+
+  .cb {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 4px;
+    display: inline-grid;
+    place-items: center;
+    vertical-align: middle;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
+  }
+  .cb.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .due {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .due.late {
+    color: var(--c-red);
+    font-weight: 600;
+  }
+  .due.today {
+    color: var(--c-amber);
+    font-weight: 600;
+  }
+  .due.when {
+    color: var(--accent);
+    font-weight: 600;
+    cursor: default;
+  }
+
+  /* Sheet grid lines and row states. */
+  .sheet-grid th,
+  .sheet-grid td {
+    border-bottom: 1px solid var(--line);
+    border-right: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+    padding: 0;
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .sheet-grid tbody tr:hover > td {
+    background: var(--hover);
+  }
+  .sheet-grid .sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--surface);
+  }
+  .sheet-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-2);
+  }
+  .sheet-grid thead .sticky-col {
+    z-index: 3;
+    background: var(--surface-2);
+  }
+  .sheet-grid tbody td {
+    transition: background-color 0.15s;
+  }
+}
