@@ -198,7 +198,7 @@ input:-webkit-autofill:focus {
     color: var(--chip-ink);
     white-space: nowrap;
     transition:
-      background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
       filter 0.15s;
   }
   .schip:hover {

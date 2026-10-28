@@ -5,7 +5,7 @@ import { visibleCompanies, type Filter } from '../model/search';
 import type { Column, Company } from '../model/types';
 import { btn } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { duration, ease, glide } from '../motion';
+import { glide, itemInOut } from '../motion';
 import { AddColumnDialog } from '../sheet/AddColumnDialog';
 import { ChoicesDialog } from '../sheet/ChoicesDialog';
 import { ColumnHeader } from '../sheet/ColumnMenu';
@@ -16,12 +16,6 @@ import { SheetUIContext } from '../sheet/SheetUI';
 import { StatusChip } from '../sheet/StatusChip';
 import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-
-const rowMotion = {
-  initial: { opacity: 0, y: -4 },
-  animate: { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.standard } },
-  exit: { opacity: 0, transition: { duration: duration.fast } },
-};
 
 /** The Kitsu-style sheet: one row per company (SPEC section 4). */
 export function SheetView({ onImport }: { onImport: () => void }) {
@@ -79,7 +73,7 @@ export function SheetView({ onImport }: { onImport: () => void }) {
             <tbody>
               <AnimatePresence initial={false}>
                 {list.map((c) => (
-                  <motion.tr key={c.id} className="group" {...rowMotion}>
+                  <motion.tr key={c.id} className="group" {...itemInOut}>
                     <td className="sticky-col max-w-68">
                       <div className="flex items-center gap-1 pr-1">
                         <span

@@ -16,7 +16,7 @@ const cellButton =
  * everything else opens the cell editor (SPEC section 2).
  */
 export function MetaCell({ company, col }: { company: Company; col: Column }) {
-  const { actions } = useWorkspace();
+  const { actions, companies } = useWorkspace();
   const [open, setOpen] = useState(false);
   const value = meta(company, col.id);
   const save = (v: unknown) => actions.setMeta(company.id, col.id, v);
@@ -78,7 +78,13 @@ export function MetaCell({ company, col }: { company: Company; col: Column }) {
             }}
           />
         ) : (
-          <CellEditor col={col} value={value} onSave={save} onDone={() => setOpen(false)} />
+          <CellEditor
+            col={col}
+            value={value}
+            onSave={save}
+            onDone={() => setOpen(false)}
+            used={col.type === 'text' ? companies.map((c) => meta(c, col.id)) : undefined}
+          />
         )}
       </Popover>
     </td>

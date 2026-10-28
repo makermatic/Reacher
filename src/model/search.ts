@@ -39,7 +39,7 @@ export const ALIASES: Record<string, string> = {
 };
 
 /** Text with every known abbreviation expanded, normalized for comparison. */
-const expand = (s: unknown) =>
+export const expand = (s: unknown) =>
   norm(
     String(s ?? '')
       .toLowerCase()

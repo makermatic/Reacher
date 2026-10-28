@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
-import { fade, popIn } from '../motion';
+import { dialogIn, fade } from '../motion';
 
 /** A centered dialog that rises in and fades out. Escape and clicking outside close it. */
 export function Modal({
@@ -35,7 +35,7 @@ export function Modal({
             </Dialog.Overlay>
             <Dialog.Content asChild forceMount aria-describedby={undefined}>
               <motion.div
-                variants={popIn}
+                variants={dialogIn}
                 initial="initial"
                 animate="enter"
                 exit="exit"

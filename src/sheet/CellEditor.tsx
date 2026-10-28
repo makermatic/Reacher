@@ -2,6 +2,7 @@ import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { asChecklist, asPerson, asTags, colorFor } from '../model/board';
 import { TYPE_LABELS, type ChecklistItem, type Column } from '../model/types';
 import { normalizeUrl } from '../lib/links';
+import { textSuggestions } from '../model/suggest';
 import { btn, field } from '../components/Modal';
 import { PopoverHeader } from '../components/Popover';
 import { useSheetUI } from './SheetUI';
@@ -13,6 +14,8 @@ type Props = {
   onSave: (value: unknown) => void;
   /** Close the editor. */
   onDone: () => void;
+  /** Text columns: every value this column already has, for autofill. */
+  used?: unknown[];
 };
 
 /** The popover editor for one cell, by column type (prototype's openCellEditor). */
@@ -27,6 +30,8 @@ export function CellEditor(props: Props) {
         <TagsEditor {...props} />
       ) : col.type === 'checklist' ? (
         <ChecklistEditor {...props} />
+      ) : col.type === 'text' ? (
+        <AutofillEditor {...props} />
       ) : (
         <TextishEditor {...props} />
       )}
@@ -260,5 +265,92 @@ function ChecklistEditor({ col, value, onSave }: Props) {
         </button>
       </form>
     </>
+  );
+}
+
+/**
+ * Text with autofill: suggestions from values already used in this column,
+ * abbreviations expanded ("LA" offers "Los Angeles"). Arrows move, Enter
+ * picks; the last row keeps exactly what was typed.
+ */
+function AutofillEditor({ col, value, onSave, onDone, used = [] }: Props) {
+  const [text, setText] = useState(value == null ? '' : String(value));
+  const [hi, setHi] = useState(0);
+  const suggestions = textSuggestions(used, text);
+  const typed = text.trim();
+  const items = typed && !suggestions.includes(typed) ? [...suggestions, typed] : suggestions;
+  const active = Math.min(hi, Math.max(0, items.length - 1));
+
+  const commit = (v: string) => {
+    onSave(v.trim() === '' ? null : v.trim());
+    onDone();
+  };
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHi(Math.min(items.length - 1, active + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHi(Math.max(0, active - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      commit(items[active] ?? text);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        commit(text);
+      }}
+      className="grid gap-2.5"
+    >
+      <input
+        id={`cell-${col.id}`}
+        autoFocus
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setHi(0);
+        }}
+        onKeyDown={onKeyDown}
+        aria-label={col.name}
+        autoComplete="off"
+        className={field}
+      />
+      {items.length > 0 && (
+        <div role="listbox" aria-label={`${col.name} suggestions`} className="grid gap-px">
+          {items.map((v, i) => (
+            <button
+              key={v}
+              type="button"
+              role="option"
+              aria-selected={i === active}
+              onMouseEnter={() => setHi(i)}
+              onClick={() => commit(v)}
+              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
+                i === active ? 'bg-accent-soft shadow-[inset_2px_0_0_var(--accent)]' : ''
+              }`}
+            >
+              <span className="min-w-0 truncate">
+                {v === typed && !suggestions.includes(typed) ? `Use “${v}”` : v}
+              </span>
+              {i === active && (
+                <span className="ml-auto rounded-sm border border-line-strong px-1 font-mono text-[10px] text-muted">
+                  ↵
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      <SaveClear
+        onClear={() => {
+          onSave(null);
+          onDone();
+        }}
+      />
+    </form>
   );
 }

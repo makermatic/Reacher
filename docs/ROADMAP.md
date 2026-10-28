@@ -8,12 +8,11 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M2a** on Reacher Test (test list in the M2 section below). Start by exporting from the prototype: Your details → Export data.
-2. ⏳ **Paste your UI overhaul notes** from the prototype chat (for the overhaul round right after M3).
+1. Nothing right now. Next test round is M3 (the company page).
 
 ## Now
 
-M2a (sheet, editing, import) is published to Reacher Test. Next: M3, the company page. Then the UI overhaul.
+Building M3, the company page. Then the UI overhaul (Notion, ClickUp, Kitsu).
 
 ## Links
 
@@ -97,7 +96,7 @@ M2a (sheet, editing, import) is published to Reacher Test. Next: M3, the company
   6. Switch your Claude theme between light and dark. Reacher follows it.
   7. Tell Claude about anything that looks off, feels slow, or animates wrong (numbered notes, screenshots welcome).
 
-### M2: Data model, Sheet, import 🔨 (M2a published, waiting on Zack's test)
+### M2: Data model, Sheet, import ✅ (Zack tested 1–8; notes: city autofill, slower hover, faster motion — all done)
 - ✅ Data model in `src/model/` (same shapes as the prototype), with unit tests for search, the picker ranking, Outcome clearing, dates and import.
 - ✅ Workspace (`src/workspace/`): loads everything live, holds every action. Writes queue one at a time per record.
 - ✅ Sheet: add companies (duplicates caught), status picker, all column types editable, row ⋯ menu (rename, delete), follow-up countdown and upcoming-meeting date with hover details.
@@ -177,7 +176,9 @@ M2a (sheet, editing, import) is published to Reacher Test. Next: M3, the company
 | 2026-10-28 | Audience: Zack first, then friends, then public. Build multi-user from the start. |
 | 2026-10-28 | No separate AI billing: Reacher runs as a Claude artifact on each user's own plan. Approved. |
 | 2026-10-28 | Database access: each user writes only their own private space; shared data is owner-only. Friends must be shared as **Contributor**. |
-| 2026-10-28 | UI overhaul moves to right after M3 (was M7). |
+| 2026-10-28 | UI overhaul moves to right after M3 (was M7). References: Notion, ClickUp, Kitsu. |
+| 2026-10-28 | Motion: subtle, fast and functional. 120–250ms, opacity and small transforms, ease-out, no bounce (`src/motion.ts`). Hover popups wait 1.5s. |
+| 2026-10-28 | Text cells autofill from values already in the column, with abbreviations expanded ("LA" → "Los Angeles"). |
 | 2026-10-28 | M1 keeps the prototype's palette and fonts so it feels familiar; the redesign is M7. |
 | 2026-10-28 | Animation starting point: zackzand.com's curve (cubic-bezier(0.4, 0, 0.2, 1)), 350–500ms fades with a small upward drift. Zack expects to change it; every value lives in `src/motion.ts`. |
 | 2026-10-28 | Source of truth is this GitHub repo. The artifact is only the built output, published from the repo. |

@@ -3,15 +3,9 @@ import { useMemo } from 'react';
 import { asPerson, colorFor, colShows, optionOf, optList, statusCol } from '../model/board';
 import { visibleCompanies } from '../model/search';
 import type { Option } from '../model/types';
-import { duration, ease } from '../motion';
+import { itemInOut } from '../motion';
 import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-
-const cardMotion = {
-  initial: { opacity: 0, y: 6 },
-  animate: { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.standard } },
-  exit: { opacity: 0, transition: { duration: duration.fast } },
-};
 
 /**
  * One lane per status (SPEC section 5). Cards show the name, Outcome, the
@@ -79,7 +73,7 @@ export function BoardView() {
                         <motion.div
                           key={c.id}
                           layout
-                          {...cardMotion}
+                          {...itemInOut}
                           className="grid gap-1.5 rounded-lg border border-line bg-surface px-3 py-2.5 shadow-xs"
                         >
                           <span className="font-semibold">{c.name}</span>

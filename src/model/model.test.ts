@@ -5,6 +5,7 @@ import { DEFAULT_BOARD } from './defaults';
 import { describeImport, ImportError, parseExport } from './importData';
 import { rankOptions, splitMatch } from './picker';
 import { matchesSearch, needsMe, visibleCompanies } from './search';
+import { textSuggestions } from './suggest';
 import type { Company } from './types';
 
 const board = DEFAULT_BOARD;
@@ -178,5 +179,27 @@ describe('import', () => {
   it('explains files it cannot read', () => {
     expect(() => parseExport('not json')).toThrow(ImportError);
     expect(() => parseExport('{"hello":1}')).toThrow(/Export data/);
+  });
+});
+
+describe('text autofill', () => {
+  const cities = ['New York', 'New York', 'Los Angeles', 'Atlanta', 'new york ', 'Brooklyn'];
+
+  it('lists used values, most used first, without duplicates', () => {
+    expect(textSuggestions(cities, '')).toEqual(['New York', 'Los Angeles', 'Atlanta', 'Brooklyn']);
+  });
+
+  it('expands abbreviations to the full name, first', () => {
+    expect(textSuggestions(cities, 'LA')[0]).toBe('Los Angeles');
+    expect(textSuggestions(cities, 'nyc')).toEqual(['New York']);
+    expect(textSuggestions([], 'sf')).toEqual(['San Francisco']);
+  });
+
+  it('ranks starts-with before contains', () => {
+    expect(textSuggestions(cities, 'a')).toEqual(['Atlanta', 'Los Angeles']);
+    expect(textSuggestions(['Motion Designer', 'Designer / Animator'], 'des')).toEqual([
+      'Designer / Animator',
+      'Motion Designer',
+    ]);
   });
 });

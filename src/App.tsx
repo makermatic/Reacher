@@ -8,7 +8,7 @@ import { ToastProvider } from './components/Toast';
 import type { View } from './components/ViewSwitcher';
 import { YourDetailsDialog } from './components/YourDetailsDialog';
 import { readPref, writePref } from './lib/prefs';
-import { viewTransition } from './motion';
+import { hoverDelay, viewTransition } from './motion';
 import { RuntimeProvider, useRuntime } from './runtime/RuntimeProvider';
 import { BoardView } from './views/BoardView';
 import { SheetView } from './views/SheetView';
@@ -22,7 +22,7 @@ export function App() {
       <RuntimeProvider>
         <ToastProvider>
           <WorkspaceProvider>
-            <Tooltip.Provider delayDuration={350}>
+            <Tooltip.Provider delayDuration={hoverDelay}>
               <Shell />
             </Tooltip.Provider>
           </WorkspaceProvider>

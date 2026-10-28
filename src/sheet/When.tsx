@@ -1,4 +1,5 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { hoverDelay } from '../motion';
 import { daysUntil, fmtDate, fmtTime, monthDay, todayISO } from '../model/dates';
 import type { Company, Meeting, Page } from '../model/types';
 
@@ -23,7 +24,7 @@ export function When({ company, page }: { company: Company; page: Page | undefin
     const time = m.start ? ` at ${fmtTime(m.start)}${m.end ? `–${fmtTime(m.end)}` : ''}` : '';
     const what = `${m.kind === 'interview' ? 'Interview' : 'Meeting'}${m.with ? ` with ${m.with}` : ''}`;
     return (
-      <Tooltip.Root delayDuration={350}>
+      <Tooltip.Root delayDuration={hoverDelay}>
         <Tooltip.Trigger asChild>
           <span className="due when" tabIndex={0}>
             {monthDay(m.date)}
