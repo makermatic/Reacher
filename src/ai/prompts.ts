@@ -1,6 +1,6 @@
 /**
  * The prompts, carried over from the prototype word for word (they were tuned
- * with Zack over many rounds). Each one sends the instructions, the data and
+ * with Zack over many rounds), plus additions marked with the round they came from. Each one sends the instructions, the data and
  * the exact shape it wants back (SPEC section 9).
  */
 import { meta, optionOf, optList, statusCol, valueText } from '../model/board';
@@ -32,13 +32,45 @@ function statusMeanings(board: Board) {
     .join('; ');
 }
 
+/** Squashed for name matching: "Sibling Rivalry" matches "siblingrivalry". */
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * What the tracker already has for the companies a note names, so the AI can
+ * word a repeat as a follow-up ("Spoke again") instead of a copy (Zack, round 3).
+ */
+export function noteHistory(companies: Company[], pages: Record<string, Page>, note: string) {
+  const n = squash(note);
+  return companies
+    .filter((c) => squash(c.name).length >= 3 && n.includes(squash(c.name)))
+    .map((c) => {
+      const page = pages[c.id];
+      if (!page) return '';
+      const lines = [
+        ...page.meetings.map(
+          (m) =>
+            `[${m.date}] ${m.kind === 'interview' ? 'INTERVIEW' : 'MEETING'}: ${m.notes || ''}`,
+        ),
+        ...page.notes.map((x) => `[${x.date}] NOTE: ${x.text}`),
+        ...page.applications.map((a) => `[${a.date}] APPLIED: ${a.role}`),
+      ]
+        .sort()
+        .slice(-6);
+      return lines.length ? `${c.name} so far:\n${lines.join('\n')}` : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
 export function quickUpdatePrompt(
   board: Board,
   companies: Company[],
   chains: Chain[],
   note: string,
   today = todayISO(),
+  pages: Record<string, Page> = {},
 ) {
+  const history = noteHistory(companies, pages, note);
   const sc = statusCol(board);
   const statusCols = board.columns
     .filter((c) => c.type === 'status')
@@ -78,7 +110,7 @@ ${statusCols}
 Status meanings: ${statusMeanings(board)}
 Other fields: ${others}
 Companies already tracked: ${tracked}
-
+${history ? `What the tracker already has for the companies in this note:\n${history}\n` : ''}
 The note: """${note}"""
 
 Reply with only JSON: {"confirm": false, "reply": "one short sentence saying what you understood", "actions": [ ... ]}
@@ -102,6 +134,7 @@ Rules:
 - A month with no day means the 1st. A past event with no year is the most recent past one, never in the future. "Next week" etc. are relative to today.
 - Use the tracked company's exact name when the note refers to it. Use the company's official spelling for new ones (e.g. BigStar, not Big Star).
 - Treat abbreviations as the full thing (LA = Los Angeles, NYC = New York) and store full names in fields.
+- When the note repeats something the tracker already has (another call, another email), word the new entry as a follow-up ("Spoke again…", "Followed up…"). Never copy details from older entries into the new one.
 - If the note is too unclear to act on, return no actions and ask one short question in "reply".`;
 }
 

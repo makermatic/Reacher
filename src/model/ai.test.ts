@@ -164,6 +164,32 @@ describe('prompts', () => {
     expect(p).toContain('Status is "Wrote back!!"');
   });
 
+  it('quick update prompt includes history for companies the note names', () => {
+    const page = {
+      notes: [],
+      applications: [],
+      meetings: [
+        {
+          id: 'm1',
+          date: '2026-02-01',
+          kind: 'meeting' as const,
+          start: '',
+          end: '',
+          with: '',
+          notes: 'Not a good fit',
+        },
+      ],
+    };
+    const p = quickUpdatePrompt(board, [psyop], [], 'spoke to psyop last week', '2026-10-28', {
+      [psyop.id]: page,
+    });
+    expect(p).toContain('Psyop so far:\n[2026-02-01] MEETING: Not a good fit');
+    expect(p).toContain('Spoke again');
+    expect(
+      quickUpdatePrompt(board, [psyop], [], 'met buck', '2026-10-28', { [psyop.id]: page }),
+    ).not.toContain('so far:');
+  });
+
   it('lookup skips personal columns', () => {
     const p = lookupPrompt(board, 'buck');
     expect(p).toContain('- City (text)');

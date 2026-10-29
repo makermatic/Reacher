@@ -26,9 +26,9 @@ const MENU_WIDTH = 260;
 const MENU_MAX = 240;
 
 /**
- * Type @ in a text box to pick a fill-in field from a small menu above the
- * caret, like Discord (Zack, round 2). Arrows move, Enter or Tab inserts
- * {{field}}, Escape closes. Spread `fieldProps` onto the input or textarea
+ * Type # in a text box to pick a fill-in field from a small menu above the
+ * caret, like Discord channels (Zack, rounds 2 and 3). Arrows move, Enter or
+ * Tab inserts #field, Escape closes. Spread `fieldProps` onto the input or textarea
  * (it supplies onChange) and render `menu` anywhere.
  */
 export function useFieldPicker<T extends Field>({
@@ -71,6 +71,8 @@ export function useFieldPicker<T extends Field>({
     if (!el || !open) return;
     const next = insertField(el.value, open.start, open.caret, item.key);
     onChange(next.text);
+    // The inserted #field would match itself; stay closed until a new #.
+    dismissed.current = open.start;
     setOpen(null);
     requestAnimationFrame(() => {
       el.focus();
@@ -139,7 +141,7 @@ export function useFieldPicker<T extends Field>({
               onClick={() => pick(it)}
               className="flex items-baseline justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-[13.5px] aria-selected:bg-accent-soft"
             >
-              <span className="truncate">{it.label}</span>
+              <span className="min-w-0 truncate">{it.label}</span>
               <span className="shrink-0 text-[11px] text-faint">{it.group}</span>
             </button>
           ))}

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { insertField, matchFields, mentionAt, type FieldItem } from './mention';
+import {
+  fromHashes,
+  insertField,
+  matchFields,
+  mentionAt,
+  toHashes,
+  type FieldItem,
+} from './mention';
 
 const items: FieldItem[] = [
   { key: 'first_name', label: 'First name', group: 'Contact' },
@@ -10,18 +17,19 @@ const items: FieldItem[] = [
 ];
 
 describe('mentionAt', () => {
-  it('opens on an @ at the start of a word', () => {
-    expect(mentionAt('Hi @', 4)).toEqual({ start: 3, query: '' });
-    expect(mentionAt('@fir', 4)).toEqual({ start: 0, query: 'fir' });
-    expect(mentionAt('Hi\n@co', 6)).toEqual({ start: 3, query: 'co' });
+  it('opens on a # that starts a word, even after punctuation', () => {
+    expect(mentionAt('Hi #', 4)).toEqual({ start: 3, query: '' });
+    expect(mentionAt('#fir', 4)).toEqual({ start: 0, query: 'fir' });
+    expect(mentionAt('Hi\n#co', 6)).toEqual({ start: 3, query: 'co' });
+    expect(mentionAt('need.#por', 9)).toEqual({ start: 5, query: 'por' });
   });
-  it('ignores email addresses and finished words', () => {
-    expect(mentionAt('zack@studio', 11)).toBeNull();
-    expect(mentionAt('Hi @first name', 14)).toBeNull();
-    expect(mentionAt('no at sign', 5)).toBeNull();
+  it('ignores # inside words and finished words', () => {
+    expect(mentionAt('C#', 2)).toBeNull();
+    expect(mentionAt('Hi #first name', 14)).toBeNull();
+    expect(mentionAt('no hash', 5)).toBeNull();
   });
   it('only looks before the caret', () => {
-    expect(mentionAt('Hi @fi and more', 6)).toEqual({ start: 3, query: 'fi' });
+    expect(mentionAt('Hi #fi and more', 6)).toEqual({ start: 3, query: 'fi' });
   });
 });
 
@@ -42,10 +50,29 @@ describe('matchFields', () => {
 });
 
 describe('insertField', () => {
-  it('replaces the @query with the token', () => {
-    expect(insertField('Hi @fir!', 3, 7, 'first_name')).toEqual({
-      text: 'Hi {{first_name}}!',
-      caret: 17,
+  it('replaces the #query with the field', () => {
+    expect(insertField('Hi #fir!', 3, 7, 'first_name')).toEqual({
+      text: 'Hi #first_name!',
+      caret: 14,
     });
+  });
+});
+
+describe('# and {{}} round trip', () => {
+  const keys = new Set(['first_name', 'company', 'company_type', 'my_portfolio']);
+  it('shows known fields as # and leaves the rest', () => {
+    expect(toHashes('Hi {{first_name}}, {{unknown}} at {{company}}.', keys)).toBe(
+      'Hi #first_name, {{unknown}} at #company.',
+    );
+  });
+  it('stores # fields as {{}}, longest field first, with trailing text kept', () => {
+    expect(fromHashes("Hi #first_name, #company's #company_type work. C# #nope", keys)).toBe(
+      "Hi {{first_name}}, {{company}}'s {{company_type}} work. C# #nope",
+    );
+    expect(fromHashes('#companyX', keys)).toBe('{{company}}X');
+  });
+  it('round-trips', () => {
+    const t = 'Hi {{first_name}},\n{{my_portfolio}}';
+    expect(fromHashes(toHashes(t, keys), keys)).toBe(t);
   });
 });

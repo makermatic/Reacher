@@ -1,0 +1,234 @@
+{
+  "exported": "2026-10-28T20:00:00Z",
+  "board": null,
+  "companies": [
+    {
+      "id": "co-buck",
+      "name": "Buck",
+      "order": 1,
+      "example": true,
+      "meta": {
+        "priority": "Dream",
+        "role": "Motion Designer",
+        "city": "New York",
+        "contact": { "name": "Jordan Placeholder", "role": "Producer", "email": "" },
+        "website": "https://buck.co",
+        "tags": ["Studio"],
+        "prep": [
+          { "t": "Cut a reel version that leads with character work", "done": true },
+          { "t": "Find a producer's email in Apollo", "done": false }
+        ],
+        "status": "gathering"
+      },
+      "auto": {},
+      "due": null
+    },
+    {
+      "id": "co-psyop",
+      "name": "Psyop",
+      "order": 2,
+      "example": true,
+      "meta": {
+        "priority": "Strong",
+        "role": "Motion Designer",
+        "city": "New York",
+        "contact": { "name": "Sam Example", "role": "Recruiter", "email": "sam@example.com" },
+        "website": "https://www.psyop.com",
+        "why": "Your team's mix of 2D character animation and design-driven spots is exactly the kind of work I want to be doing.",
+        "tags": ["Studio"],
+        "status": "reached"
+      },
+      "auto": {},
+      "due": "2026-10-27"
+    },
+    {
+      "id": "co-loyal",
+      "name": "loyalkaspar",
+      "order": 3,
+      "example": true,
+      "meta": {
+        "priority": "Dream",
+        "role": "Broadcast Designer",
+        "city": "New York",
+        "contact": {
+          "name": "Alex Sample",
+          "role": "Head of Production",
+          "email": "alex@example.com"
+        },
+        "website": "https://loyalkaspar.com",
+        "why": "Your network rebrands are a big reason I moved toward broadcast graphics.",
+        "tags": ["Broadcast", "Studio"],
+        "prep": [{ "t": "Broadcast-first reel", "done": false }],
+        "status": "wroteback"
+      },
+      "auto": {},
+      "due": "2026-10-26"
+    },
+    {
+      "id": "co-if",
+      "name": "Imaginary Forces",
+      "order": 4,
+      "example": true,
+      "meta": {
+        "priority": "Dream",
+        "role": "Designer / Animator",
+        "city": "New York",
+        "website": "https://www.imaginaryforces.com",
+        "tags": ["Studio"],
+        "status": "meeting",
+        "outcome": "hopeful"
+      },
+      "auto": {},
+      "due": null
+    },
+    {
+      "id": "co-gretel",
+      "name": "Gretel",
+      "order": 5,
+      "example": true,
+      "meta": {
+        "priority": "Strong",
+        "role": "Motion Designer",
+        "city": "New York",
+        "tags": ["Studio"]
+      },
+      "auto": {},
+      "due": null
+    },
+    {
+      "id": "co-msg",
+      "name": "MSG Networks",
+      "order": 6,
+      "example": true,
+      "meta": {
+        "priority": "Backup",
+        "role": "Broadcast Graphics Designer",
+        "city": "New York",
+        "tags": ["Broadcast", "In-house"],
+        "status": "applied"
+      },
+      "auto": {},
+      "due": null
+    }
+  ],
+  "chains": [
+    {
+      "id": "ch-ex1",
+      "companyId": "co-psyop",
+      "title": "Intro to Sam",
+      "started": "2026-10-20",
+      "summary": null,
+      "messages": [
+        {
+          "id": "m-ex1",
+          "dir": "out",
+          "date": "2026-10-20",
+          "text": "Subject: Motion designer interested in Psyop\n\nHi Sam,\n\nI'm finishing my MA in Motion Media Design at SCAD this November... (example email)\n\nThanks,\nZack"
+        }
+      ]
+    },
+    {
+      "id": "ch-ex2",
+      "companyId": "co-loyal",
+      "title": "Broadcast Designer application",
+      "started": "2026-10-14",
+      "summary": null,
+      "messages": [
+        {
+          "id": "m-ex2",
+          "dir": "out",
+          "date": "2026-10-14",
+          "text": "Subject: Following up on my Broadcast Designer application\n\nHi Alex, I applied for the Broadcast Designer role recently and wanted to follow up directly... (example email)"
+        },
+        {
+          "id": "m-ex3",
+          "dir": "in",
+          "date": "2026-10-26",
+          "text": "Hi Zack, thanks for following up. We're reviewing reels for the broadcast team over the next two weeks. Could you send a version of your reel that leads with your broadcast work? Happy to set up a call after that.\n\nAlex (example reply)"
+        }
+      ]
+    }
+  ],
+  "pages": {
+    "co-if": {
+      "notes": [
+        {
+          "id": "n-ex1",
+          "date": "2026-10-21",
+          "text": "Met their design director at a portfolio review. (example)"
+        }
+      ],
+      "applications": [],
+      "meetings": [
+        {
+          "id": "mt-ex1",
+          "date": "2026-10-24",
+          "kind": "meeting",
+          "with": "Design director (example)",
+          "notes": "Liked the rigging work; said to check back in December."
+        },
+        {
+          "id": "mt-up",
+          "date": "2026-11-06",
+          "start": "12:30",
+          "end": "13:00",
+          "kind": "interview",
+          "with": "Design director",
+          "notes": ""
+        }
+      ]
+    },
+    "co-msg": {
+      "notes": [],
+      "applications": [
+        {
+          "id": "a-ex1",
+          "date": "2026-10-18",
+          "role": "Broadcast Graphics Designer",
+          "link": "",
+          "result": ""
+        }
+      ],
+      "meetings": []
+    }
+  },
+  "templates": [
+    {
+      "id": "tpl-intro",
+      "name": "First outreach",
+      "subject": "Motion designer interested in {{company}}",
+      "body": "Hi {{first_name}},\n\n{{my_intro}}\n\n{{why_them}}\n\nI'd love to be considered for {{role_i_want}} work at {{company}}, whether that's a staff role or freelance. My reel and portfolio are at {{my_portfolio}}.\n\nWould you have 15 minutes in the next couple of weeks to talk about how your team is staffing up?\n\nThanks,\n{{my_name}}"
+    },
+    {
+      "id": "tpl-check",
+      "name": "Check-in (no reply yet)",
+      "subject": "Re: Motion designer interested in {{company}}",
+      "body": "Hi {{first_name}},\n\nJust floating this back to the top of your inbox. I'm still very interested in {{role_i_want}} work at {{company}}, and I'm moving to New York after I graduate in November.\n\nReel and portfolio: {{my_portfolio}}\n\nThanks again,\n{{my_name}}"
+    },
+    {
+      "id": "tpl-app",
+      "name": "Application follow-up",
+      "subject": "Following up on my {{role_i_want}} application",
+      "body": "Hi {{first_name}},\n\nI applied for the {{role_i_want}} role at {{company}} recently and wanted to follow up directly. {{why_them}}\n\nMy portfolio is at {{my_portfolio}}. Happy to send anything else you need.\n\nBest,\n{{my_name}}"
+    },
+    {
+      "id": "tpl-thanks",
+      "name": "Thank you after interview",
+      "subject": "Thank you, {{first_name}}",
+      "body": "Hi {{first_name}},\n\nThanks for taking the time to talk today. I enjoyed learning more about the team at {{company}}, and I'm even more excited about the {{role_i_want}} role.\n\nLet me know if there's anything else I can send your way.\n\nBest,\n{{my_name}}"
+    },
+    {
+      "id": "tpl-referral",
+      "name": "Ask a friend for a referral",
+      "subject": "Quick favor about {{company}}",
+      "body": "Hey {{first_name}},\n\nHope you're doing well! I'm going after {{role_i_want}} roles at {{company}} and wanted to ask if you'd be open to passing my name along, or pointing me to the right person on the production side.\n\nHere's my portfolio: {{my_portfolio}}\n\nNo pressure at all, and thanks either way.\n{{my_name}}"
+    }
+  ],
+  "me": {
+    "name": "Zack",
+    "portfolio": "zackzand.com",
+    "reel": "",
+    "phone": "",
+    "intro": "I'm finishing my MA in Motion Media Design at SCAD this November. Before grad school I worked in 2D TV animation as a rigging artist and animator on shows like Wild Kratts and The Loud House, and I've been moving into motion design and broadcast graphics."
+  }
+}

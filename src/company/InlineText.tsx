@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 /**
  * Text that is its own editor: click it and the caret lands where you clicked,
- * no box (Zack, round 2). Enter or clicking away saves, Escape puts it back.
+ * no box, outline or hover tint (Zack, rounds 2 and 3). Enter or clicking away saves, Escape puts it back.
  * Blank names are ignored.
  */
 export function InlineText({
@@ -49,7 +49,7 @@ export function InlineText({
           requestAnimationFrame(() => (e.target as HTMLInputElement).blur());
         }
       }}
-      className={`block w-full min-w-0 cursor-text truncate rounded-sm border-0 bg-transparent p-0 outline-none transition-colors hover:bg-hover focus:bg-transparent ${className}`}
+      className={`block w-full min-w-0 cursor-text truncate border-0 bg-transparent p-0 outline-none ${className}`}
     />
   );
 }

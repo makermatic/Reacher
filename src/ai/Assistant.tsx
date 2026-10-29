@@ -242,8 +242,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       }
       setNotice({ kind: 'busy', text: `Reading “${note}”` });
       try {
-        const { board, companies, chains } = wsRef.current;
-        const reply = await ai.json<QuickReply>(quickUpdatePrompt(board, companies, chains, note));
+        const { board, companies, chains, pages } = wsRef.current;
+        const reply = await ai.json<QuickReply>(
+          quickUpdatePrompt(board, companies, chains, note, undefined, pages),
+        );
         const actions = cleanActions(wsRef.current.board, reply?.actions);
         const lines = actions.map((a) => describeAction(wsRef.current.board, a));
         if (actions.length && reply?.confirm !== true) {

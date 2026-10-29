@@ -136,9 +136,12 @@ input:-webkit-autofill:focus {
   caret-color: var(--fg);
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* In a layer so a component's own outline-none wins (the inline name editor). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 /* Status color by name: class="c-blue" sets --c for chips, bars and stripes. */

@@ -5,7 +5,7 @@ import { duration, ease } from '../motion';
 
 /**
  * Every "click twice to delete" button: the first click morphs it into its
- * confirm state (it grows to fit, the label swaps), the second click runs the
+ * confirm state (it grows to fit, the new label slides in from the right), the second click runs the
  * action, and it settles back on its own after a few seconds.
  */
 export function ConfirmButton({
@@ -40,9 +40,9 @@ export function ConfirmButton({
         <motion.span
           key={armed ? 'armed' : 'rest'}
           layout="position"
-          initial={{ opacity: 0, y: 3 }}
-          animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.out } }}
-          exit={{ opacity: 0, y: -3, transition: { duration: duration.fast, ease: ease.out } }}
+          initial={{ opacity: 0, x: 6 }}
+          animate={{ opacity: 1, x: 0, transition: { duration: duration.base, ease: ease.out } }}
+          exit={{ opacity: 0, x: -4, transition: { duration: duration.fast, ease: ease.out } }}
           className="inline-block"
         >
           {armed ? confirm : children}

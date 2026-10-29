@@ -11,6 +11,7 @@ import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { btn, field, fieldInline } from './Modal';
 import { useToast } from './Toast';
 import { useFieldPicker } from './FieldPicker';
+import { fromHashes, toHashes } from '../model/mention';
 
 /** The Email templates screen (SPEC section 8). */
 export function TemplatesScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -68,7 +69,9 @@ function Templates({ onClose }: { onClose: () => void }) {
               className="grid gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hover aria-[current=true]:bg-accent-soft"
             >
               <span className="font-medium">{t.name}</span>
-              <small className="truncate text-xs text-muted">{t.subject || 'No subject'}</small>
+              <small className="truncate text-xs text-muted">
+                {t.subject.replace(/\{\{(\w+)\}\}/g, '#$1') || 'No subject'}
+              </small>
             </button>
           ))}
           <button
@@ -106,14 +109,25 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
   const { board, companies, me, actions } = useWorkspace();
   const { openCompanyId } = useSheetUI();
   const toast = useToast();
-  const [draft, setDraft] = useState(initial);
+  const fields = tokenGroups(board).flatMap((g) =>
+    g.items.map(([key, label]) => ({ key, label, group: g.name })),
+  );
+  const keys = new Set(fields.map((f) => f.key));
+  // The editor shows fields as #first_name; they're stored as {{first_name}}.
+  const [draft, setDraft] = useState(() => ({
+    ...initial,
+    subject: toHashes(initial.subject, keys),
+    body: toHashes(initial.body, keys),
+  }));
+  const stored = {
+    ...draft,
+    subject: fromHashes(draft.subject, keys),
+    body: fromHashes(draft.body, keys),
+  };
   const [previewId, setPreviewId] = useState(
     () => openCompanyId ?? [...companies].sort((a, b) => a.name.localeCompare(b.name))[0]?.id ?? '',
   );
   const focus = useRef<'subject' | 'body'>('body');
-  const fields = tokenGroups(board).flatMap((g) =>
-    g.items.map(([key, label]) => ({ key, label, group: g.name })),
-  );
   const subjectPicker = useFieldPicker<HTMLInputElement>({
     items: fields,
     onChange: (subject) => setDraft((d) => ({ ...d, subject })),
@@ -138,11 +152,11 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         .map((o) => o.label),
     );
 
-  /** Insert {{field}} at the cursor of whichever box was last focused. */
+  /** Insert #field at the cursor of whichever box was last focused. */
   const insert = (key: string) => {
     const which = focus.current;
     const el = (which === 'subject' ? subjectPicker : bodyPicker).fieldProps.ref.current;
-    const tok = `{{${key}}}`;
+    const tok = `#${key}`;
     const text = draft[which];
     const start = el?.selectionStart ?? text.length;
     const end = el?.selectionEnd ?? text.length;
@@ -212,7 +226,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
 
       <div className="grid gap-2">
         <span className="eyebrow text-[10.5px] font-semibold text-muted">
-          Fill-in fields · type @ in the subject or body, or click one
+          Fill-in fields · type # in the subject or body, or click one
         </span>
         {tokenGroups(board).map((g) => (
           <div key={g.name} className="grid gap-1">
@@ -222,7 +236,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
                 <button
                   key={k}
                   type="button"
-                  title={`Inserts {{${k}}}`}
+                  title={`Inserts #${k}`}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => insert(k)}
                   className="rounded-full border border-line-strong px-2.5 py-0.5 text-[12.5px] transition-colors hover:border-accent hover:bg-accent-soft"
@@ -260,9 +274,9 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         <div className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13.5px]">
           <div className="mb-2 border-b border-line pb-2">
             <span className="eyebrow mr-2 text-[10.5px] text-muted">Subject</span>
-            {renderPreview(draft.subject)}
+            {renderPreview(stored.subject)}
           </div>
-          <div className="whitespace-pre-wrap">{renderPreview(draft.body)}</div>
+          <div className="whitespace-pre-wrap">{renderPreview(stored.body)}</div>
         </div>
         <span className="text-xs text-muted">
           Green = filled in from the company. Yellow = blank for this company.
@@ -278,7 +292,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         <button
           type="button"
           onClick={() => {
-            actions.saveTemplate({ ...draft, name: draft.name.trim() || 'Untitled' });
+            actions.saveTemplate({ ...stored, name: draft.name.trim() || 'Untitled' });
             toast('Template saved');
           }}
           className={btn.primary}

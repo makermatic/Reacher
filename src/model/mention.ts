@@ -1,21 +1,23 @@
 /**
- * Typing @ in a template to pick a fill-in field, like Discord (Zack, round 2).
- * Pure helpers: where the @ is, and which fields match what follows it.
+ * Fill-in fields in the template editor, written #first_name like Discord
+ * channels (Zack, round 3). Typing # opens a menu of fields. Templates are
+ * still stored with {{first_name}} (the prototype's format, which export,
+ * import and the email writer read); only the editor shows #.
  */
 
 export type FieldItem = { key: string; label: string; group: string };
 
 /**
- * The @ the caret is in, if any: `start` is the @'s index, `query` what's
- * typed after it. Only an @ at the start of a word counts, so an email address
- * (name@studio.com) never opens the picker. No spaces in the query.
+ * The # the caret is in, if any: `start` is the #'s index, `query` what's
+ * typed after it. A # right after a letter or digit (C#, ab#1) doesn't count.
+ * No spaces in the query.
  */
 export function mentionAt(text: string, caret: number): { start: number; query: string } | null {
   const before = text.slice(0, caret);
-  const at = before.lastIndexOf('@');
+  const at = before.lastIndexOf('#');
   if (at < 0) return null;
   const prev = at > 0 ? before[at - 1]! : ' ';
-  if (!/[\s([{"'“‘]/.test(prev)) return null;
+  if (/[\p{L}\p{N}_]/u.test(prev)) return null;
   const query = before.slice(at + 1);
   if (!/^[\w-]{0,30}$/.test(query)) return null;
   return { start: at, query };
@@ -41,13 +43,27 @@ export function matchFields(items: FieldItem[], query: string): FieldItem[] {
     .map((x) => x.it);
 }
 
-/** Replace the @query with {{key}}; returns the new text and where the caret goes. */
+/** Replace the #query with #key; returns the new text and where the caret goes. */
 export function insertField(
   text: string,
   start: number,
   caret: number,
   key: string,
 ): { text: string; caret: number } {
-  const tok = `{{${key}}}`;
+  const tok = `#${key}`;
   return { text: text.slice(0, start) + tok + text.slice(caret), caret: start + tok.length };
 }
+
+/** Stored {{key}} → #key for the editor (only known fields; others stay as written). */
+export const toHashes = (text: string, keys: Set<string>) =>
+  text.replace(/\{\{(\w+)\}\}/g, (m, k: string) => (keys.has(k) ? `#${k}` : m));
+
+/** Editor #key → stored {{key}}. The longest known field wins (#company_type over #company). */
+export const fromHashes = (text: string, keys: Set<string>) =>
+  text.replace(/(^|[^\p{L}\p{N}_])#(\w+)/gu, (m, pre: string, word: string) => {
+    for (let n = word.length; n > 0; n--) {
+      const k = word.slice(0, n);
+      if (keys.has(k)) return `${pre}{{${k}}}${word.slice(n)}`;
+    }
+    return m;
+  });
