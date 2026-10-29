@@ -112,6 +112,9 @@ export type Meeting = {
   kind: 'meeting' | 'interview';
   with: string;
   notes: string;
+  /** Set once it's on Google Calendar (M8): the event's id and link. */
+  calendarEventId?: string;
+  calendarLink?: string;
 };
 
 /** The company page's dated entries, stored per company id. */

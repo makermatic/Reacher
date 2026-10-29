@@ -8,11 +8,12 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Check the round 2 fixes** on Reacher Test (version 9). The short test list is under "Round 2 fixes" below. Send numbered notes with screenshots.
+1. ⏳ **Test round 3 fixes + Google Calendar (M8)** on Reacher Test (version 10). The test list is under M8 below. Send numbered notes with screenshots.
+2. ⏳ **The sprint plan for the UI rework (M7)**, when it's ready.
 
 ## Now
 
-Zack tested M3–M6 (round 2) and every note is fixed and published to Reacher Test. Next: his check of the fixes, then the M7 prep (safety-net tests and a shared UI kit), then move real data to the real Reacher artifact and start M7 (UI overhaul).
+Round 3 fixes, M6.5 (browser test suite, AI check) and M8 (Google Calendar) are published to Reacher Test v10. M7 waits on Zack's sprint plan, so next is M9 (Gmail), whose logic sits below the UI and survives the rework. Moving real data to the real Reacher artifact waits for Zack's OK.
 
 ## Links
 
@@ -213,7 +214,7 @@ Before you start: Reacher Test already has your imported data. Use it freely; th
 **E. Anything else**
 25. Look and feel: anything that animates too much or too little, feels slow, or reads wrong. Note it with a screenshot.
 
-### Round 2 fixes 🔨 (published to Reacher Test v9, waiting on Zack's check)
+### Round 2 fixes ✅ (Zack checked in round 3)
 Zack's notes on the M3–M6 regimen, and what changed:
 - 1, 2: the company page appears and resizes instantly (no slide, no squish), like Kitsu.
 - 4: the company name at the top is plain text with a caret: click and type. Enter or click away saves, Escape undoes.
@@ -239,19 +240,52 @@ Zack's notes on the M3–M6 regimen, and what changed:
   9. Draft with AI, Summarize, and a quick update: a light runs around the box while the AI works.
   10. Email templates: in the body, type "@por" and press Enter: {{my_portfolio}} goes in. Type an email address with @: no menu.
 
-### M6.5: Prep for the UI overhaul ⬜
-So the redesign is a re-skin, not a rewrite:
-- **Safety net:** move the end-to-end browser tests (now in a scratch folder) into the repo as a Playwright suite run by `npm run check`, with a stand-in AI. The overhaul can then change every pixel and the tests still prove nothing broke.
-- **UI kit:** one folder of building blocks (Button, Field, Chip, Popover, Dialog, Menu, ConfirmButton, Card) that every screen uses. Today the look is spread across class strings in each file; the overhaul then restyles the kit instead of every screen.
-- Data, AI and storage code (`src/model`, `src/workspace`, `src/runtime`, `src/ai`) stays as is: none of it knows what the screen looks like.
-- Also here: the "AI check" page for the prompt regression set.
+### Round 3 fixes ✅ (published to Reacher Test v10)
+Zack's notes on the round 2 list:
+- 1: Email templates and Your details are now small ✉️ and ⚙️ buttons; the top bar never wraps.
+- 2: the company name editor shows only a caret (the green focus outline is gone).
+- 5: the "Delete?" label slides in from the right.
+- 7: quick update now sees what the tracker already has for the companies a note names, and words a repeat as a follow-up ("Spoke again…") without copying old details.
+- 10: template fields are typed with **#** (Discord-style): # opens a menu of every field, typing narrows it, Enter fills in. The menu shows plain names. Templates are still stored as {{field}}, so exports and the email writer are unchanged.
+- 3, 4, 6, 9: good for now; freer dragging (x and y) and a calmer email writer go into the UI rework.
 
-### M7: UI overhaul and motion pass ⬜
-- After feature parity (M6). Zack directs the look; references: Notion, ClickUp, Kitsu. Claude builds options, Zack picks and gives notes in rounds.
+### M6.5: Prep for the UI overhaul ✅
+- ✅ **Safety net:** 31 browser tests in `e2e/` (`npm run e2e`, also in CI) on the built page, with a stand-in AI and Calendar. Covers sheet, company page, board, AI, emails, templates, AI check and Calendar.
+- ✅ **AI check:** ⚙️ Your details → Run AI check. Six sample quick updates, each graded (✓/✗) against the real AI. Cases live in `src/ai/aiCheck.ts`.
+- Dropped: the shared UI kit. Zack expects the UI rework to be a rewrite (see M7), so that waits for the new design.
+
+### M7: UI rework (sprints) ⏳ waiting on Zack's plan
+- Zack's direction (2026-10-29): Kitsu-style. Sprints work like sequences, companies like shots: manage a sprint while still seeing the whole list, and view notes, email chains and calendar by sprint. Expect a full UI rewrite, possibly a data model change too.
+- Claude's read: sprints can likely be added on top of today's data (a sprints collection, companies assigned to sprints; everything else already hangs off companies), so data migrates rather than restarts. Confirm once the plan is final.
+- Keeps: `src/model`, `src/runtime`, `src/ai`, `src/workspace` and the e2e tests (their selectors get updated to the new UI).
 - Motion stays subtle, fast and functional (see Decisions).
 
-### M8: Google Calendar ⬜
-- Through the viewer's Google Calendar connector: meetings and interviews show up on the calendar, and upcoming events can be pulled in. What the connector can write gets confirmed first; the one-click link stays as a fallback.
+### M8: Google Calendar 🔨 (published to Reacher Test v10, waiting on Zack's test)
+- ✅ Through the viewer's own Google Calendar connector (artifact `mcp` capability; tools `create_event` and `list_events` only). Nothing is fetched until a company page is open.
+- ✅ Adding an upcoming meeting or interview puts it on Google Calendar (checkbox "Also add upcoming ones", on by default, remembered per device). Quick update does the same.
+- ✅ Each meeting shows "On your Google Calendar ↗", or an "Add to Google Calendar" button. Outside Claude the old template link stays.
+- ✅ The company page lists upcoming calendar events (next 60 days) that look like they're about that company (its name in the title, or an attendee from its website or contact domain), each with "Add to Meetings".
+- ✅ Connector errors in plain words, with "Allow Google Calendar" when Reacher needs the OK.
+- Not yet: Undo and deleting a meeting leave the calendar event (delete it in Google Calendar). Moving a meeting needs entry editing (backlog).
+- Code: `src/model/calendar.ts` (meetings ↔ events, matching; unit tested), `src/runtime/calendar.ts` (connector calls), `src/workspace/CalendarProvider.tsx`, `src/company/MeetingsBody.tsx`.
+
+#### Test list for round 3 + M8 (Reacher Test)
+**A. Round 3 fixes**
+1. Open a company page and drag its left edge far to the left so the sheet gets narrow. The top bar stays on one line. Email templates and Your details are the ✉️ and ⚙️ buttons at the top right (hover to see their names).
+2. Click the company name at the top of a company page. You only see a blinking caret: no outline, no box.
+3. Delete a note with ×: it grows into "Delete?", and the word slides in from the right.
+4. Quick update "I spoke to Sibling Rivalry last week" (a company that already has a meeting). The new meeting's text reads like a follow-up and doesn't copy old details like "not a good fit".
+5. The Big Star test, step by step: in the Sheet, the very last row says "+ Add a company". Click it, type **Big Star**, press Enter. Expected: Big Star's company page opens by itself and asks "Which 'Big Star' did you mean?" with two or more cards. Click one: the name changes and details like City fill in.
+6. ✉️ Email templates: pick a template, click at the end of the body, type **#**. A menu of every field pops up above the cursor. Type **por**: the list narrows to Portfolio. Press Enter: **#my_portfolio** goes in, and the Preview below shows your portfolio link. Escape closes the menu without closing the screen.
+7. ⚙️ Your details: scroll to the bottom and click **Run AI check**. It runs 6 sample updates (about a minute) and shows ✓ or ✗ for each check. Screenshot any ✗.
+
+**B. Google Calendar (M8)**
+Before you start: the first calendar action makes Claude ask whether Reacher may use your Google Calendar. Allow it. Everything Reacher adds says "Added by Reacher" in the event description; delete the test events afterwards.
+8. Open a company, go to Meetings & interviews. Under the form, "Also add upcoming ones to Google Calendar" is ticked. Pick Interview, a date later this week, a start time, and press Add. Expect two messages ("Added…" and "Added to Google Calendar") and the entry says **On your Google Calendar ↗**. Click it: the event opens in Google Calendar, titled "Interview: (company)".
+9. Untick the box and add another upcoming meeting. It does not go on your calendar; its entry shows an **Add to Google Calendar** button. Click it: it turns into "On your Google Calendar ↗". Reload: the box is still unticked.
+10. In Google Calendar, make an event in the next few weeks with a company's name in the title (for example "Coffee with Psyop"). In Reacher, reload and open that company. A box "On your Google Calendar" lists the event with **Add to Meetings**. Click it: it becomes a meeting entry (a title with "interview" makes it an interview). Events about other companies don't show there.
+11. Quick update "Interview with Psyop next Tuesday at 2pm". The interview is added and a message says "Added to Google Calendar: Psyop".
+12. If a company page ever says "Reacher needs your OK to use Google Calendar", click **Allow Google Calendar**: the events appear.
 
 ### M9: Gmail ⬜
 - Through the viewer's Gmail connector: match threads to companies by contact email and domain, pull them into chains, and set Wrote back!! when someone replies. This runs when Reacher opens and on demand.
@@ -285,6 +319,9 @@ So the redesign is a re-skin, not a rewrite:
 | 2026-10-29 | One drag library (dnd-kit) for every drag: Board cards and page sections. |
 | 2026-10-29 | AI results about a company (lookups) live on that company's page; Quick update's card is only for quick updates. |
 | 2026-10-29 | Before M7: a committed browser test suite and a shared UI kit, so the overhaul restyles instead of rewriting (Zack: "built for scalability first"). |
+| 2026-10-29 | Template fields are typed as #field in the editor (Discord-style); storage stays {{field}}. |
+| 2026-10-29 | UI kit dropped: Zack expects M7 to be a rewrite around Kitsu-style sprints. Build what survives a rewrite (data, AI, connectors, e2e tests) until the plan is final. |
+| 2026-10-29 | M8 before M7: Calendar logic lives below the UI. Reacher reads and creates events only (no edits or deletes on Zack's calendar yet). |
 
 ## Notes and risks
 

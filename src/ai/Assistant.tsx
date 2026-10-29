@@ -20,6 +20,8 @@ import { aiErrorMessage, type AI } from '../runtime/ai';
 import { useRuntime } from '../runtime/RuntimeProvider';
 import { useToast } from '../components/Toast';
 import { useWorkspace, type Workspace } from '../workspace/WorkspaceProvider';
+import { calendarAuto, useCalendar } from '../workspace/CalendarProvider';
+import { todayISO } from '../model/dates';
 import {
   draftPrompt,
   lookupPrompt,
@@ -109,6 +111,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const runtime = useRuntime();
   const ws = useWorkspace();
   const toast = useToast();
+  const calendar = useCalendar();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [lookups, setLookups] = useState<Record<string, LookupState>>({});
   const [off, setOff] = useState(false);
@@ -227,11 +230,20 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           .map((a) => describeAction(board, a)),
         undo: plan.undo,
       });
+      // Upcoming meetings go on Google Calendar too, if that's switched on (M8).
+      if (calendar.available && calendarAuto.get())
+        for (const { companyId, meeting } of plan.newMeetings) {
+          const company = plan.companies.find((c) => c.id === companyId);
+          if (!company || meeting.date < todayISO()) continue;
+          void calendar
+            .addToCalendar(company, meeting)
+            .then((problem) => toast(problem ?? `Added to Google Calendar: ${company.name}`));
+        }
       // New companies get a quiet lookup, using the note as context.
       const first = plan.created[0];
       if (first) setTimeout(() => void lookup(first, { quiet: true, context: note }), 500);
     },
-    [lookup],
+    [lookup, calendar, toast],
   );
 
   const quickUpdate = useCallback(

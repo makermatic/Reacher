@@ -373,10 +373,23 @@ function makeActions(
     },
 
     /** Adds a meeting or interview; returns the new status label if it moved. */
-    addMeeting(id: string, meeting: Omit<Meeting, 'id'>) {
+    /** Pass `id` to know the new entry's id (to link it to a calendar event after). */
+    addMeeting(id: string, meeting: Omit<Meeting, 'id'> & { id?: string }) {
       const p = api.pageOf(id);
-      api.savePage(id, { ...p, meetings: [...p.meetings, { id: uid('mt'), ...meeting }] });
+      api.savePage(id, {
+        ...p,
+        meetings: [...p.meetings, { ...meeting, id: meeting.id ?? uid('mt') }],
+      });
       return api.autoStatus(id, { kind: 'meeting', meetingKind: meeting.kind });
+    },
+
+    /** Changes fields on one meeting (e.g. its calendar link once it's on Google Calendar). */
+    patchMeeting(id: string, meetingId: string, patch: Partial<Omit<Meeting, 'id'>>) {
+      const p = api.pageOf(id);
+      api.savePage(id, {
+        ...p,
+        meetings: p.meetings.map((m) => (m.id === meetingId ? { ...m, ...patch } : m)),
+      });
     },
 
     deleteEntry(id: string, kind: keyof Page, entryId: string) {

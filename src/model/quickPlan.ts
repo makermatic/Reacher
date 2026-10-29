@@ -1,7 +1,7 @@
 import { coerce, findCompany, matchOption, missingOptions, type QuickAction } from './aiActions';
 import { colByName, isEmptyValue, meta, metaPatch } from './board';
 import { isPlainObject, norm, uid } from './text';
-import type { Board, Chain, Company, Page } from './types';
+import type { Board, Chain, Company, Meeting, Page } from './types';
 
 /** Everything needed to put things back the way they were before a quick update. */
 export type QuickUndo = {
@@ -28,6 +28,8 @@ export type QuickPlan = {
   chains: Chain[];
   board: Board | null;
   created: Company[];
+  /** Meetings the update added, so upcoming ones can go on Google Calendar (M8). */
+  newMeetings: { companyId: string; meeting: Meeting }[];
   undo: QuickUndo;
 };
 
@@ -68,6 +70,7 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
   let board: Board | null = null;
   const work = new Map<string, Company>();
   const created: Company[] = [];
+  const newMeetings: QuickPlan['newMeetings'] = [];
   const pages = new Map<string, Page>();
   const chains = new Map<string, Chain>();
   const undo: QuickUndo = { created: [], companies: [], pages: {}, chains: {}, board: null };
@@ -185,8 +188,8 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
         // One meeting of a kind per company per day: a second one is a repeat.
         const p = page(c.id);
         changed = !p.meetings.some((m) => m.date === a.date && m.kind === a.kind);
-        if (changed)
-          p.meetings.push({
+        if (changed) {
+          const meeting: Meeting = {
             id: uid('mt'),
             date: a.date,
             start: a.start,
@@ -194,7 +197,10 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
             kind: a.kind,
             with: a.with,
             notes: a.notes,
-          });
+          };
+          p.meetings.push(meeting);
+          newMeetings.push({ companyId: c.id, meeting });
+        }
         break;
       }
       case 'set_follow_up':
@@ -235,6 +241,7 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
     chains: [...chains.values()],
     board,
     created,
+    newMeetings,
     undo,
   };
 }
