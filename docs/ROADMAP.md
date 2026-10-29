@@ -8,12 +8,12 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test round 3 fixes + Google Calendar (M8)** on Reacher Test (version 10). The test list is under M8 below. Send numbered notes with screenshots.
+1. ⏳ **Test round 3 fixes + Google Calendar (M8)** and **Gmail (M9)** on Reacher Test (version 11). The test lists are under M8 and M9 below. Send numbered notes with screenshots.
 2. ⏳ **The sprint plan for the UI rework (M7)**, when it's ready.
 
 ## Now
 
-Round 3 fixes, M6.5 (browser test suite, AI check) and M8 (Google Calendar) are published to Reacher Test v10. M7 waits on Zack's sprint plan, so next is M9 (Gmail), whose logic sits below the UI and survives the rework. Moving real data to the real Reacher artifact waits for Zack's OK.
+Round 3 fixes, M6.5 (browser test suite, AI check), M8 (Google Calendar) and M9 (Gmail) are published to Reacher Test v11. Every milestone up to M9 is built; M7 (the sprint-based UI rework) waits on Zack's plan. Moving real data to the real Reacher artifact waits for Zack's OK.
 
 ## Links
 
@@ -260,7 +260,7 @@ Zack's notes on the round 2 list:
 - Keeps: `src/model`, `src/runtime`, `src/ai`, `src/workspace` and the e2e tests (their selectors get updated to the new UI).
 - Motion stays subtle, fast and functional (see Decisions).
 
-### M8: Google Calendar 🔨 (published to Reacher Test v10, waiting on Zack's test)
+### M8: Google Calendar 🔨 (published to Reacher Test v10–11, waiting on Zack's test)
 - ✅ Through the viewer's own Google Calendar connector (artifact `mcp` capability; tools `create_event` and `list_events` only). Nothing is fetched until a company page is open.
 - ✅ Adding an upcoming meeting or interview puts it on Google Calendar (checkbox "Also add upcoming ones", on by default, remembered per device). Quick update does the same.
 - ✅ Each meeting shows "On your Google Calendar ↗", or an "Add to Google Calendar" button. Outside Claude the old template link stays.
@@ -287,8 +287,26 @@ Before you start: the first calendar action makes Claude ask whether Reacher may
 11. Quick update "Interview with Psyop next Tuesday at 2pm". The interview is added and a message says "Added to Google Calendar: Psyop".
 12. If a company page ever says "Reacher needs your OK to use Google Calendar", click **Allow Google Calendar**: the events appear.
 
-### M9: Gmail ⬜
-- Through the viewer's Gmail connector: match threads to companies by contact email and domain, pull them into chains, and set Wrote back!! when someone replies. This runs when Reacher opens and on demand.
+### M9: Gmail 🔨 (published to Reacher Test v11, waiting on Zack's test)
+- ✅ Through the viewer's own Gmail connector (tools `search_threads`, `get_thread`, `create_draft` only). **Reacher never sends email.**
+- ✅ A company's emails are found by its Website domain and its contacts' addresses (personal addresses like gmail.com match only that exact address).
+- ✅ Company page, Email chains: "Check Gmail" brings in that company's last year of email. Each thread joins the chain with the same title (or the one it's linked to), else becomes a new chain; pasted copies aren't doubled; quoted replies are cut off. Chains link to the thread ("Gmail ↗").
+- ✅ Once Gmail is allowed, opening Reacher checks every company's last 30 days, again every 10 minutes, and each company page re-checks when opened. A new reply moves the status like a pasted one (→ Wrote back!!, follow-up cleared). Only the newest email moves it, so old history doesn't.
+- ✅ Write an email → **Save to Gmail drafts**: a draft in Gmail (a reply in the thread when the chain follows one). You send it from Gmail; the next check adds it to the chain.
+- ✅ Deleting a synced email or chain sticks: checks don't bring it back.
+- Not yet: attachments (names only show in Gmail), and threads with someone at a company who isn't a saved contact on a personal address.
+- Code: `src/model/gmail.ts` (threads → chains; unit tested), `src/model/contacts.ts` (company domains and addresses, shared with Calendar), `src/runtime/gmail.ts`, `src/workspace/GmailProvider.tsx`.
+
+#### Test list for M9 (Reacher Test)
+Reacher Test has the demo companies, whose addresses aren't real. So first point one company at someone you've really emailed:
+1. Open a company (or add a new one in the Sheet's last row). In Details, set **Website** to the real company's site (for example buck.co), or set **Main contact** to the real email address of someone you've emailed.
+2. On its page, under Email chains, click **Check Gmail**. Claude asks whether Reacher may use Gmail: allow it. Expect "Checking your email with …", then a message like "Buck: 3 new emails from Gmail", your threads as chains (titled by subject, oldest email first, quoted replies cut off), and a **Gmail ↗** link that opens the thread.
+3. Click **Check now**: nothing is added twice.
+4. If the newest email in those threads is from them, the status moves to Wrote back!! and Follow up on clears. If it's from you, a Gathering company moves to Reached out.
+5. Delete one synced email (×, then Delete?) and click Check now: it doesn't come back. Same for a whole chain (⋯ → Delete this chain).
+6. In Write an email, fill in To, then click **Save to Gmail drafts**. Expect "Saved in your Gmail drafts. Open it in Gmail ↗". In Gmail the draft is there (a reply inside the thread if the chain came from Gmail). Nothing was sent. Send it from Gmail if you like: on the next check it shows up in the chain.
+7. Reload Reacher and wait a few seconds: once Gmail is allowed, it checks every company's last 30 days by itself and tells you what's new.
+8. A company with no Website and no contact email: Check Gmail says what to add.
 
 ### Backlog (after M9, in Zack's priority order)
 - Edit entries after adding (today: delete only).
@@ -322,6 +340,7 @@ Before you start: the first calendar action makes Claude ask whether Reacher may
 | 2026-10-29 | Template fields are typed as #field in the editor (Discord-style); storage stays {{field}}. |
 | 2026-10-29 | UI kit dropped: Zack expects M7 to be a rewrite around Kitsu-style sprints. Build what survives a rewrite (data, AI, connectors, e2e tests) until the plan is final. |
 | 2026-10-29 | M8 before M7: Calendar logic lives below the UI. Reacher reads and creates events only (no edits or deletes on Zack's calendar yet). |
+| 2026-10-29 | Gmail: Reacher reads threads and saves drafts; it never sends (Zack presses Send in Gmail). Automatic checks only after Zack has allowed Gmail once. |
 
 ## Notes and risks
 

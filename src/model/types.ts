@@ -85,12 +85,21 @@ export type Company = {
   due: string | null;
   /** Position within its Board lane (see model/ranking). Absent until moved on the Board. */
   rank?: number;
+  /** Gmail threads whose chain was deleted, so syncing doesn't bring them back (M9). */
+  gmailIgnore?: string[];
   /** Fields filled by company lookup (true) rather than typed. */
   auto?: Record<string, boolean | null>;
   example?: boolean;
 };
 
-export type Message = { id: string; dir: 'in' | 'out'; date: string; text: string };
+export type Message = {
+  id: string;
+  dir: 'in' | 'out';
+  date: string;
+  text: string;
+  /** The Gmail message it came from (M9), so it's never added twice. */
+  gmailId?: string;
+};
 
 export type Chain = {
   id: string;
@@ -99,6 +108,11 @@ export type Chain = {
   started: string;
   messages: Message[];
   summary: { text: string; at: string; count: number } | null;
+  /** The Gmail thread it follows (M9) and a link to open it. */
+  gmailThreadId?: string;
+  gmailLink?: string;
+  /** Gmail messages deleted from this chain, so syncing doesn't bring them back. */
+  gmailSkip?: string[];
 };
 
 export type Note = { id: string; date: string; text: string };

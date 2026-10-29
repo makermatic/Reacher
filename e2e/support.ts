@@ -19,13 +19,32 @@ export type FakeCalendar = {
 };
 
 /**
+ * A stand-in Gmail connector: `threads` come back from every search (dates as
+ * days ago). Until `allowed`, Reacher's quiet checks see "not allowed yet";
+ * any call (a click) allows it. Calls are kept in window.__gmailCalls.
+ */
+export type FakeGmail = {
+  allowed?: boolean;
+  threads?: {
+    id: string;
+    subject: string;
+    messages: { from: string; to: string; daysAgo: number; text: string; sent?: boolean }[];
+  }[];
+};
+
+/**
  * Stands in for the artifact runtime: AI (`sample`) answers from the script,
  * Export (`downloads`) records the file, and there's no db, so data saves in
  * the browser like `npm run dev`. Every prompt is kept in window.__prompts.
  */
-export async function installClaude(page: Page, replies: Reply[] = [], calendar?: FakeCalendar) {
+export async function installClaude(
+  page: Page,
+  replies: Reply[] = [],
+  calendar?: FakeCalendar,
+  gmail?: FakeGmail,
+) {
   await page.addInitScript(
-    ({ script, cal }: { script: Reply[]; cal?: FakeCalendar }) => {
+    ({ script, cal, mail }: { script: Reply[]; cal?: FakeCalendar; mail?: FakeGmail }) => {
       const w = window as unknown as Record<string, unknown>;
       const prompts: string[] = [];
       w.__prompts = prompts;
@@ -73,8 +92,45 @@ export async function installClaude(page: Page, replies: Reply[] = [], calendar?
       });
       const notAllowed = { code: 'not_in_manifest', message: 'not allowed yet' };
       let made = 0;
+      const gmailCalls: { tool: string; input: unknown }[] = [];
+      w.__gmailCalls = gmailCalls;
+      let mailAllowed = !!mail?.allowed;
+      const ago = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+      const gmailTool = (tool: string, input: Record<string, unknown>) => {
+        const threads = mail?.threads ?? [];
+        if (tool === 'search_threads')
+          return { threads: threads.map((t) => ({ id: t.id, messageCount: t.messages.length })) };
+        if (tool === 'get_thread') {
+          const t = threads.find((x) => x.id === input.threadId)!;
+          return {
+            id: t.id,
+            viewUrl: `https://mail.google.com/mail/#all/${t.id}`,
+            messages: t.messages.map((m, i) => ({
+              id: `${t.id}-m${i}`,
+              threadId: t.id,
+              sender: m.from,
+              toRecipients: [m.to],
+              date: ago(m.daysAgo),
+              subject: i ? `Re: ${t.subject}` : t.subject,
+              plaintextBody: m.text,
+              labelIds: m.sent ? ['SENT'] : ['INBOX'],
+            })),
+          };
+        }
+        return {
+          id: 'draft-1',
+          threadId: 'thread-draft',
+          viewUrl: 'https://mail.google.com/mail/#drafts/1',
+        };
+      };
       const mcp = {
-        callTool: async (_server: string, tool: string, input: unknown) => {
+        callTool: async (server: string, tool: string, input: unknown) => {
+          if (server === 'Gmail') {
+            gmailCalls.push({ tool, input });
+            await new Promise((r) => setTimeout(r, 50));
+            mailAllowed = true;
+            return { payload: gmailTool(tool, input as Record<string, unknown>) };
+          }
           calls.push({ tool, input });
           await new Promise((r) => setTimeout(r, 100));
           allowed = true;
@@ -103,26 +159,37 @@ export async function installClaude(page: Page, replies: Reply[] = [], calendar?
           return () => clearTimeout(t);
         },
       };
+      const permissions = {
+        state: async (name: string) =>
+          name === 'mcp:Gmail' ? (mailAllowed ? 'granted' : 'prompt') : 'prompt',
+      };
       w.claude = {
         use: async (name: string) =>
           name === 'sample'
             ? sample
             : name === 'downloads'
               ? downloads
-              : name === 'mcp' && cal
+              : name === 'mcp' && (cal || mail)
                 ? mcp
-                : null,
+                : name === 'permissions'
+                  ? permissions
+                  : null,
       };
     },
-    { script: replies, cal: calendar },
+    { script: replies, cal: calendar, mail: gmail },
   );
 }
 
 /** Opens Reacher with the prototype's demo data imported. */
-export async function openDemo(page: Page, replies: Reply[] = [], calendar?: FakeCalendar) {
+export async function openDemo(
+  page: Page,
+  replies: Reply[] = [],
+  calendar?: FakeCalendar,
+  gmail?: FakeGmail,
+) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await installClaude(page, replies, calendar);
+  await installClaude(page, replies, calendar, gmail);
   await page.goto(`file://${PAGE_FILE}`);
   await page.getByRole('button', { name: 'Import from the prototype' }).click();
   await page.setInputFiles('#import-file', DEMO);

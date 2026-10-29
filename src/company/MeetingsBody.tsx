@@ -6,7 +6,8 @@ import { eventMatches, meetingFromEvent, type CalEvent } from '../model/calendar
 import { fmtDate, fmtTime, todayISO } from '../model/dates';
 import { uid } from '../model/text';
 import type { Company, Meeting } from '../model/types';
-import { calendarErrorMessage, needsOk } from '../runtime/calendar';
+import { calendarErrorMessage } from '../runtime/calendar';
+import { needsOk } from '../runtime/connectors';
 import { calendarAuto, useCalendar } from '../workspace/CalendarProvider';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { hint, newest, submitOnEnter } from './EntrySections';

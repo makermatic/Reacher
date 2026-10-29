@@ -21,6 +21,7 @@ import { useToast } from '../components/Toast';
 import { EditableValue } from '../sheet/MetaCell';
 import { useSheetUI } from '../sheet/SheetUI';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useGmail } from '../workspace/GmailProvider';
 
 const FOLLOW_DAYS = [3, 5, 7, 10, 14];
 
@@ -46,6 +47,9 @@ export function ComposeEmail({ company }: { company: Company }) {
   const [edit, setEdit] = useState<Edit>(null);
   const [followDays, setFollowDays] = useState(7);
   const [drafting, setDrafting] = useState(false);
+  const gmail = useGmail();
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
 
   const people = peopleOf(board, company);
   const sel = people.find((x) => x.col.id === personCol) ?? people[0];
@@ -95,6 +99,17 @@ export function ComposeEmail({ company }: { company: Company }) {
     setTarget(r.chainId);
     setEdit(null);
     toast(r.toast);
+  };
+
+  /** Into Gmail's drafts (M9), as a reply when the chain follows a Gmail thread. Never sent from here. */
+  const saveDraft = async () => {
+    if (!to) return toast('Add who it’s to first');
+    if (!body.trim()) return toast('Write the email first');
+    setSaving(true);
+    const r = await gmail.saveDraft(chainForTarget, { to: [to], subject: subject.trim(), body });
+    setSaving(false);
+    if ('error' in r) return toast(r.error);
+    setSaved(r.link || '');
   };
 
   const mailto =
@@ -242,6 +257,11 @@ export function ComposeEmail({ company }: { company: Company }) {
         <button type="button" onClick={() => copy('email', body)} className={btn.primary}>
           Copy email
         </button>
+        {gmail.available && (
+          <button type="button" onClick={saveDraft} disabled={saving} className={btn.base}>
+            {saving ? 'Saving…' : 'Save to Gmail drafts'}
+          </button>
+        )}
         {mailto && (
           <a href={mailto} className={btn.base}>
             Open in mail app
@@ -265,6 +285,22 @@ export function ComposeEmail({ company }: { company: Company }) {
           ))}
         </select>
       </div>
+      {saved !== null && (
+        <p className="m-0 text-[12.5px] text-muted">
+          Saved in your Gmail drafts.{' '}
+          {saved && (
+            <a
+              href={saved}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent underline underline-offset-2"
+            >
+              Open it in Gmail ↗
+            </a>
+          )}{' '}
+          Once you send it, it shows up in this company’s email chains on the next Gmail check.
+        </p>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
  * calendar events → which company they're about. No connector calls here;
  * those live in src/runtime/calendar.ts.
  */
-import { asPerson, meta } from './board';
+import { companyDomains, inDomains } from './contacts';
 import { addDays } from './dates';
 import { isPlainObject, norm } from './text';
 import type { Board, Company, Meeting } from './types';
@@ -103,29 +103,6 @@ const words = (s: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
-const SHARED_MAIL = /^(gmail|googlemail|yahoo|hotmail|outlook|icloud|me|aol|proton|protonmail)\./;
-
-/** Web and email domains that identify a company: its website and its contacts' addresses. */
-function domainsOf(board: Board, c: Company): string[] {
-  const out = new Set<string>();
-  for (const col of board.columns) {
-    const v = meta(c, col.id);
-    if (col.type === 'link' && typeof v === 'string') {
-      const host = v
-        .replace(/^https?:\/\//, '')
-        .split('/')[0]!
-        .replace(/^www\./, '');
-      if (host.includes('.')) out.add(host.toLowerCase());
-    }
-    if (col.type === 'person') {
-      const p = asPerson(v);
-      const d = p?.email.split('@')[1]?.toLowerCase();
-      if (d && !SHARED_MAIL.test(d)) out.add(d);
-    }
-  }
-  return [...out];
-}
-
 /**
  * Does this event look like it's about this company? Its name in the title
  * (as whole words), or an attendee from its domain. Short names
@@ -138,11 +115,8 @@ export function eventMatches(board: Board, c: Company, ev: CalEvent): boolean {
     // "Loyal Kaspar" for loyalkaspar; long names only, so Buck doesn't match Buckingham.
     if (norm(c.name).length >= 6 && norm(ev.title).includes(norm(c.name))) return true;
   }
-  const domains = domainsOf(board, c);
-  return ev.attendees.some((a) => {
-    const d = a.split('@')[1]?.toLowerCase() ?? '';
-    return domains.some((x) => d === x || d.endsWith(`.${x}`));
-  });
+  const domains = companyDomains(board, c);
+  return ev.attendees.some((a) => inDomains(a, domains));
 }
 
 /** A calendar event as a meeting entry. "Interview" in the title makes it an interview. */

@@ -418,7 +418,16 @@ function makeActions(
       return ch.id;
     },
 
+    /** Deletes a chain. One that follows a Gmail thread stays deleted: syncing skips that thread. */
     deleteChain(chainId: string) {
+      const ch = chains.find((x) => x.id === chainId);
+      const c = ch && company(ch.companyId);
+      if (ch?.gmailThreadId && c)
+        void guard(
+          store.updateItem('companies', c.id, {
+            gmailIgnore: [...(c.gmailIgnore ?? []), ch.gmailThreadId],
+          }),
+        );
       void guard(store.deleteItem('chains', chainId));
     },
 

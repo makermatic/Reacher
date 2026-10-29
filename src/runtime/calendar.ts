@@ -4,6 +4,7 @@
  * (meetings ↔ events) is in src/model/calendar.ts.
  */
 import { addDays, todayISO } from '../model/dates';
+import { connectorErrorMessage, type ConnectorError } from './connectors';
 import { createdId, toCalEvents, type CalEvent, type eventInput } from '../model/calendar';
 
 /** The connector's display name in claude.ai, as declared in the publish manifest. */
@@ -11,7 +12,7 @@ export const CALENDAR = 'Google Calendar';
 /** How far ahead "From your calendar" looks. */
 const LOOKAHEAD_DAYS = 60;
 
-export type CalendarError = { code: string; message: string };
+export type { ConnectorError as CalendarError } from './connectors';
 
 export interface Calendar {
   /** Creates an event; resolves its id and link. */
@@ -19,7 +20,7 @@ export interface Calendar {
   /** Upcoming events, kept current; returns an unsubscribe. */
   watchUpcoming(
     onEvents: (events: CalEvent[]) => void,
-    onError: (e: CalendarError) => void,
+    onError: (e: ConnectorError) => void,
   ): () => void;
   /** Fetches upcoming events now (also how a viewer gives the first OK). */
   refresh(): Promise<CalEvent[]>;
@@ -64,36 +65,5 @@ export function createClaudeCalendar(mcp: Mcp): Calendar {
   };
 }
 
-/** Errors that a click can fix by asking the viewer again. */
-export const needsOk = (code: string) =>
-  ['not_in_manifest', 'approval_required', 'consent_required'].includes(code);
-
-/** Plain words for a connector error, by code. */
-export function calendarErrorMessage(e: unknown): string {
-  const err = (e ?? {}) as Partial<CalendarError>;
-  switch (err.code) {
-    case 'needs_reauth':
-      return 'Reconnect Google Calendar in claude.ai Settings → Connectors.';
-    case 'server_not_connected':
-    case 'server_not_found':
-      return 'Add Google Calendar in claude.ai Settings → Connectors to use it here.';
-    case 'selection_required':
-      return 'You have more than one Google Calendar connected. Pick one when Claude asks.';
-    case 'not_in_manifest':
-    case 'approval_required':
-    case 'consent_required':
-      return 'Reacher needs your OK to use Google Calendar.';
-    case 'blocked_by_policy':
-      return 'Your organization doesn’t allow Google Calendar here.';
-    case 'server_unavailable':
-      return 'Google Calendar didn’t answer. Try again in a moment.';
-    case 'not_granted':
-    case 'capability_disabled':
-    case 'capability_removed':
-      return 'Google Calendar isn’t available in this view.';
-    case 'tool_error':
-      return `Google Calendar said: ${err.message ?? 'something went wrong'}`;
-    default:
-      return 'Couldn’t reach Google Calendar. Try again.';
-  }
-}
+/** Plain words for a Calendar connector error. */
+export const calendarErrorMessage = (e: unknown) => connectorErrorMessage(e, CALENDAR);

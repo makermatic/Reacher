@@ -20,6 +20,7 @@ import { BoardView } from './views/BoardView';
 import { SheetView } from './views/SheetView';
 import { WorkspaceProvider } from './workspace/WorkspaceProvider';
 import { CalendarProvider } from './workspace/CalendarProvider';
+import { GmailProvider } from './workspace/GmailProvider';
 
 const isView = (v: unknown): v is View => v === 'sheet' || v === 'board';
 const isNumber = (v: unknown): v is number => typeof v === 'number' && v > 0;
@@ -34,11 +35,13 @@ export function App() {
         <ToastProvider>
           <WorkspaceProvider>
             <CalendarProvider>
-              <AssistantProvider>
-                <Tooltip.Provider delayDuration={hoverDelay}>
-                  <Shell />
-                </Tooltip.Provider>
-              </AssistantProvider>
+              <GmailProvider>
+                <AssistantProvider>
+                  <Tooltip.Provider delayDuration={hoverDelay}>
+                    <Shell />
+                  </Tooltip.Provider>
+                </AssistantProvider>
+              </GmailProvider>
             </CalendarProvider>
           </WorkspaceProvider>
         </ToastProvider>

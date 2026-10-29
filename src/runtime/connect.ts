@@ -1,5 +1,6 @@
 import { createClaudeAI, type AI } from './ai';
 import { createClaudeCalendar, type Calendar } from './calendar';
+import { createClaudeGmail, type Gmail } from './gmail';
 import { createClaudeStore } from './claudeStore';
 import { createLocalStore } from './localStore';
 import type { Store, StoreKind } from './store';
@@ -18,6 +19,8 @@ export type Connection = {
   saveFile: ((filename: string, data: string) => Promise<void>) | null;
   /** The viewer's Google Calendar through their connector, or null where connectors aren't available. */
   calendar: Calendar | null;
+  /** The viewer's Gmail through their connector, or null where connectors aren't available. */
+  gmail: Gmail | null;
 };
 
 /**
@@ -28,7 +31,14 @@ export type Connection = {
 export async function connect(): Promise<Connection> {
   const claude = (window as Partial<Window>).claude;
   if (!claude?.use)
-    return { kind: 'local', store: createLocalStore(), ai: null, saveFile: null, calendar: null };
+    return {
+      kind: 'local',
+      store: createLocalStore(),
+      ai: null,
+      saveFile: null,
+      calendar: null,
+      gmail: null,
+    };
 
   const [db, user, sample, downloads, mcp] = await Promise.all([
     claude.use('db'),
@@ -38,15 +48,17 @@ export async function connect(): Promise<Connection> {
     claude.use('mcp'),
   ]);
   const calendar = mcp ? createClaudeCalendar(mcp) : null;
+  const gmail = mcp ? createClaudeGmail(mcp, await claude.use('permissions')) : null;
   const ai = sample ? createClaudeAI(sample) : null;
   const saveFile = downloads
     ? async (filename: string, data: string) => {
         await downloads.save({ filename, data });
       }
     : null;
-  if (!db || !user) return { kind: 'local', store: createLocalStore(), ai, saveFile, calendar };
+  if (!db || !user)
+    return { kind: 'local', store: createLocalStore(), ai, saveFile, calendar, gmail };
 
   const id = await user.id();
-  if (!id) return { kind: 'no-access', store: createLocalStore(), ai, saveFile, calendar };
-  return { kind: 'claude', store: createClaudeStore(db, id), ai, saveFile, calendar };
+  if (!id) return { kind: 'no-access', store: createLocalStore(), ai, saveFile, calendar, gmail };
+  return { kind: 'claude', store: createClaudeStore(db, id), ai, saveFile, calendar, gmail };
 }

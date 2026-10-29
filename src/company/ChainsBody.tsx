@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fmtDate, todayISO } from '../model/dates';
 import type { Chain, Company, Message } from '../model/types';
 import { btn, field, fieldInline } from '../components/Modal';
@@ -9,6 +9,9 @@ import { useToast } from '../components/Toast';
 import { duration, ease, itemInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAssistant } from '../ai/Assistant';
+import { needsOk } from '../runtime/connectors';
+import { gmailErrorMessage } from '../runtime/gmail';
+import { useGmail } from '../workspace/GmailProvider';
 import { InlineText } from './InlineText';
 import { addForm, DeleteButton } from './parts';
 
@@ -59,23 +62,87 @@ export function ChainsBody({
 
   if (!list.length)
     return (
-      <p className="m-0 text-[13px] text-muted">
-        No email chains yet. Start one to paste emails into it.
-      </p>
+      <>
+        <GmailBar company={company} />
+        <p className="m-0 text-[13px] text-muted">
+          No email chains yet. Start one to paste emails into it.
+        </p>
+      </>
     );
 
   return (
-    <AnimatePresence initial={false}>
-      {list.map((ch) => (
-        <motion.div key={ch.id} {...itemInOut}>
-          <ChainCard
-            chain={ch}
-            open={!!open[ch.id]}
-            onToggle={() => setOpen(ch.id, !open[ch.id])}
-          />
-        </motion.div>
-      ))}
-    </AnimatePresence>
+    <>
+      <GmailBar company={company} />
+      <AnimatePresence initial={false}>
+        {list.map((ch) => (
+          <motion.div key={ch.id} {...itemInOut}>
+            <ChainCard
+              chain={ch}
+              open={!!open[ch.id]}
+              onToggle={() => setOpen(ch.id, !open[ch.id])}
+            />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </>
+  );
+}
+
+const ago = (at: number) => {
+  const min = Math.round((Date.now() - at) / 60_000);
+  return min < 1 ? 'just now' : min < 60 ? `${min} min ago` : `${Math.round(min / 60)} h ago`;
+};
+
+/**
+ * Gmail for this company (M9): checks its email when the page opens (once
+ * Gmail is allowed), with a button to check now, and says what went wrong.
+ */
+function GmailBar({ company }: { company: Company }) {
+  const gmail = useGmail();
+  const { checkCompany } = gmail;
+  const s = gmail.status[company.id];
+  // Opening the page checks quietly (only once Gmail is allowed; at most every few minutes).
+  useEffect(() => {
+    void checkCompany(company, false);
+    // Once per company page, not on every edit to the company.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company.id, checkCompany]);
+  if (!gmail.available) return null;
+
+  const check = (label: string) => (
+    <button
+      type="button"
+      onClick={() => void checkCompany(company, true)}
+      className={`${btn.ghost} ${btn.small}`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">
+      <span className="eyebrow text-[10.5px] font-semibold">Gmail</span>
+      {s?.checking ? (
+        <span>Checking your email with {company.name}…</span>
+      ) : s?.error ? (
+        <>
+          <span>
+            {s.error.code === 'no_address' ? s.error.message : gmailErrorMessage(s.error)}
+          </span>
+          {s.error.code !== 'no_address' &&
+            check(needsOk(s.error.code) ? 'Allow Gmail' : 'Try again')}
+        </>
+      ) : s?.at ? (
+        <>
+          <span>Checked {ago(s.at)}</span>
+          {check('Check now')}
+        </>
+      ) : (
+        <>
+          <span>Bring in your emails with {company.name}.</span>
+          {check('Check Gmail')}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -124,6 +191,17 @@ function ChainCard({
         <span className="font-mono text-[11px] whitespace-nowrap text-muted">
           {msgs.length} · {range}
         </span>
+        {chain.gmailLink && (
+          <a
+            href={chain.gmailLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open this thread in Gmail"
+            className="text-xs whitespace-nowrap text-accent underline underline-offset-2"
+          >
+            Gmail ↗
+          </a>
+        )}
         <ChainMenu chain={chain} />
       </div>
       <AnimatePresence initial={false}>
@@ -205,7 +283,12 @@ function MessageCard({ chain, message: m }: { chain: Chain; message: Message }) 
           <DeleteButton
             label="Delete email"
             onDelete={() =>
-              actions.saveChain({ ...chain, messages: chain.messages.filter((x) => x.id !== m.id) })
+              actions.saveChain({
+                ...chain,
+                messages: chain.messages.filter((x) => x.id !== m.id),
+                // Keep a Gmail email from coming back on the next check.
+                ...(m.gmailId ? { gmailSkip: [...(chain.gmailSkip ?? []), m.gmailId] } : {}),
+              })
             }
           />
         </span>
