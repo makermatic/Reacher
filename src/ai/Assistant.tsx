@@ -75,8 +75,11 @@ type Assistant = {
   available: boolean;
   notice: Notice | null;
   dismiss: () => void;
-  /** Runs a quick update. Resolves true when it was applied (so the bar can clear). */
-  quickUpdate: (note: string) => Promise<boolean>;
+  /**
+   * Runs a quick update. `about`: posted from that company's panel, so the
+   * note needn't name it (M7). Resolves true when it was applied (so the box can clear).
+   */
+  quickUpdate: (note: string, about?: Company) => Promise<boolean>;
   applyConfirmed: () => void;
   undo: () => void;
   /** Look up a company's details; results show on its page. */
@@ -221,7 +224,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         setNotice({ kind: 'message', text: 'Nothing new: your tracker already has all of that.' });
         return;
       }
-      write.applyQuick(plan);
+      write.applyQuick(plan, note);
       setNotice({
         kind: 'done',
         lines: plan.applied.map((a) => describeAction(board, a)),
@@ -247,7 +250,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   );
 
   const quickUpdate = useCallback(
-    async (note: string) => {
+    async (note: string, about?: Company) => {
       if (!ai) {
         setNotice({ kind: 'error', text: NO_AI });
         return false;
@@ -256,7 +259,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       try {
         const { board, companies, chains, pages } = wsRef.current;
         const reply = await ai.json<QuickReply>(
-          quickUpdatePrompt(board, companies, chains, note, undefined, pages),
+          quickUpdatePrompt(board, companies, chains, note, undefined, pages, about?.name),
         );
         const actions = cleanActions(wsRef.current.board, reply?.actions);
         const lines = actions.map((a) => describeAction(wsRef.current.board, a));

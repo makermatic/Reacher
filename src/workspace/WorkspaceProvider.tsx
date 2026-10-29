@@ -9,7 +9,18 @@ import {
 } from 'react';
 import { useToast } from '../components/Toast';
 import { nextStatus, type StatusEvent } from '../model/automation';
-import { boardOrDefault, metaPatch, optionOf, statusCol } from '../model/board';
+import { boardOrDefault, colById, metaPatch, optionOf, statusCol } from '../model/board';
+import { findCompany, describeAction, type QuickAction } from '../model/aiActions';
+import { makeEvent, statusText } from '../model/events';
+import {
+  joinPatch,
+  mirrorStatus,
+  newestSprint,
+  newSprint,
+  statusPatch,
+  targetSprint,
+} from '../model/sprints';
+import { readPref, writePref } from '../lib/prefs';
 import { addDays, fmtDate, todayISO } from '../model/dates';
 import { DEFAULT_TEMPLATES } from '../model/defaults';
 import { fillableColumns } from '../ai/prompts';
@@ -26,6 +37,8 @@ import type {
   Message,
   Note,
   Page,
+  FeedEvent,
+  Sprint,
   Template,
 } from '../model/types';
 import { useRuntime } from '../runtime/RuntimeProvider';
@@ -43,8 +56,17 @@ export type Workspace = {
   chains: Chain[];
   templates: Template[];
   me: Me | null;
+  /** Sprints, oldest first (M7). */
+  sprints: Sprint[];
+  /** The sprint on screen, or null for All companies. */
+  sprint: string | null;
+  setSprint: (id: string | null) => void;
   actions: Actions;
 };
+
+/** Pages written in the last few seconds, read before the store catches up, so quick writes don't overwrite each other. */
+type Pending = Map<string, { page: Page; at: number }>;
+const PENDING_MS = 5000;
 
 export type Actions = ReturnType<typeof makeActions>;
 
@@ -88,6 +110,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [chains, setChains] = useState<Chain[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [me, setMe] = useState<Me | null>(null);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
+  // 'all' = All companies; undefined = not chosen yet (the newest sprint).
+  const [chosen, setChosen] = useState<string | undefined>(() =>
+    readPref<string | undefined>('sprint', undefined, (v): v is string => typeof v === 'string'),
+  );
+  // One map for the provider's life (state, not a ref: it's read while rendering).
+  const [pending] = useState<Pending>(() => new Map());
 
   useEffect(() => {
     if (!store) return;
@@ -98,6 +127,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       store.watchCollection<Page>('pages', setPages),
       store.watchCollection('chains', (items) => setChains(withIds<Chain>(items))),
       store.watchCollection('templates', (items) => setTemplates(withIds<Template>(items))),
+      store.watchCollection('sprints', (items) =>
+        setSprints(
+          withIds<Sprint>(items).sort((a, b) =>
+            a.start < b.start ? -1 : a.start > b.start ? 1 : a.order - b.order,
+          ),
+        ),
+      ),
     ];
     return () => stops.forEach((stop) => stop());
   }, [store]);
@@ -116,6 +152,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   const resolvedBoard = boardOrDefault(board);
+  const sprint =
+    chosen === 'all'
+      ? null
+      : (sprints.find((x) => x.id === chosen)?.id ?? newestSprint(sprints)?.id ?? null);
+  const setSprint = useCallback((id: string | null) => {
+    setChosen(id ?? 'all');
+    writePref('sprint', id ?? 'all');
+  }, []);
   const actions = useMemo(
     () =>
       makeActions(
@@ -125,9 +169,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         pages,
         chains,
         templates,
+        sprints,
+        sprint,
+        pending,
         fail,
       ),
-    [store, resolvedBoard, companies, pages, chains, templates, fail],
+    [store, resolvedBoard, companies, pages, chains, templates, sprints, sprint, pending, fail],
   );
 
   const value = useMemo<Workspace>(
@@ -140,9 +187,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // A new account starts with the default templates until it saves its own.
       templates: templates.length ? templates : DEFAULT_TEMPLATES,
       me,
+      sprints,
+      sprint,
+      setSprint,
       actions,
     }),
-    [store, actions, companies, board, resolvedBoard, pages, chains, templates, me],
+    [
+      store,
+      actions,
+      companies,
+      board,
+      resolvedBoard,
+      pages,
+      chains,
+      templates,
+      me,
+      sprints,
+      sprint,
+      setSprint,
+    ],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
@@ -155,10 +218,30 @@ function makeActions(
   pages: Record<string, Page>,
   chains: Chain[],
   storedTemplates: Template[],
+  sprints: Sprint[],
+  active: string | null,
+  pending: Pending,
   fail: (e: unknown) => void,
 ) {
   const company = (id: string) => companies.find((c) => c.id === id);
   const guard = (p: Promise<unknown>) => p.catch(fail);
+  const isStatusCol = (colId: string) => colById(board, colId)?.type === 'status';
+  /** Where a change to this company lands: the sprint on screen, else its newest. */
+  const sprintFor = (c: Company) => targetSprint(c, sprints, active);
+  /** A status change as a feed event. */
+  const statusEvent = (
+    c: Company,
+    sprintId: string | null,
+    colId: string,
+    to: unknown,
+    by: FeedEvent['by'],
+  ) => {
+    const from = (sprintId ? c.sprints?.[sprintId]?.meta?.[colId] : c.meta?.[colId]) ?? null;
+    return makeEvent('status', statusText(board, colId, from, to), by, {
+      sprintId,
+      status: { col: colId, from: from as string | null, to: (to as string | null) ?? null },
+    });
+  };
 
   const api = {
     /** An exact (by letters and digits) match on name, for duplicate checks. */
@@ -167,7 +250,7 @@ function makeActions(
       return n ? companies.find((c) => norm(c.name) === n) : undefined;
     },
 
-    /** Adds a company at the bottom of the sheet; returns it. */
+    /** Adds a company at the bottom of the sheet (and to the sprint on screen); returns it. */
     addCompany(name: string): Company {
       const id = uid('co');
       const c: Company = {
@@ -177,9 +260,65 @@ function makeActions(
         meta: {},
         auto: {},
         due: null,
+        ...(active ? { sprints: joinPatch(board, { meta: {} } as Company, active).sprints } : {}),
       };
       void guard(store.setItem('companies', id, body(c)));
+      api.logEvents(id, [makeEvent('company', 'Added to Reacher', 'you', { sprintId: active })]);
       return c;
+    },
+
+    // ---------- sprints (M7) ----------
+
+    /** Makes a sprint named "<name> <today>"; returns its id. */
+    createSprint(name: string) {
+      const s = newSprint(name, Date.now());
+      void guard(store.setItem('sprints', s.id, body(s)));
+      return s.id;
+    },
+
+    updateSprint(s: Sprint) {
+      void guard(store.setItem('sprints', s.id, body(s)));
+    },
+
+    /** Deletes a sprint; its companies stay, with their statuses from other sprints. */
+    deleteSprint(id: string) {
+      void guard(
+        Promise.all([
+          store.deleteItem('sprints', id),
+          ...companies
+            .filter((c) => c.sprints?.[id])
+            .map((c) => store.updateItem('companies', c.id, { sprints: { [id]: null } })),
+        ]),
+      );
+    },
+
+    /** Puts an existing company in a sprint, starting from its current status. */
+    addToSprint(companyId: string, sprintId: string) {
+      const c = company(companyId);
+      if (!c || c.sprints?.[sprintId]) return;
+      void guard(store.updateItem('companies', c.id, joinPatch(board, c, sprintId)));
+      const s = sprints.find((x) => x.id === sprintId);
+      api.logEvents(c.id, [
+        makeEvent('sprint', `Added to ${s?.name ?? 'a sprint'}`, 'you', { sprintId }),
+      ]);
+    },
+
+    removeFromSprint(companyId: string, sprintId: string) {
+      void guard(store.updateItem('companies', companyId, { sprints: { [sprintId]: null } }));
+    },
+
+    // ---------- events (M7) ----------
+
+    /** Adds events to a company's feed. */
+    logEvents(id: string, events: FeedEvent[]) {
+      if (!events.length) return;
+      const p = api.pageOf(id);
+      api.savePage(id, { ...p, events: [...(p.events ?? []), ...events] });
+    },
+
+    /** A comment on a company, from its side panel. */
+    comment(id: string, text: string, sprintId: string | null = active) {
+      api.logEvents(id, [makeEvent('comment', text, 'you', { sprintId })]);
     },
 
     renameCompany(id: string, name: string) {
@@ -199,19 +338,49 @@ function makeActions(
       );
     },
 
-    /** Sets one column for one company (clearing dependent columns, like Outcome). */
-    setMeta(id: string, colId: string, value: unknown) {
+    /**
+     * Sets one column for one company (clearing dependent columns, like
+     * Outcome). Status columns land in the sprint on screen (or the company's
+     * newest) and in its latest status, and go in the feed.
+     */
+    setMeta(id: string, colId: string, value: unknown, by: FeedEvent['by'] = 'you') {
       const c = company(id);
-      if (c) void guard(store.updateItem('companies', id, metaPatch(board, c, colId, value)));
+      if (!c) return;
+      if (!isStatusCol(colId)) {
+        void guard(store.updateItem('companies', id, metaPatch(board, c, colId, value)));
+        return;
+      }
+      const sid = sprintFor(c);
+      const ev = statusEvent(c, sid, colId, value, by);
+      void guard(store.updateItem('companies', id, statusPatch(board, c, sid, colId, value)));
+      api.logEvents(id, [ev]);
+    },
+
+    /** Changes the status of several companies at once (Kitsu's multi-select), with one comment for all. */
+    setStatusMany(ids: string[], colId: string, value: unknown, text = '') {
+      for (const id of ids) {
+        const c = company(id);
+        if (!c) continue;
+        const sid = sprintFor(c);
+        const events = [statusEvent(c, sid, colId, value, 'you')];
+        if (text.trim()) events.push(makeEvent('comment', text.trim(), 'you', { sprintId: sid }));
+        void guard(store.updateItem('companies', id, statusPatch(board, c, sid, colId, value)));
+        api.logEvents(id, events);
+      }
     },
 
     /** A Board drop: new lane (status) and position, in one write. */
     moveCard(id: string, status: string | null, rank: number) {
       const c = company(id);
       if (!c) return;
-      const statusChanged = (c.meta?.status ?? null) !== status;
-      const patch = statusChanged ? { ...metaPatch(board, c, 'status', status), rank } : { rank };
+      const sid = sprintFor(c);
+      const current = (sid ? c.sprints?.[sid]?.meta?.status : c.meta?.status) ?? null;
+      const statusChanged = current !== status;
+      const patch = statusChanged
+        ? { ...statusPatch(board, c, sid, 'status', status), rank }
+        : { rank };
       void guard(store.updateItem('companies', id, patch));
+      if (statusChanged) api.logEvents(id, [statusEvent(c, sid, 'status', status, 'you')]);
     },
 
     setDue(id: string, due: string | null) {
@@ -268,7 +437,11 @@ function makeActions(
           };
       api.saveChain(chain);
       const due = addDays(today, followDays);
-      const label = api.autoStatus(c.id, { kind: 'sent' }, { due });
+      const label = api.autoStatus(c.id, { kind: 'sent' }, { due }, [
+        makeEvent('email', `Sent: ${subject || text.split('\n')[0]!.slice(0, 80)}`, 'you', {
+          sprintId: sprintFor(c),
+        }),
+      ]);
       return {
         chainId: chain.id,
         toast: `Logged${label ? `. Status → ${label}` : ''}. Follow up ${fmtDate(due, true)}`,
@@ -277,14 +450,57 @@ function makeActions(
 
     // ---------- AI ----------
 
-    /** Writes a quick update's plan (see model/quickPlan). */
-    applyQuick(plan: QuickPlan) {
+    /**
+     * Writes a quick update's plan (see model/quickPlan). Status changes also
+     * land in each company's sprint (the one on screen, else its newest); new
+     * companies join the sprint on screen. Each company's feed gets the note
+     * and what the AI changed.
+     */
+    applyQuick(plan: QuickPlan, note: string) {
+      const today = todayISO();
+      const created = plan.created.map((c) =>
+        active ? { ...c, ...joinPatch(board, c, active, today) } : c,
+      );
+      const changed = plan.companies.map((c) =>
+        mirrorStatus(board, company(c.id), c, sprintFor(company(c.id) ?? c), today),
+      );
+      const all = [...changed, ...created];
+      const byCompany = new Map<string, QuickAction[]>();
+      for (const a of plan.applied) {
+        const c = findCompany(all, a.company);
+        if (c) byCompany.set(c.id, [...(byCompany.get(c.id) ?? []), a]);
+      }
+      const pagesOut: Record<string, Page> = { ...plan.pages };
+      for (const [id, acts] of byCompany) {
+        const c = all.find((x) => x.id === id)!;
+        const sid = sprintFor(company(id) ?? c) ?? (active && c.sprints?.[active] ? active : null);
+        const events = [
+          makeEvent('comment', note, 'you', { sprintId: sid }),
+          ...acts.map((a) => {
+            if (a.type !== 'set_status')
+              return makeEvent(KIND_OF[a.type], describeAction(board, a), 'ai', { sprintId: sid });
+            const colId = board.columns.find((col) => col.name === a.column)?.id ?? 'status';
+            const from = (company(id)?.meta ?? {})[colId] ?? null;
+            return makeEvent('status', statusText(board, colId, from, c.meta[colId]), 'ai', {
+              sprintId: sid,
+              status: {
+                col: colId,
+                from: from as string | null,
+                to: (c.meta[colId] as string) ?? null,
+              },
+            });
+          }),
+        ];
+        const p = pagesOut[id] ?? api.pageOf(id);
+        pagesOut[id] = { ...p, events: [...(p.events ?? []), ...events] };
+      }
       const writes: Promise<unknown>[] = [
-        ...plan.created.map((c) => store.setItem('companies', c.id, body(c))),
-        ...plan.companies.map((c) => store.setItem('companies', c.id, body(c))),
-        ...Object.entries(plan.pages).map(([id, p]) =>
-          store.setItem('pages', id, p as unknown as Json),
-        ),
+        ...created.map((c) => store.setItem('companies', c.id, body(c))),
+        ...changed.map((c) => store.setItem('companies', c.id, body(c))),
+        ...Object.entries(pagesOut).map(([id, p]) => {
+          pending.set(id, { page: p, at: Date.now() });
+          return store.setItem('pages', id, p as unknown as Json);
+        }),
         ...plan.chains.map((ch) => store.setItem('chains', ch.id, body(ch))),
       ];
       if (plan.board) writes.push(store.setDoc('board', plan.board as unknown as Json));
@@ -324,6 +540,8 @@ function makeActions(
           ),
         });
       void guard(store.updateItem('companies', c.id, patch));
+      if (filled.length)
+        api.logEvents(c.id, [makeEvent('field', `Looked up: ${filled.join(', ')}`, 'ai')]);
       return filled;
     },
 
@@ -338,25 +556,38 @@ function makeActions(
      * any other company fields in the same write. Returns the new status's
      * label for the "Status → X" toast, or null when nothing moved.
      */
-    autoStatus(id: string, event: StatusEvent, also: Record<string, unknown> = {}) {
+    autoStatus(
+      id: string,
+      event: StatusEvent,
+      also: Record<string, unknown> = {},
+      events: FeedEvent[] = [],
+      by: FeedEvent['by'] = 'you',
+    ) {
       const c = company(id);
       if (!c) return null;
-      const next = nextStatus(board, c, event);
-      const patch = next ? { ...metaPatch(board, c, 'status', next), ...also } : also;
+      const sid = sprintFor(c);
+      const seen =
+        sid && c.sprints?.[sid] ? { ...c, meta: { ...c.meta, ...c.sprints[sid]!.meta } } : c;
+      const next = nextStatus(board, seen, event);
+      const patch = next ? { ...statusPatch(board, c, sid, 'status', next), ...also } : also;
       if (Object.keys(patch).length) void guard(store.updateItem('companies', id, patch));
+      api.logEvents(id, next ? [...events, statusEvent(c, sid, 'status', next, by)] : events);
       return next ? (optionOf(statusCol(board), next)?.label ?? next) : null;
     },
 
     pageOf(id: string): Page {
-      const p = pages[id];
+      const recent = pending.get(id);
+      const p = recent && Date.now() - recent.at < PENDING_MS ? recent.page : pages[id];
       return {
         notes: p?.notes ?? [],
         applications: p?.applications ?? [],
         meetings: p?.meetings ?? [],
+        events: p?.events ?? [],
       };
     },
 
     savePage(id: string, page: Page) {
+      pending.set(id, { page, at: Date.now() });
       void guard(store.setItem('pages', id, page as unknown as Json));
     },
 
@@ -368,19 +599,35 @@ function makeActions(
     /** Adds an application; returns the new status label if it moved. */
     addApplication(id: string, app: Omit<Application, 'id'>) {
       const p = api.pageOf(id);
+      const c = company(id);
       api.savePage(id, { ...p, applications: [...p.applications, { id: uid('a'), ...app }] });
-      return api.autoStatus(id, { kind: 'applied' });
+      return api.autoStatus(id, { kind: 'applied' }, {}, [
+        makeEvent('application', `Applied${app.role ? `: ${app.role}` : ''}`, 'you', {
+          sprintId: c ? sprintFor(c) : null,
+        }),
+      ]);
     },
 
     /** Adds a meeting or interview; returns the new status label if it moved. */
     /** Pass `id` to know the new entry's id (to link it to a calendar event after). */
     addMeeting(id: string, meeting: Omit<Meeting, 'id'> & { id?: string }) {
       const p = api.pageOf(id);
+      const c = company(id);
       api.savePage(id, {
         ...p,
         meetings: [...p.meetings, { ...meeting, id: meeting.id ?? uid('mt') }],
       });
-      return api.autoStatus(id, { kind: 'meeting', meetingKind: meeting.kind });
+      const what = meeting.kind === 'interview' ? 'Interview' : 'Meeting';
+      return api.autoStatus(id, { kind: 'meeting', meetingKind: meeting.kind }, {}, [
+        makeEvent(
+          'meeting',
+          `${what} on ${fmtDate(meeting.date)}${meeting.with ? ` with ${meeting.with}` : ''}`,
+          'you',
+          {
+            sprintId: c ? sprintFor(c) : null,
+          },
+        ),
+      ]);
     },
 
     /** Changes fields on one meeting (e.g. its calendar link once it's on Google Calendar). */
@@ -439,9 +686,15 @@ function makeActions(
       const started = !chain.started || msg.date < chain.started ? msg.date : chain.started;
       api.saveChain({ ...chain, started, messages: [...chain.messages, { id: uid('m'), ...msg }] });
       const c = company(chain.companyId);
+      const ev = makeEvent(
+        'email',
+        `${msg.dir === 'in' ? 'Email from them' : 'Email from you'}: ${msg.text.split('\n')[0]!.slice(0, 80)}`,
+        'you',
+        { sprintId: c ? sprintFor(c) : null },
+      );
       return msg.dir === 'in'
-        ? api.autoStatus(chain.companyId, { kind: 'received' }, c?.due ? { due: null } : {})
-        : api.autoStatus(chain.companyId, { kind: 'sent' });
+        ? api.autoStatus(chain.companyId, { kind: 'received' }, c?.due ? { due: null } : {}, [ev])
+        : api.autoStatus(chain.companyId, { kind: 'sent' }, {}, [ev]);
     },
 
     /**
@@ -451,6 +704,7 @@ function makeActions(
     async importData(data: ImportData, onProgress: (done: number, total: number) => void) {
       const writes: (() => Promise<void>)[] = [
         () => store.setDoc('board', data.board),
+        ...data.sprints.map((s) => () => store.setItem('sprints', s.id, body(s))),
         ...(data.me ? [() => store.setDoc('me', data.me as Json)] : []),
         ...data.companies.map((c) => () => store.setItem('companies', c.id, body(c))),
         ...Object.entries(data.pages).map(
@@ -466,6 +720,18 @@ function makeActions(
   };
   return api;
 }
+
+/** What each quick-update action is in the feed. */
+const KIND_OF: Record<QuickAction['type'], FeedEvent['kind']> = {
+  add_company: 'company',
+  set_status: 'status',
+  log_email: 'email',
+  add_note: 'comment',
+  add_application: 'application',
+  add_meeting: 'meeting',
+  set_follow_up: 'field',
+  set_field: 'field',
+};
 
 /**
  * Runs many writes a few at a time, backing off and retrying when the db says

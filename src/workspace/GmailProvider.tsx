@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useToast } from '../components/Toast';
+import { makeEvent } from '../model/events';
 import { knownCount, latestEmail, mailQuery, syncThread, threadCompany } from '../model/gmail';
 import type { Chain, Company } from '../model/types';
 import type { ConnectorError } from '../runtime/connectors';
@@ -119,17 +120,25 @@ export function GmailProvider({ children }: { children: ReactNode }) {
             null as Chain['messages'][number] | null,
           );
         let label: string | null = null;
+        const { actions } = wsRef.current;
+        // The feed gets one line for what came in from Gmail.
+        const event = makeEvent(
+          'email',
+          `${count} new ${count === 1 ? 'email' : 'emails'} from Gmail`,
+          'gmail',
+        );
         if (newest?.gmailId && newest.date >= before) {
-          const { actions } = wsRef.current;
           label =
             newest.dir === 'in'
               ? actions.autoStatus(
                   company.id,
                   { kind: 'received' },
                   company.due ? { due: null } : {},
+                  [event],
+                  'gmail',
                 )
-              : actions.autoStatus(company.id, { kind: 'sent' });
-        }
+              : actions.autoStatus(company.id, { kind: 'sent' }, {}, [event], 'gmail');
+        } else actions.logEvents(company.id, [event]);
         lines.push(
           `${company.name}: ${count} new ${count === 1 ? 'email' : 'emails'} from Gmail${label ? `. Status → ${label}` : ''}`,
         );

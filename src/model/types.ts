@@ -89,6 +89,13 @@ export type Company = {
   gmailIgnore?: string[];
   /** Fields filled by company lookup (true) rather than typed. */
   auto?: Record<string, boolean | null>;
+  /**
+   * The sprints it's in (M7), by sprint id. Each keeps its own status (and
+   * other status columns, like Outcome): a company can be "Interview" in one
+   * sprint and "Rejected" in an earlier one. `meta` above holds the latest of
+   * them, which is what "All companies" shows. null = taken out of that sprint.
+   */
+  sprints?: Record<string, SprintEntry | null>;
   example?: boolean;
 };
 
@@ -132,7 +139,58 @@ export type Meeting = {
 };
 
 /** The company page's dated entries, stored per company id. */
-export type Page = { notes: Note[]; applications: Application[]; meetings: Meeting[] };
+export type Page = {
+  /** Before M7. Shown as comments; new comments go in `events`. */
+  notes: Note[];
+  applications: Application[];
+  meetings: Meeting[];
+  /** The company's feed (M7): comments, status changes, emails, meetings... newest last. */
+  events?: FeedEvent[];
+};
+
+/**
+ * A sprint (M7): a block of time to organize the hunt, like a sequence in
+ * Kitsu. Named "First Light 10/29/26"; once it's over, "First Light 10/29/26 -
+ * 11/15/26" (see model/sprints). Being over never stops you working in it.
+ */
+export type Sprint = {
+  id: string;
+  name: string;
+  /** YYYY-MM-DD, the day it was made (editable). */
+  start: string;
+  /** Set by hand to end it on a given day; otherwise worked out from activity. */
+  end?: string | null;
+  order: number;
+};
+
+/** A company's place in one sprint. */
+export type SprintEntry = {
+  /** Its status columns in this sprint (Status, Outcome...). */
+  meta: Record<string, unknown>;
+  /** YYYY-MM-DD it joined the sprint, and its latest change there. */
+  added: string;
+  updated: string;
+};
+
+export type EventKind =
+  'comment' | 'status' | 'email' | 'meeting' | 'application' | 'field' | 'company' | 'sprint';
+
+/** Who made a change: you, the AI, or a connector. */
+export type EventBy = 'you' | 'ai' | 'gmail' | 'calendar';
+
+/** One line of a company's feed, the News Feed and the timeline. */
+export type FeedEvent = {
+  id: string;
+  /** ISO date and time. */
+  at: string;
+  kind: EventKind;
+  text: string;
+  by: EventBy;
+  /** The sprint it happened in, if any. */
+  sprintId?: string | null;
+  /** For status changes: which column, from and to (option ids). */
+  status?: { col: string; from: string | null; to: string | null };
+};
 
 export type Template = { id: string; name: string; subject: string; body: string };
 

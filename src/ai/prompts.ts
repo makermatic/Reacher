@@ -39,10 +39,15 @@ const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
  * What the tracker already has for the companies a note names, so the AI can
  * word a repeat as a follow-up ("Spoke again") instead of a copy (Zack, round 3).
  */
-export function noteHistory(companies: Company[], pages: Record<string, Page>, note: string) {
+export function noteHistory(
+  companies: Company[],
+  pages: Record<string, Page>,
+  note: string,
+  about?: string,
+) {
   const n = squash(note);
   return companies
-    .filter((c) => squash(c.name).length >= 3 && n.includes(squash(c.name)))
+    .filter((c) => c.name === about || (squash(c.name).length >= 3 && n.includes(squash(c.name))))
     .map((c) => {
       const page = pages[c.id];
       if (!page) return '';
@@ -69,8 +74,10 @@ export function quickUpdatePrompt(
   note: string,
   today = todayISO(),
   pages: Record<string, Page> = {},
+  /** Posted from a company's own panel (M7): the note is about this company. */
+  about?: string,
 ) {
-  const history = noteHistory(companies, pages, note);
+  const history = noteHistory(companies, pages, note, about);
   const sc = statusCol(board);
   const statusCols = board.columns
     .filter((c) => c.type === 'status')
@@ -112,7 +119,7 @@ Other fields: ${others}
 Companies already tracked: ${tracked}
 ${history ? `What the tracker already has for the companies in this note:\n${history}\n` : ''}
 The note: """${note}"""
-
+${about ? `The note was written on ${about}'s page, so it's about ${about} (already tracked) even if it doesn't name them. Use that exact name for every action unless the note clearly names another company.\n` : ''}
 Reply with only JSON: {"confirm": false, "reply": "one short sentence saying what you understood", "actions": [ ... ]}
 Set "confirm" to true only when you're genuinely unsure (which company is meant, an ambiguous date, conflicting details), and put the question in "reply". Otherwise false: the changes are applied straight away.
 Action shapes:

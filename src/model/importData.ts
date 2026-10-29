@@ -1,14 +1,26 @@
 import { boardOrDefault } from './board';
 import { isPlainObject } from './text';
-import type { Board, Chain, Company, Me, Message, Page, Template } from './types';
+import type {
+  Board,
+  Chain,
+  Company,
+  FeedEvent,
+  Me,
+  Message,
+  Page,
+  Sprint,
+  SprintEntry,
+  Template,
+} from './types';
 
 /**
  * Reads the prototype's Export file (Your details → Export data):
  * { exported, board, companies, chains, pages, templates, me }.
- * Reacher's own export (M6) uses the same shape.
+ * Reacher's own export (M6) uses the same shape, plus `sprints` (M7).
  */
 export type ImportData = {
   board: Board;
+  sprints: Sprint[];
   companies: Company[];
   chains: Chain[];
   pages: Record<string, Page>;
@@ -45,6 +57,7 @@ export function parseExport(text: string): ImportData {
     auto: isPlainObject(c.auto) ? (c.auto as Company['auto']) : {},
     ...(typeof c.rank === 'number' ? { rank: c.rank } : {}),
     ...(c.example ? { example: true } : {}),
+    ...(isPlainObject(c.sprints) ? { sprints: sprintEntries(c.sprints) } : {}),
   }));
   const companyIds = new Set(companies.map((c) => c.id));
 
@@ -107,6 +120,7 @@ export function parseExport(text: string): ImportData {
             with: str(m.with),
             notes: str(m.notes),
           })),
+        ...(Array.isArray(p.events) ? { events: p.events.filter(withId) as FeedEvent[] } : {}),
       };
     }
   }
@@ -130,7 +144,18 @@ export function parseExport(text: string): ImportData {
       }
     : null;
 
+  const sprints: Sprint[] = arr(raw.sprints)
+    .filter(withId)
+    .map((x, i) => ({
+      id: str(x.id),
+      name: str(x.name) || 'Sprint',
+      start: str(x.start),
+      end: typeof x.end === 'string' && x.end ? x.end : null,
+      order: typeof x.order === 'number' ? x.order : i,
+    }));
+
   return {
+    sprints,
     board: boardOrDefault(isPlainObject(raw.board) ? (raw.board as Board) : null),
     companies,
     chains,
@@ -143,7 +168,8 @@ export function parseExport(text: string): ImportData {
 /** "34 companies, 12 email chains, 20 notes…" for the confirm step. */
 export function describeImport(d: ImportData) {
   const pages = Object.values(d.pages);
-  const count = (k: keyof Page) => pages.reduce((n, p) => n + p[k].length, 0);
+  const count = (k: 'notes' | 'applications' | 'meetings') =>
+    pages.reduce((n, p) => n + p[k].length, 0);
   const parts: [number, string, string][] = [
     [d.companies.length, 'company', 'companies'],
     [d.chains.length, 'email chain', 'email chains'],
@@ -153,4 +179,16 @@ export function describeImport(d: ImportData) {
     [d.templates.length, 'email template', 'email templates'],
   ];
   return parts.filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
+}
+
+function sprintEntries(raw: Record<string, unknown>): Record<string, SprintEntry> {
+  const out: Record<string, SprintEntry> = {};
+  for (const [id, e] of Object.entries(raw))
+    if (isPlainObject(e))
+      out[id] = {
+        meta: isPlainObject(e.meta) ? e.meta : {},
+        added: str(e.added),
+        updated: str(e.updated),
+      };
+  return out;
 }
