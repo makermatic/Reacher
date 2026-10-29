@@ -13,7 +13,7 @@ import { useToast } from './Toast';
 import { useFieldPicker } from './FieldPicker';
 import { fromHashes, toHashes } from '../model/mention';
 
-/** The Email templates screen (SPEC section 8). */
+/** The Email templates editor (SPEC section 8), shown in Settings → Email templates. */
 export function TemplatesScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
@@ -45,7 +45,7 @@ export function TemplatesScreen({ open, onClose }: { open: boolean; onClose: () 
   );
 }
 
-function Templates({ onClose }: { onClose: () => void }) {
+export function Templates({ onClose }: { onClose?: () => void }) {
   const { templates } = useWorkspace();
   const sorted = [...templates].sort((a, b) => a.name.localeCompare(b.name));
   const [selected, setSelected] = useState<Template | null>(sorted[0] ?? null);
@@ -54,9 +54,11 @@ function Templates({ onClose }: { onClose: () => void }) {
     <>
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <h2 className="m-0 font-display text-xl font-bold">Email templates</h2>
-        <button type="button" onClick={onClose} className={btn.base} autoFocus>
-          Done
-        </button>
+        {onClose && (
+          <button type="button" onClick={onClose} className={btn.base} autoFocus>
+            Done
+          </button>
+        )}
       </div>
       <div className="grid min-h-0 flex-1 md:grid-cols-[240px_minmax(0,1fr)]">
         <nav className="grid content-start gap-1 overflow-y-auto border-line p-3 max-md:border-b md:border-r">

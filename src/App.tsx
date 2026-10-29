@@ -1,32 +1,33 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { MotionConfig } from 'motion/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AssistantProvider } from './ai/Assistant';
-import { AnimatePresence, MotionConfig, motion } from 'motion/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { clampPanel, CompanyPanel } from './company/CompanyPanel';
-import { Header } from './components/Header';
+import { AppUIContext, nextSelection, type AppUI } from './app/AppUI';
+import { CompaniesPage } from './app/CompaniesPage';
+import { CompanyPage } from './app/CompanyPage';
+import { MyTasksPage } from './app/MyTasksPage';
+import { NewsFeedPage } from './app/NewsFeedPage';
+import { useRoute } from './app/route';
+import { applyTheme, readTheme, SettingsPage } from './app/SettingsPage';
+import { clampPanel, SidePanel } from './app/SidePanel';
+import { Sidebar } from './app/Sidebar';
+import { Topbar } from './app/Topbar';
 import { ImportDialog } from './components/ImportDialog';
-import { TemplatesScreen } from './components/TemplatesScreen';
-import { QuickUpdateBar } from './components/QuickUpdateBar';
 import { ToastProvider } from './components/Toast';
-import type { View } from './components/ViewSwitcher';
-import { YourDetailsDialog } from './components/YourDetailsDialog';
 import { readPref, writePref } from './lib/prefs';
-import { hoverDelay, viewTransition } from './motion';
+import { hoverDelay } from './motion';
 import { RuntimeProvider, useRuntime } from './runtime/RuntimeProvider';
 import { AddColumnDialog } from './sheet/AddColumnDialog';
 import { ChoicesDialog } from './sheet/ChoicesDialog';
 import { SheetUIContext, type SheetUI } from './sheet/SheetUI';
-import { BoardView } from './views/BoardView';
-import { SheetView } from './views/SheetView';
-import { WorkspaceProvider } from './workspace/WorkspaceProvider';
 import { CalendarProvider } from './workspace/CalendarProvider';
 import { GmailProvider } from './workspace/GmailProvider';
+import { WorkspaceProvider } from './workspace/WorkspaceProvider';
 
-const isView = (v: unknown): v is View => v === 'sheet' || v === 'board';
 const isNumber = (v: unknown): v is number => typeof v === 'number' && v > 0;
 
-/** On screens with room for both, the sheet shifts left instead of hiding under the panel. */
-const SHEET_MIN = 560;
+// Dark by default; light from Settings → Appearance (Zack, M7).
+applyTheme(readTheme());
 
 export function App() {
   return (
@@ -50,108 +51,95 @@ export function App() {
   );
 }
 
+/**
+ * The frame, after Kitsu (M7): top bar, the page, the side panel for the
+ * selected companies, and the sidebar that slides in from the mark.
+ */
 function Shell() {
-  const [view, setView] = useState<View>(() => readPref('view', 'sheet', isView));
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [route, navigate] = useRoute();
+  const [selected, setSelected] = useState<string[]>([]);
+  const anchor = useRef<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [choicesFor, setChoicesFor] = useState<string | null>(null);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const [openCompanyId, setOpenCompanyId] = useState<string | null>(null);
-  const [panelWidth, setPanelWidth] = useState(() => readPref('panel-width', 640, isNumber));
-  const [viewport, setViewport] = useState(() => window.innerWidth);
+  const [panelWidth, setPanelWidth] = useState(() => readPref('panel-width', 520, isNumber));
 
-  useEffect(() => {
-    const onResize = () => setViewport(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+  const clearSelection = useCallback(() => setSelected([]), []);
+  const select = useCallback<AppUI['select']>((id, how = 'only', order = []) => {
+    setSelected((cur) => nextSelection(cur, id, how, order, anchor.current));
+    anchor.current = id;
   }, []);
 
-  const closeCompany = useCallback(() => {
-    setOpenCompanyId(null);
-    writePref('panel-width', panelWidth);
-  }, [panelWidth]);
+  // Escape clears the selection, unless a menu, picker or dialog is in front.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (document.querySelector('[data-radix-popper-content-wrapper], [role="dialog"]')) return;
+      setSelected([]);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
-  const ui = useMemo<SheetUI>(
+  const app = useMemo<AppUI>(
+    () => ({
+      route,
+      navigate,
+      selected,
+      select,
+      clearSelection,
+      openSidebar: () => setSidebarOpen(true),
+      openPage: (id) => navigate({ page: 'company', id, tab: 'info' }),
+    }),
+    [route, navigate, selected, select, clearSelection],
+  );
+
+  // What the older pieces (cells, menus, the email writer) ask of the frame.
+  const sheetUI = useMemo<SheetUI>(
     () => ({
       editChoices: setChoicesFor,
       addColumn: () => setAddColumnOpen(true),
-      openCompanyId,
-      toggleCompany: (id) => setOpenCompanyId((cur) => (cur === id ? null : id)),
-      openCompany: setOpenCompanyId,
-      closeCompany,
-      openDetails: () => setDetailsOpen(true),
-      openTemplates: () => setTemplatesOpen(true),
+      openCompanyId: selected.length === 1 ? selected[0]! : null,
+      toggleCompany: (id) => setSelected((cur) => (cur.length === 1 && cur[0] === id ? [] : [id])),
+      openCompany: (id) => setSelected([id]),
+      closeCompany: clearSelection,
+      openDetails: () => navigate({ page: 'settings', tab: 'details' }),
+      openTemplates: () => navigate({ page: 'settings', tab: 'templates' }),
     }),
-    [openCompanyId, closeCompany],
+    [selected, clearSelection, navigate],
   );
 
-  const changeView = (v: View) => {
-    setView(v);
-    writePref('view', v);
+  const resize = (w: number) => {
+    setPanelWidth(w);
+    writePref('panel-width', w);
   };
 
-  // Phones: the page covers the whole screen.
-  const width = viewport < 720 ? viewport : Math.min(clampPanel(panelWidth), viewport);
-  const pushed = !!openCompanyId && viewport - width >= SHEET_MIN;
-
   return (
-    <SheetUIContext.Provider value={ui}>
-      <div
-        className="gutter flex h-full flex-col gap-2.5 pt-3 pb-3.5"
-        style={pushed ? { paddingRight: width + 16 } : undefined}
-      >
-        <Header
-          view={view}
-          onViewChange={changeView}
-          onOpenDetails={() => setDetailsOpen(true)}
-          onOpenTemplates={() => setTemplatesOpen(true)}
-        />
-        <QuickUpdateBar />
-        <NoAccessNotice />
-        <main className="min-h-0 flex-1">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={view}
-              variants={viewTransition}
-              initial="initial"
-              animate="enter"
-              exit="exit"
-              className="h-full"
-            >
-              {view === 'sheet' ? (
-                <SheetView onImport={() => setImportOpen(true)} />
-              ) : (
-                <BoardView />
+    <AppUIContext.Provider value={app}>
+      <SheetUIContext.Provider value={sheetUI}>
+        <div className="flex h-full flex-col bg-bg text-fg">
+          <Topbar />
+          <NoAccessNotice />
+          <div className="flex min-h-0 flex-1">
+            <main className="min-h-0 min-w-0 flex-1">
+              {route.page === 'companies' && <CompaniesPage onImport={() => setImportOpen(true)} />}
+              {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
+              {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
+              {route.page === 'news' && <NewsFeedPage />}
+              {route.page === 'settings' && (
+                <SettingsPage tab={route.tab} onImport={() => setImportOpen(true)} />
               )}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-        <YourDetailsDialog
-          open={detailsOpen}
-          onOpenChange={setDetailsOpen}
-          onImport={() => {
-            setDetailsOpen(false);
-            setImportOpen(true);
-          }}
-        />
-        <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
-        <TemplatesScreen open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
-        <AddColumnDialog open={addColumnOpen} onOpenChange={setAddColumnOpen} />
-        <ChoicesDialog colId={choicesFor} onClose={() => setChoicesFor(null)} />
-      </div>
-      <AnimatePresence>
-        {openCompanyId && (
-          <CompanyPanel
-            key="panel"
-            companyId={openCompanyId}
-            width={width}
-            onResize={setPanelWidth}
-            onResizeEnd={() => writePref('panel-width', clampPanel(panelWidth))}
-          />
-        )}
-      </AnimatePresence>
-    </SheetUIContext.Provider>
+            </main>
+            <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
+          </div>
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+          <AddColumnDialog open={addColumnOpen} onOpenChange={setAddColumnOpen} />
+          <ChoicesDialog colId={choicesFor} onClose={() => setChoicesFor(null)} />
+        </div>
+      </SheetUIContext.Provider>
+    </AppUIContext.Provider>
   );
 }
 
@@ -160,10 +148,7 @@ function NoAccessNotice() {
   const runtime = useRuntime();
   if (runtime.status !== 'ready' || runtime.kind !== 'no-access') return null;
   return (
-    <p
-      role="status"
-      className="m-0 rounded-lg border border-line-strong bg-surface-2 px-3.5 py-2.5 text-muted"
-    >
+    <p role="status" className="m-0 border-b border-line bg-surface-2 px-4 py-2.5 text-muted">
       Reacher can't save your data from this link. Ask whoever shared it to give you Contributor
       access, then reopen it.
     </p>

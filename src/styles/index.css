@@ -1,90 +1,74 @@
 @import 'tailwindcss';
 
 /*
- * Layout: Kitsu-style production sheet. Top bar, quick-update bar, then the
- * Sheet or Board filling the screen; the company page docks on the right.
- * Palette and fonts carry over from the prototype; the redesign is M7.
+ * M7: ported from Kitsu's look. Dark by default (Kitsu's dark theme values),
+ * light on request (Settings → Appearance sets data-theme="light").
  */
 :root {
-  --bg: #ecf0ee;
-  --surface: #ffffff;
-  --surface-2: #f4f7f5;
-  --hover: #eef3f0;
-  --line: #dae1dd;
-  --line-strong: #c2ccc7;
-  --fg: #16201c;
-  --muted: #5d6b65;
-  --faint: #8c9893;
-  --accent: #08924a;
+  --bg: #36393f;
+  --surface: #46494f;
+  --surface-2: #3f4248;
+  --hover: #4f525a;
+  --line: #2a2d33;
+  --line-strong: #5d6068;
+  --fg: #eeeeee;
+  --strong: #fefefe;
+  --muted: #b3b6bc;
+  --faint: #868991;
+  --accent: #00b242;
   --accent-ink: #ffffff;
-  --accent-soft: #dcf2e5;
-  --c-grey: #7f8b86;
-  --c-blue: #2c67d6;
-  --c-teal: #0e8a93;
-  --c-green: #08924a;
-  --c-amber: #a86f00;
-  --c-pink: #c8317a;
-  --c-red: #b0473a;
-  --c-violet: #6b4fd0;
+  --accent-soft: #2f4c3b;
+  --topbar: #202225;
+  --sidebar: #2f3136;
+  --panel: #36393f;
+  --selected: #5e60ba;
+  --selectable: #7375bc;
+  --c-grey: #8a8d93;
+  --c-blue: #3273dc;
+  --c-teal: #00a8a8;
+  --c-green: #22b35e;
+  --c-amber: #e0a01e;
+  --c-pink: #e8459a;
+  --c-red: #ff3860;
+  --c-violet: #a74ef0;
   --chip-ink: #ffffff;
-  --shadow: 0 12px 40px rgb(18 32 26 / 0.16);
-  --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
-  --f-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #121715;
-    --surface: #1a201e;
-    --surface-2: #202725;
-    --hover: #252d2a;
-    --line: #2d3633;
-    --line-strong: #3e4945;
-    --fg: #e3ebe7;
-    --muted: #9aa8a2;
-    --faint: #6f7c77;
-    --accent: #2ed27a;
-    --accent-ink: #04220f;
-    --accent-soft: #183a28;
-    --c-grey: #7c8984;
-    --c-blue: #5c93ff;
-    --c-teal: #3ccfd8;
-    --c-green: #2ed27a;
-    --c-amber: #edb23a;
-    --c-pink: #ff6dae;
-    --c-red: #e8705f;
-    --c-violet: #a08bff;
-    --chip-ink: #0e1311;
-    --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
-    color-scheme: dark;
-  }
-}
-
-:root[data-theme='dark'] {
-  --bg: #121715;
-  --surface: #1a201e;
-  --surface-2: #202725;
-  --hover: #252d2a;
-  --line: #2d3633;
-  --line-strong: #3e4945;
-  --fg: #e3ebe7;
-  --muted: #9aa8a2;
-  --faint: #6f7c77;
-  --accent: #2ed27a;
-  --accent-ink: #04220f;
-  --accent-soft: #183a28;
-  --c-grey: #7c8984;
-  --c-blue: #5c93ff;
-  --c-teal: #3ccfd8;
-  --c-green: #2ed27a;
-  --c-amber: #edb23a;
-  --c-pink: #ff6dae;
-  --c-red: #e8705f;
-  --c-violet: #a08bff;
-  --chip-ink: #0e1311;
-  --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  --shadow: 0 8px 30px rgb(0 0 0 / 0.45);
+  --f-display: 'Lato', 'Segoe UI', system-ui, sans-serif;
+  --f-body: 'Lato', 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'Lato', 'Segoe UI', system-ui, sans-serif;
   color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f6f6f6;
+  --surface: #ffffff;
+  --surface-2: #f4f4f4;
+  --hover: #efefef;
+  --line: #dbdbdb;
+  --line-strong: #c6c6c6;
+  --fg: #363636;
+  --strong: #0a0a0a;
+  --muted: #7a7a7a;
+  --faint: #a0a0a0;
+  --accent: #00b242;
+  --accent-ink: #ffffff;
+  --accent-soft: #dff5e7;
+  --topbar: #ffffff;
+  --sidebar: #ffffff;
+  --panel: #ffffff;
+  --selected: #cecefe;
+  --selectable: #e3e6ff;
+  --c-grey: #9a9a9a;
+  --c-blue: #3273dc;
+  --c-teal: #00a3a3;
+  --c-green: #22b35e;
+  --c-amber: #d99300;
+  --c-pink: #e8459a;
+  --c-red: #ff3860;
+  --c-violet: #a74ef0;
+  --chip-ink: #ffffff;
+  --shadow: 0 8px 30px rgb(0 0 0 / 0.14);
+  color-scheme: light;
 }
 
 /* Expose the tokens to Tailwind utilities: bg-surface, text-muted, border-line, font-display... */
@@ -102,6 +86,12 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-chip-ink: var(--chip-ink);
+  --color-strong: var(--strong);
+  --color-topbar: var(--topbar);
+  --color-sidebar: var(--sidebar);
+  --color-panel: var(--panel);
+  --color-selected: var(--selected);
+  --color-selectable: var(--selectable);
   --font-display: var(--f-display);
   --font-body: var(--f-body);
   --font-mono: var(--f-mono);
@@ -171,7 +161,7 @@ input:-webkit-autofill:focus {
 }
 
 .eyebrow {
-  font-family: var(--f-mono);
+  font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -188,13 +178,12 @@ input:-webkit-autofill:focus {
 @layer components {
   /* Status chip: solid in its status color. Color changes ease instead of snapping. */
   .schip {
-    font-family: var(--f-mono);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 11px;
-    letter-spacing: 0.03em;
-    border-radius: 5px;
-    padding: 3px 8px;
-    min-width: 84px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 3px 10px;
     text-align: center;
     border: 1px solid transparent;
     background: var(--c);
@@ -267,40 +256,63 @@ input:-webkit-autofill:focus {
     cursor: default;
   }
 
-  /* Sheet grid lines and row states. */
+  /* Sheet grid (M7, Kitsu's shot list): header on the page, rows as one block. */
   .sheet-grid th,
   .sheet-grid td {
     border-bottom: 1px solid var(--line);
-    border-right: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
     padding: 0;
     text-align: left;
     vertical-align: middle;
     white-space: nowrap;
   }
+  .sheet-grid tbody td {
+    background: var(--surface);
+    transition: background-color 0.15s;
+  }
+  .sheet-grid tbody tr:last-child td {
+    background: transparent;
+  }
   .sheet-grid tbody tr:hover > td {
     background: var(--hover);
-  }
-  .sheet-grid .sticky-col {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    background: var(--surface);
   }
   .sheet-grid thead th {
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--surface-2);
+    background: var(--bg);
+    border-bottom: 1px solid var(--line-strong);
   }
-  .sheet-grid thead .sticky-col {
+  .sheet-grid .sticky-col,
+  .sheet-grid .sticky-col-2 {
+    position: sticky;
+    z-index: 1;
+  }
+  .sheet-grid .sticky-col {
+    left: 0;
+  }
+  .sheet-grid .sticky-col-2 {
+    left: 40px;
+    border-right: 1px solid var(--line);
+  }
+  .sheet-grid thead .sticky-col,
+  .sheet-grid thead .sticky-col-2 {
     z-index: 3;
-    background: var(--surface-2);
   }
-  .sheet-grid tbody tr.is-open > td {
-    background: var(--accent-soft);
+  /* Status columns: tinted like Kitsu's task-type columns, with a colored edge. */
+  .sheet-grid .status-head {
+    background: color-mix(in srgb, var(--tint) 16%, var(--bg));
+    border-left: 1px solid var(--tint);
   }
-  .sheet-grid tbody td {
-    transition: background-color 0.15s;
+  .sheet-grid tbody td.status-cell {
+    background: color-mix(in srgb, var(--tint) 14%, var(--surface));
+    border-left: 1px solid color-mix(in srgb, var(--tint) 60%, transparent);
+  }
+  .sheet-grid tbody tr:hover > td.status-cell {
+    background: color-mix(in srgb, var(--tint) 22%, var(--hover));
+  }
+  .sheet-grid tbody td.status-cell.is-selected,
+  .sheet-grid tbody tr:hover > td.status-cell.is-selected {
+    background: var(--selected);
   }
 
   /*

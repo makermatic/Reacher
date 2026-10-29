@@ -74,6 +74,8 @@ type Assistant = {
   /** AI is available on this view (inside Claude, allowed). */
   available: boolean;
   notice: Notice | null;
+  /** Where the notice belongs: 'bar' (Quick update) or the id of the company whose panel posted it. */
+  noticeOrigin: string;
   dismiss: () => void;
   /**
    * Runs a quick update. `about`: posted from that company's panel, so the
@@ -116,6 +118,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
   const calendar = useCalendar();
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [noticeOrigin, setNoticeOrigin] = useState('bar');
   const [lookups, setLookups] = useState<Record<string, LookupState>>({});
   const [off, setOff] = useState(false);
   const setLookup = useCallback((id: string, state: LookupState | null) => {
@@ -255,6 +258,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         setNotice({ kind: 'error', text: NO_AI });
         return false;
       }
+      setNoticeOrigin(about?.id ?? 'bar');
       setNotice({ kind: 'busy', text: `Reading “${note}”` });
       try {
         const { board, companies, chains, pages } = wsRef.current;
@@ -288,6 +292,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     () => ({
       available: !!ai,
       notice,
+      noticeOrigin,
       dismiss: () => setNotice(null),
       quickUpdate,
       applyConfirmed: () => {
@@ -362,7 +367,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [ai, notice, lookups, quickUpdate, apply, lookup, toast, fail, setLookup],
+    [ai, notice, noticeOrigin, lookups, quickUpdate, apply, lookup, toast, fail, setLookup],
   );
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;

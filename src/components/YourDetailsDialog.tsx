@@ -4,11 +4,8 @@ import { todayISO } from '../model/dates';
 import type { Me } from '../model/types';
 import { useRuntime } from '../runtime/RuntimeProvider';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { btn, field, Modal } from './Modal';
+import { btn, field } from './Modal';
 import { useToast } from './Toast';
-import { AiCheck } from './AiCheck';
-
-const EMPTY: Me = { name: '', portfolio: '', reel: '', phone: '', intro: '' };
 
 const FIELDS: {
   key: keyof Me;
@@ -31,46 +28,8 @@ const tidy = (v: Me): Me => ({
   reel: normalizeUrl(v.reel),
 });
 
-/** settings/me in the prototype: fills the my_* email template fields. */
-export function YourDetailsDialog({
-  open,
-  onOpenChange,
-  onImport,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onImport: () => void;
-}) {
-  const { loading, me } = useWorkspace();
-  return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Your details"
-      description="These fill the “You” fields in email templates, like your name and reel link."
-    >
-      {loading ? (
-        <p className="text-muted">Loading…</p>
-      ) : (
-        <DetailsForm initial={{ ...EMPTY, ...me }} onDone={() => onOpenChange(false)} />
-      )}
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-[13px] text-muted">
-        <span className="min-w-0 flex-1">
-          Your data is yours. Export everything as one file anytime, or bring in an export.
-        </span>
-        <ExportButton />
-        <button type="button" className={`${btn.base} ${btn.small}`} onClick={onImport}>
-          Import data
-        </button>
-      </div>
-      <div className="mt-4 border-t border-line pt-4 text-[13px] text-muted">
-        <AiCheck />
-      </div>
-    </Modal>
-  );
-}
-
-function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
+/** Your details (Settings → Your details): fills the my_* email template fields. */
+export function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
   const runtime = useRuntime();
   const toast = useToast();
   const [values, setValues] = useState(initial);
@@ -147,9 +106,9 @@ function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => void }) {
 }
 
 /** Export data (SPEC section 10): everything in one file, the same shape the import reads. */
-function ExportButton() {
+export function ExportButton() {
   const runtime = useRuntime();
-  const { board, companies, chains, pages, templates, me } = useWorkspace();
+  const { board, companies, chains, pages, templates, me, sprints } = useWorkspace();
   const toast = useToast();
   const saveFile = runtime.status === 'ready' ? runtime.saveFile : null;
   const exportAll = async () => {
@@ -157,6 +116,7 @@ function ExportButton() {
     const data = {
       exported: new Date().toISOString(),
       board,
+      sprints,
       companies,
       chains,
       pages,

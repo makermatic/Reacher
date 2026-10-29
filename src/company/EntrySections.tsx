@@ -21,63 +21,6 @@ export const submitOnEnter = (submit: () => void) => (e: KeyboardEvent) => {
 export const hint = 'text-xs text-muted';
 const dateField = fieldInline;
 
-export function NotesBody({ company }: { company: Company }) {
-  const { actions } = useWorkspace();
-  const toast = useToast();
-  const [text, setText] = useState('');
-  const [date, setDate] = useState(todayISO());
-  const notes = actions.pageOf(company.id).notes;
-
-  const add = (e?: FormEvent) => {
-    e?.preventDefault();
-    if (!text.trim()) return toast('Write the note first');
-    actions.addNote(company.id, { date: date || todayISO(), text: text.trim() });
-    setText('');
-    toast('Note added');
-  };
-
-  return (
-    <>
-      {newest(notes).map((n) => (
-        <Entry
-          key={n.id}
-          date={fmtDate(n.date)}
-          label="Delete note"
-          onDelete={() => actions.deleteEntry(company.id, 'notes', n.id)}
-        >
-          {n.text}
-        </Entry>
-      ))}
-      <form onSubmit={add} className={addForm}>
-        <textarea
-          id="note-text"
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={submitOnEnter(add)}
-          placeholder="What happened? Like: Met their EP at the SCAD career fair."
-          aria-label="Note"
-          className={`${field} resize-y`}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            id="note-date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label="Date"
-            className={dateField}
-          />
-          <button type="submit" className={`${btn.base} ${btn.small}`}>
-            Add note
-          </button>
-          <span className={hint}>Enter to add · Shift+Enter for a new line</span>
-        </div>
-      </form>
-    </>
-  );
-}
-
 export function ApplicationsBody({ company }: { company: Company }) {
   const { actions } = useWorkspace();
   const toast = useToast();

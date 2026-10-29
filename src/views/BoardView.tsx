@@ -46,11 +46,12 @@ type Lanes = Record<string, string[]>;
  * drag, like Trello (Zack, round 2). Click a card to open its page; click a
  * lane header to collapse it (remembered per device).
  */
-export function BoardView() {
+export function BoardView({ list: given }: { list?: Company[] } = {}) {
   const { loading, board, companies, actions } = useWorkspace();
   const toast = useToast();
   const sc = statusCol(board);
-  const list = visibleCompanies(board, companies, '', 'all');
+  // M7: the Companies page passes its searched, sprint-scoped list.
+  const list = given ?? visibleCompanies(board, companies, '', 'all');
   const byId = new Map(list.map((c) => [c.id, c]));
   const lanes: Option[] = [
     { id: '', label: 'No status', group: '', color: 'grey' },

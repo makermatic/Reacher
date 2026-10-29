@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAssistant, type Notice } from '../ai/Assistant';
 import { popIn } from '../motion';
+import { Zap } from 'lucide-react';
 import { btn } from './Modal';
 
 /**
@@ -12,7 +13,10 @@ import { btn } from './Modal';
 export function QuickUpdateBar() {
   const assistant = useAssistant();
   const [text, setText] = useState('');
-  const busy = assistant.notice?.kind === 'busy' && assistant.notice.text.startsWith('Reading');
+  const busy =
+    assistant.noticeOrigin === 'bar' &&
+    assistant.notice?.kind === 'busy' &&
+    assistant.notice.text.startsWith('Reading');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -21,35 +25,36 @@ export function QuickUpdateBar() {
     if (await assistant.quickUpdate(note)) setText('');
   };
 
+  // M7: lives in the top bar, Kitsu-search shaped; Enter sends.
   return (
-    <div className="relative z-15" data-keep-panel>
+    <div className="relative z-30 min-w-0 flex-1" data-keep-panel>
       <form
         onSubmit={submit}
-        className={`${busy ? 'ai-working ' : ''}flex items-stretch gap-2 rounded-xl border border-line bg-surface py-1.5 pr-1.5 pl-3.5 shadow-xs transition-[border-color,box-shadow] duration-200 ease-standard focus-within:border-accent focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]`}
+        className={`${busy ? 'ai-working ' : ''}flex h-10 items-center gap-2 rounded-full border border-line-strong/60 bg-bg pr-1 pl-3.5 transition-colors focus-within:border-accent`}
       >
-        <label
-          htmlFor="quick-input"
-          className="eyebrow self-center whitespace-nowrap text-accent max-sm:sr-only"
-        >
+        <Zap size={16} className="shrink-0 text-accent" aria-hidden="true" />
+        <label htmlFor="quick-input" className="sr-only">
           Quick update
         </label>
         <input
           id="quick-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Tell Reacher what happened, like “Interview with New York Life on 11/6 at 12:30”"
+          placeholder="Quick update: “Interview with New York Life on 11/6 at 12:30”"
           autoComplete="off"
-          className="min-w-0 flex-1 border-0 bg-transparent px-1 py-1.5 text-[14.5px] outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 border-0 bg-transparent text-[14px] outline-none placeholder:text-faint"
         />
-        <button
-          type="submit"
-          disabled={busy || !text.trim()}
-          className="rounded-lg bg-accent px-3.5 font-medium text-accent-ink transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? 'Thinking…' : 'Update'}
-        </button>
+        {text.trim() && (
+          <button
+            type="submit"
+            disabled={busy}
+            className="h-8 rounded-full bg-accent px-3 text-[13px] font-bold text-accent-ink disabled:opacity-60"
+          >
+            {busy ? 'Thinking…' : 'Update'}
+          </button>
+        )}
       </form>
-      <NoticeCard onApplied={() => setText('')} />
+      <NoticeCard origin="bar" onApplied={() => setText('')} />
     </div>
   );
 }
@@ -68,8 +73,10 @@ function hideAfter(n: Notice): number | null {
   }
 }
 
-function NoticeCard({ onApplied }: { onApplied: () => void }) {
-  const { notice, dismiss, undo, applyConfirmed } = useAssistant();
+/** The quick update's result card, under whatever posted it (`origin`: 'bar' or a company id). */
+export function NoticeCard({ origin, onApplied }: { origin: string; onApplied: () => void }) {
+  const { notice: current, noticeOrigin, dismiss, undo, applyConfirmed } = useAssistant();
+  const notice = noticeOrigin === origin ? current : null;
   const hovered = useRef(false);
 
   useEffect(() => {

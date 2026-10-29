@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2"
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2"
         style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }}
       >
         <AnimatePresence>
@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               initial="initial"
               animate="enter"
               exit="exit"
-              className="rounded-lg bg-fg px-3.5 py-2 text-[13px] font-medium text-bg shadow-panel"
+              className="rounded-[10px] border border-line-strong/60 bg-surface px-4 py-2.5 text-[13.5px] text-strong shadow-panel"
             >
               {t.text}
             </motion.div>

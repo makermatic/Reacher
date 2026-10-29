@@ -14,11 +14,27 @@ import { useToast } from '../components/Toast';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useSheetUI } from './SheetUI';
 
-/** A sheet column header; click it to rename, hide, move, edit choices or delete the column. */
-export function ColumnHeader({ col, extra }: { col: Column; extra?: ReactNode }) {
+/**
+ * A sheet column header, Kitsu-style (M7): fields in small uppercase; status
+ * columns (`accent`) like Kitsu's task types, a colored dot and a tinted
+ * column. Click it to rename, hide, move, edit choices or delete the column.
+ */
+export function ColumnHeader({
+  col,
+  extra,
+  accent,
+}: {
+  col: Column;
+  extra?: ReactNode;
+  accent?: string;
+}) {
   const [open, setOpen] = useState(false);
   return (
-    <th className="min-w-36 font-semibold">
+    <th
+      className={`min-w-36 ${accent ? 'status-head' : ''}`}
+      style={accent ? ({ '--tint': accent } as React.CSSProperties) : undefined}
+      title={TYPE_LABELS[col.type]}
+    >
       <Popover
         open={open}
         onOpenChange={setOpen}
@@ -26,14 +42,17 @@ export function ColumnHeader({ col, extra }: { col: Column; extra?: ReactNode })
         trigger={
           <button
             type="button"
-            className="flex w-full flex-col gap-0.5 px-2.5 pt-[7px] pb-1.5 text-left text-[12.5px] text-muted transition-colors hover:bg-hover"
+            className="flex w-full flex-col justify-center gap-0.5 px-3 py-2.5 text-left transition-colors hover:bg-hover"
           >
-            <span>{col.name}</span>
-            {extra ?? (
-              <span className="eyebrow text-[10px] font-medium text-faint">
-                {TYPE_LABELS[col.type]}
+            {accent ? (
+              <span className="flex items-center gap-2 text-[14px] font-bold tracking-wide text-strong">
+                <span className="size-2.5 rounded-full" style={{ background: accent }} />
+                {col.name}
               </span>
+            ) : (
+              <span className="eyebrow text-muted">{col.name}</span>
             )}
+            {extra}
           </button>
         }
       >
