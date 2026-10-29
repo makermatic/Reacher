@@ -9,7 +9,7 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 ## Waiting on Zack
 
 1. ⏳ **Test round 3 fixes + Google Calendar (M8)** and **Gmail (M9)** on Reacher Test (version 11). The test lists are under M8 and M9 below. Send numbered notes with screenshots.
-2. ⏳ **The sprint plan for the UI rework (M7)**, when it's ready.
+2. ⏳ **M7 decisions** (sprint status, sprint dates, theme, comments → AI, Board). See M7 below and Claude's message of 2026-10-29.
 
 ## Now
 
@@ -254,11 +254,26 @@ Zack's notes on the round 2 list:
 - ✅ **AI check:** ⚙️ Your details → Run AI check. Six sample quick updates, each graded (✓/✗) against the real AI. Cases live in `src/ai/aiCheck.ts`.
 - Dropped: the shared UI kit. Zack expects the UI rework to be a rewrite (see M7), so that waits for the new design.
 
-### M7: UI rework (sprints) ⏳ waiting on Zack's plan
-- Zack's direction (2026-10-29): Kitsu-style. Sprints work like sequences, companies like shots: manage a sprint while still seeing the whole list, and view notes, email chains and calendar by sprint. Expect a full UI rewrite, possibly a data model change too.
-- Claude's read: sprints can likely be added on top of today's data (a sprints collection, companies assigned to sprints; everything else already hangs off companies), so data migrates rather than restarts. Confirm once the plan is final.
-- Keeps: `src/model`, `src/runtime`, `src/ai`, `src/workspace` and the e2e tests (their selectors get updated to the new UI).
-- Motion stays subtle, fast and functional (see Decisions).
+### M7: Kitsu-style rework (sprints) ⏳ plan proposed, waiting on Zack's decisions
+Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → companies the way sequences → shots work, while still seeing every company. Clicking a status opens the side panel with a comment feed and status change (comments replace notes, and they update details, chains and meetings). Quick update stays. Sidebar pages: My Tasks, News Feed, Settings. Research: `docs/research/KITSU.md` (from Kitsu's source and a local Kitsu with fake data; screenshots in `docs/research/kitsu/`).
+
+**Approach: rewrite the screens, extend the data.**
+- **Screens: new.** A new UI layer (`src/app/`: shell, pages, side panel, its own small kit) replaces `src/views`, `src/sheet`, `src/company` and most of `src/components` as each page lands. Reused as-is: `src/model`, `src/runtime`, `src/ai`, `src/workspace`, the prompts, Calendar and Gmail. The e2e tests are rewritten page by page.
+- **Data: extended, not rewritten.** Kitsu's own answer to "one thing in many groups" is casting (one asset in many shots), and Reacher's data already hangs everything off companies:
+  - `sprints` collection: name, optional start/end dates, order, archived.
+  - Companies get `sprintIds` (a company can be in any number of sprints; "All companies" ignores it).
+  - `events` collection: the feed. One event per comment, status change, email (pasted or from Gmail), meeting, application, field change or AI action. Each has company, time, kind, text, the status it set (if any), a link to what it touched, and who made it (you, AI, Gmail, Calendar).
+  - Notes become comment events. A one-time migration runs on load, and the prototype export still imports.
+  - My Tasks is computed, not stored: replies owed (Wrote back!!), follow-ups due or late, meetings and interviews coming up (prep), applications gone quiet.
+
+**Milestones**
+- M7a Data: sprints, `sprintIds`, events (every write logs one), notes → comments migration, unit tests. Invisible.
+- M7b Shell: Kitsu top bar (Sprint ▾ › View ▾), sliding sidebar from the logo (My Tasks, News Feed, Settings), Kitsu-like theme.
+- M7c Companies list: grouped by sprint under All; add-company row that finds existing companies (adds them to the sprint) or creates and AI-scouts new ones; field columns; checkboxes and bulk status; Kitsu search syntax (`status=wrote back`, `city=la`, `-buck`) with saved searches; Display settings.
+- M7d Side panel: click a status → status picker, comment box, Post; the company's event feed. A comment runs through the AI like a quick update for that company (with Undo).
+- M7e Company page: tabs (Info, Emails, Meetings, Applications) plus the timeline.
+- M7f My Tasks (List, Board, Calendar), News Feed (day timeline, filters, click opens the panel), Settings.
+- M7g Motion and polish rounds with Zack.
 
 ### M8: Google Calendar 🔨 (published to Reacher Test v10–11, waiting on Zack's test)
 - ✅ Through the viewer's own Google Calendar connector (artifact `mcp` capability; tools `create_event` and `list_events` only). Nothing is fetched until a company page is open.
@@ -341,6 +356,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | UI kit dropped: Zack expects M7 to be a rewrite around Kitsu-style sprints. Build what survives a rewrite (data, AI, connectors, e2e tests) until the plan is final. |
 | 2026-10-29 | M8 before M7: Calendar logic lives below the UI. Reacher reads and creates events only (no edits or deletes on Zack's calendar yet). |
 | 2026-10-29 | Gmail: Reacher reads threads and saves drafts; it never sends (Zack presses Send in Gmail). Automatic checks only after Zack has allowed Gmail once. |
+| 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, `sprintIds`, an events feed) rather than rewritten. Pending Zack's OK. |
 
 ## Notes and risks
 
