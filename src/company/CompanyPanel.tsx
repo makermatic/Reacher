@@ -1,4 +1,16 @@
-import { Reorder } from 'motion/react';
+import {
+  closestCenter,
+  pointerWithin,
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DragEndEvent,
+  type Modifier,
+} from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { colShows, statusCol } from '../model/board';
 import type { Company } from '../model/types';
@@ -18,6 +30,13 @@ import { LookupCard } from './LookupCard';
 import { Section } from './parts';
 
 export const MIN_PANEL = 380;
+/** Sections only move up and down. */
+const vertical: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+/** The section under the pointer, so tall sections land where you point. */
+const collide: CollisionDetection = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : closestCenter(args);
+};
 const SECTIONS = ['details', 'chains', 'notes', 'apps', 'meetings'] as const;
 type SectionId = (typeof SECTIONS)[number];
 
@@ -153,6 +172,17 @@ function PanelContent({ company }: { company: Company }) {
   const { board, chains, actions } = useWorkspace();
   const { closeCompany } = useSheetUI();
   const prefs = useSectionPrefs();
+  // A short move starts a drag, so clicking the title still collapses it.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+  );
+  const onSectionDrop = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const from = prefs.order.indexOf(active.id as SectionId);
+    const to = prefs.order.indexOf(over.id as SectionId);
+    if (from >= 0 && to >= 0) prefs.reorder(arrayMove(prefs.order, from, to));
+  };
   const sc = statusCol(board);
   const dependents = board.columns.filter(
     (c) => c.type === 'status' && c.id !== 'status' && c.showWhen,
@@ -267,25 +297,29 @@ function PanelContent({ company }: { company: Company }) {
 
       <LookupCard company={company} />
 
-      <Reorder.Group
-        axis="y"
-        values={prefs.order}
-        onReorder={prefs.reorder}
-        className="m-0 grid list-none gap-5 p-0"
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collide}
+        modifiers={[vertical]}
+        onDragEnd={onSectionDrop}
       >
-        {prefs.order.map((id) => (
-          <Section
-            key={id}
-            id={id}
-            title={sections[id].title}
-            count={sections[id].count}
-            collapsed={!!prefs.collapsed[id]}
-            onToggle={() => prefs.toggle(id)}
-          >
-            {sections[id].body}
-          </Section>
-        ))}
-      </Reorder.Group>
+        <SortableContext items={prefs.order} strategy={verticalListSortingStrategy}>
+          <div className="grid gap-5">
+            {prefs.order.map((id) => (
+              <Section
+                key={id}
+                id={id}
+                title={sections[id].title}
+                count={sections[id].count}
+                collapsed={!!prefs.collapsed[id]}
+                onToggle={() => prefs.toggle(id)}
+              >
+                {sections[id].body}
+              </Section>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { useSheetUI } from '../sheet/SheetUI';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { btn, field, fieldInline } from './Modal';
 import { useToast } from './Toast';
+import { useFieldPicker } from './FieldPicker';
 
 /** The Email templates screen (SPEC section 8). */
 export function TemplatesScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -110,8 +111,17 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
     () => openCompanyId ?? [...companies].sort((a, b) => a.name.localeCompare(b.name))[0]?.id ?? '',
   );
   const focus = useRef<'subject' | 'body'>('body');
-  const subjectRef = useRef<HTMLInputElement>(null);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const fields = tokenGroups(board).flatMap((g) =>
+    g.items.map(([key, label]) => ({ key, label, group: g.name })),
+  );
+  const subjectPicker = useFieldPicker<HTMLInputElement>({
+    items: fields,
+    onChange: (subject) => setDraft((d) => ({ ...d, subject })),
+  });
+  const bodyPicker = useFieldPicker<HTMLTextAreaElement>({
+    items: fields,
+    onChange: (body) => setDraft((d) => ({ ...d, body })),
+  });
   const del = () => {
     actions.deleteTemplate(draft.id);
     toast('Template deleted');
@@ -131,7 +141,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
   /** Insert {{field}} at the cursor of whichever box was last focused. */
   const insert = (key: string) => {
     const which = focus.current;
-    const el = which === 'subject' ? subjectRef.current : bodyRef.current;
+    const el = (which === 'subject' ? subjectPicker : bodyPicker).fieldProps.ref.current;
     const tok = `{{${key}}}`;
     const text = draft[which];
     const start = el?.selectionStart ?? text.length;
@@ -179,29 +189,30 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         <span className="eyebrow text-[10.5px] font-semibold text-muted">Subject</span>
         <input
           id="tpl-subject"
-          ref={subjectRef}
+          {...subjectPicker.fieldProps}
           value={draft.subject}
           onFocus={() => (focus.current = 'subject')}
-          onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+          autoComplete="off"
           className={field}
         />
+        {subjectPicker.menu}
       </label>
       <label htmlFor="tpl-body" className="grid gap-1">
         <span className="eyebrow text-[10.5px] font-semibold text-muted">Body</span>
         <textarea
           id="tpl-body"
-          ref={bodyRef}
+          {...bodyPicker.fieldProps}
           rows={14}
           value={draft.body}
           onFocus={() => (focus.current = 'body')}
-          onChange={(e) => setDraft({ ...draft, body: e.target.value })}
           className={`${field} resize-y leading-relaxed`}
         />
+        {bodyPicker.menu}
       </label>
 
       <div className="grid gap-2">
         <span className="eyebrow text-[10.5px] font-semibold text-muted">
-          Fill-in fields · click to insert at the cursor
+          Fill-in fields · type @ in the subject or body, or click one
         </span>
         {tokenGroups(board).map((g) => (
           <div key={g.name} className="grid gap-1">

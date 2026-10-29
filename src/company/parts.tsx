@@ -1,4 +1,6 @@
-import { AnimatePresence, motion, Reorder, useDragControls } from 'motion/react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import { btn } from '../components/Modal';
@@ -22,7 +24,7 @@ export function DeleteButton({ label, onDelete }: { label: string; onDelete: () 
 /**
  * A company page section: click the title to collapse it, drag anywhere on
  * the header row to reorder (SPEC section 6; whole row per Zack, round 2).
- * Lives inside a Reorder.Group.
+ * Lives inside a SortableContext (see CompanyPanel).
  */
 export function Section({
   id,
@@ -39,20 +41,28 @@ export function Section({
   onToggle: () => void;
   children: ReactNode;
 }) {
-  const controls = useDragControls();
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
   return (
-    <Reorder.Item
-      value={id}
-      dragListener={false}
-      dragControls={controls}
-      as="section"
+    <section
+      ref={setNodeRef}
       aria-label={title}
-      className="group/sec relative grid bg-surface"
-      whileDrag={{ scale: 1.01, boxShadow: 'var(--shadow)', zIndex: 5 }}
-      transition={{ duration: duration.base, ease: ease.out }}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={`group/sec relative grid bg-surface ${isDragging ? 'z-10 shadow-panel' : ''}`}
     >
       <div
-        onPointerDown={(e) => controls.start(e)}
+        ref={setActivatorNodeRef}
+        {...listeners}
+        {...attributes}
+        role="group"
+        aria-roledescription="Section header, drag to reorder"
         title="Drag to reorder"
         className="flex cursor-grab touch-none items-center gap-1.5 border-b border-line pb-2 select-none active:cursor-grabbing"
       >
@@ -98,7 +108,7 @@ export function Section({
           </motion.div>
         )}
       </AnimatePresence>
-    </Reorder.Item>
+    </section>
   );
 }
 

@@ -8,11 +8,11 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Big test round: M3–M6** on Reacher Test. The full regimen is in the M6 section below. Send numbered notes with screenshots.
+1. ⏳ **Check the round 2 fixes** on Reacher Test (version 9). The short test list is under "Round 2 fixes" below. Send numbered notes with screenshots.
 
 ## Now
 
-M3–M6 published: Reacher now does everything the prototype did. Waiting on Zack's test round. After his notes: fix round, then move real data to the real Reacher artifact, then M7 (UI overhaul).
+Zack tested M3–M6 (round 2) and every note is fixed and published to Reacher Test. Next: his check of the fixes, then the M7 prep (safety-net tests and a shared UI kit), then move real data to the real Reacher artifact and start M7 (UI overhaul).
 
 ## Links
 
@@ -123,7 +123,7 @@ M3–M6 published: Reacher now does everything the prototype did. Waiting on Zac
 - **Import:** an "Import from prototype" button that loads the prototype's Export JSON.
 - **Test:** import your export, check every company and column came across, edit cells, search "LA".
 
-### M3: Company page 🔨 (published, waiting on Zack's test)
+### M3: Company page ✅ (Zack tested in round 2)
 - Docked side panel: resize (min 380px, remembered), shift vs overlay, click outside or Escape to close.
 - Header: rename, ⋯ menu, Status, Outcome, Follow up on.
 - Sections (collapsible, drag to reorder, remembered): Details, Email chains (manual add, no AI yet), Notes, Applications, Meetings & interviews with Add to Google Calendar links.
@@ -141,7 +141,7 @@ M3–M6 published: Reacher now does everything the prototype did. Waiting on Zac
   9. Click a section title to collapse it; drag the ⋮⋮ grip (appears on hover) to reorder sections. Reload: both are remembered.
   10. On Board, click a card: its page opens.
 
-### M4: Board 🔨 (published, waiting on Zack's test)
+### M4: Board ✅ (Zack tested in round 2)
 - ✅ Lanes per status with category labels and color bars, cards, drag to change status (dnd-kit: mouse drag, or press and hold on touch), collapsible lanes (remembered).
 - **Test list:**
   1. On Board, drag a card to another lane. The lane lights up as you hover it; drop it and a message says "Name → Status". The Sheet shows the new status too.
@@ -149,7 +149,7 @@ M3–M6 published: Reacher now does everything the prototype did. Waiting on Zac
   3. Click a lane's header: it shrinks to a thin strip with the name running vertically and the count on top. Click the strip to open it again. Reload: collapsed lanes stay collapsed.
   4. Drop a card onto a collapsed strip: that works too.
 
-### M5: AI features 🔨 (published, waiting on Zack's test)
+### M5: AI features ✅ (Zack tested in round 2)
 - ✅ AI adapter (`src/runtime/ai.ts`) on the artifact's `sample` capability: runs on the viewer's own Claude plan. Default tier for quick update and lookup, quick tier for summaries.
 - ✅ Prompts carried over word for word from the prototype (`src/ai/prompts.ts`).
 - ✅ Quick update: actions apply straight away with an Updated card and Undo (restores every touched company, page, chain and column choices), or Apply / Discard when the AI isn't sure. New companies get a quiet lookup using the note as context. The card fades after about 7 seconds and stays while hovered.
@@ -167,7 +167,7 @@ M3–M6 published: Reacher now does everything the prototype did. Waiting on Zac
   6. Open a company with an email chain and click Summarize: three lines appear. Add an email and the summary says "1 new email since this summary".
   7. Tell Claude when an answer is wrong: what you typed, what it did, what you expected.
 
-### M6: Writing emails, templates, Your details 🔨 (published, waiting on Zack's test)
+### M6: Writing emails, templates, Your details ✅ (Zack tested in round 2)
 - ✅ Email logic in `src/model/email.ts` (fields, placeholders, default template and chain, name guessing), unit tested.
 - ✅ Write an email under Email chains: Send in, template (status-suggested), To (saves into the contact and fills the name: first.last, shared inboxes skipped, else an AI guess), editable subject and body, "Fill in before sending" with set it / add it links, placeholders filled automatically even after edits, Back to template, Draft with AI, Copy email / subject / to, Open in mail app, Log as sent with follow-up days.
 - ✅ Email templates screen: list, editor, click-to-insert fields at the cursor, live preview for any company (green filled, yellow blank), Suggested at, save and delete. New accounts start with the five starting templates (made generic).
@@ -213,6 +213,39 @@ Before you start: Reacher Test already has your imported data. Use it freely; th
 **E. Anything else**
 25. Look and feel: anything that animates too much or too little, feels slow, or reads wrong. Note it with a screenshot.
 
+### Round 2 fixes 🔨 (published to Reacher Test v9, waiting on Zack's check)
+Zack's notes on the M3–M6 regimen, and what changed:
+- 1, 2: the company page appears and resizes instantly (no slide, no squish), like Kitsu.
+- 4: the company name at the top is plain text with a caret: click and type. Enter or click away saves, Escape undoes.
+- 5: editing a text, number, date, link or person value opens the editor right on top of the value, text lined up.
+- 6: drag a section by anywhere on its header row. Rebuilt on the same drag library as the Board (dnd-kit), which also fixed reordering on a scrolled page.
+- 7: + New chain sits under the chains; + Property and Look up company details sit under Details.
+- 9: every two-click delete grows into "Delete?" with a short animation (one shared `ConfirmButton`).
+- 10: the Board sorts like Trello: cards make room as you drag, drop between any two cards, order is saved (`rank` on each company, `src/model/ranking.ts`). Drops land where the pointer is.
+- 13: quick update skips things already there (same-date meeting of the same kind, same note, same application, same email, unchanged values). The card lists "Already there, skipped", or says "Nothing new".
+- 15: lookup results and "Which … did you mean?" show on the company's own page, not under Quick update. Adding an unclear company opens its page to ask.
+- 20: AI work shows a thin light running around the box: Quick update, Draft with AI, Summarize, lookups.
+- 22: in Email templates, type @ in the subject or body for a field menu (Discord-style). Arrows, Enter or Tab, Escape. Email addresses don't trigger it.
+- Answered, no change: 16 (the summary was right for nonsense input), 18 (To saves the address into the contact and fills their name), 21 (real sending comes with Gmail in M9), 23 (Export = a backup file).
+- **Test list (Reacher Test):**
+  1. Open a company: the page appears instantly. Drag its edge: text reflows with no animation.
+  2. Click the company name at the top: a caret, no box. Type, press Enter. Try again and press Escape: it reverts and the page stays open.
+  3. In the sheet, click a City or Role value: the editor opens on top, with the text in the same spot.
+  4. Drag a section by its title row (not just the grip) above another. Reload: the order stays.
+  5. Delete a note with ×: the button grows into "Delete?" Click again to delete. Same feel on chains, rows, columns and templates.
+  6. Board: drag a card within a lane: the others slide to make room. Drop it between two cards in another lane: it lands exactly there. Reload: order stays.
+  7. Quick update the Sibling Rivalry note twice. The second time: "Nothing new", or a list under "Already there, skipped". No duplicate meeting.
+  8. Add "Big Star" in the sheet's last row: its page opens and asks "Which … did you mean?" there. Pick one. Also try Look up company details at the bottom of Details.
+  9. Draft with AI, Summarize, and a quick update: a light runs around the box while the AI works.
+  10. Email templates: in the body, type "@por" and press Enter: {{my_portfolio}} goes in. Type an email address with @: no menu.
+
+### M6.5: Prep for the UI overhaul ⬜
+So the redesign is a re-skin, not a rewrite:
+- **Safety net:** move the end-to-end browser tests (now in a scratch folder) into the repo as a Playwright suite run by `npm run check`, with a stand-in AI. The overhaul can then change every pixel and the tests still prove nothing broke.
+- **UI kit:** one folder of building blocks (Button, Field, Chip, Popover, Dialog, Menu, ConfirmButton, Card) that every screen uses. Today the look is spread across class strings in each file; the overhaul then restyles the kit instead of every screen.
+- Data, AI and storage code (`src/model`, `src/workspace`, `src/runtime`, `src/ai`) stays as is: none of it knows what the screen looks like.
+- Also here: the "AI check" page for the prompt regression set.
+
 ### M7: UI overhaul and motion pass ⬜
 - After feature parity (M6). Zack directs the look; references: Notion, ClickUp, Kitsu. Claude builds options, Zack picks and gives notes in rounds.
 - Motion stays subtle, fast and functional (see Decisions).
@@ -247,6 +280,11 @@ Before you start: Reacher Test already has your imported data. Use it freely; th
 | 2026-10-28 | Animation starting point: zackzand.com's curve (cubic-bezier(0.4, 0, 0.2, 1)), 350–500ms fades with a small upward drift. Zack expects to change it; every value lives in `src/motion.ts`. |
 | 2026-10-28 | Source of truth is this GitHub repo. The artifact is only the built output, published from the repo. |
 | 2026-10-28 | Design references: Kitsu, ClickUp, Notion, zackzand.com (eased fades, smooth transitions). |
+| 2026-10-29 | Company page: no open/close or resize animation (Kitsu-style). |
+| 2026-10-29 | Board cards keep a manual order (`rank`); dragging sorts like Trello. |
+| 2026-10-29 | One drag library (dnd-kit) for every drag: Board cards and page sections. |
+| 2026-10-29 | AI results about a company (lookups) live on that company's page; Quick update's card is only for quick updates. |
+| 2026-10-29 | Before M7: a committed browser test suite and a shared UI kit, so the overhaul restyles instead of rewriting (Zack: "built for scalability first"). |
 
 ## Notes and risks
 

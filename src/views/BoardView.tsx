@@ -1,12 +1,13 @@
 import {
-  closestCorners,
   DndContext,
   DragOverlay,
+  pointerWithin,
   PointerSensor,
   TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -90,12 +91,21 @@ export function BoardView() {
     return key in lanesNow ? key : Object.keys(lanesNow).find((k) => lanesNow[k]!.includes(key));
   };
 
+  // Whatever is under the pointer, cards before lanes, so a drop lands where
+  // you point (the dragged card's own edges can reach into the next lane).
+  const collide: CollisionDetection = (args) => {
+    const hits = pointerWithin(args);
+    const cards = hits.filter((h) => !(String(h.id) in stored));
+    return cards.length ? cards : hits;
+  };
+
   const onDragStart = (e: DragStartEvent) => {
     setActiveId(String(e.active.id));
     setPreview(stored);
   };
 
-  // Moving over another lane: the card joins it at the hovered position.
+  // Moving over another lane: the card joins it above or below the hovered
+  // card (by which half you're over), or at the end over empty lane space.
   const onDragOver = ({ active, over }: DragOverEvent) => {
     if (!over || !preview) return;
     const from = laneContaining(preview, active.id);
@@ -104,7 +114,10 @@ export function BoardView() {
     const id = String(active.id);
     const target = preview[to]!.filter((x) => x !== id);
     const at = target.indexOf(String(over.id));
-    target.splice(at >= 0 ? at : target.length, 0, id);
+    const dragged = active.rect.current.translated;
+    const below =
+      !!dragged && dragged.top + dragged.height / 2 > over.rect.top + over.rect.height / 2;
+    target.splice(at >= 0 ? at + (below ? 1 : 0) : target.length, 0, id);
     setPreview({ ...preview, [from]: preview[from]!.filter((x) => x !== id), [to]: target });
   };
 
@@ -151,7 +164,7 @@ export function BoardView() {
       </div>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collide}
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
