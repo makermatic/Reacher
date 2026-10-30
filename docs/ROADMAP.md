@@ -8,13 +8,13 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M7 round 1 on Reacher Test (version 13).** The test list is under M7 below. Send numbered notes with screenshots.
+1. ⏳ **Test M7 round 2 on Reacher Test (version 14).** The test list is under M7 below. Send numbered notes with screenshots. Zack OK'd moving on to the next milestone (M7g) once round 2 was in.
 2. ⏳ **Outcome:** kept as in the prototype for now (a field that appears once there's been a meeting or interview). Zack wasn't sure what to do with it; decide once he's used it.
 3. ⏳ Still open from before: the M8 (Calendar) and M9 (Gmail) test lists below. They still apply; the buttons now live on the company page tabs.
 
 ## Now
 
-M7 round 1 (one Status column again, the side panel as the company page, navy palette) is published to Reacher Test v13. Next: Zack's M7 notes, then rework the company page tabs (emails, meetings, applications) and the settings forms in the new style, then motion and polish (M7g). Moving real data to the real Reacher artifact waits for Zack's OK.
+M7 round 2 (comments as notes, suggested next steps, the panel only on the sheet and board, its own pages for Status types, Email templates and Sprints) is published to Reacher Test v14. Next: **M7g**, the older pieces rebuilt in the new style (emails, meetings, applications, Your details and the other settings forms), then motion and polish. Moving real data to the real Reacher artifact waits for Zack's OK.
 
 ## Links
 
@@ -255,7 +255,7 @@ Zack's notes on the round 2 list:
 - ✅ **AI check:** ⚙️ Your details → Run AI check. Six sample quick updates, each graded (✓/✗) against the real AI. Cases live in `src/ai/aiCheck.ts`.
 - Dropped: the shared UI kit. Zack expects the UI rework to be a rewrite (see M7), so that waits for the new design.
 
-### M7: Kitsu-style rework (sprints) 🔨 round 1 published to Reacher Test v13, waiting on Zack's test
+### M7: Kitsu-style rework (sprints) 🔨 round 2 published to Reacher Test v14; M7g next
 Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → companies the way sequences → shots work, while still seeing every company. Clicking a status opens the side panel with a comment feed and status change (comments replace notes, and they update details, chains and meetings). Quick update stays. Sidebar pages: My Tasks, News Feed, Settings. Research: `docs/research/KITSU.md` (from Kitsu's source and a local Kitsu with fake data; screenshots in `docs/research/kitsu/`).
 
 **Approach: rewrite the screens, extend the data.**
@@ -274,7 +274,7 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
 - M7d Side panel: click a status → status picker, comment box, Post; the company's event feed. A comment runs through the AI like a quick update for that company (with Undo).
 - M7e Company page: tabs (Info, Emails, Meetings, Applications) plus the timeline.
 - M7f My Tasks (List, Board, Calendar), News Feed (day timeline, filters, click opens the panel), Settings.
-- M7g Motion and polish rounds with Zack.
+- M7g ⬜ The older pieces in the new style: the Emails section (chains, writer, Gmail), Meetings, Applications, Your details and the other settings forms. Then motion and polish rounds with Zack.
 
 **What changed from the plan (Zack's calls, 2026-10-29/30)**
 - v12 tried stages (a colored column per stage, each with its own status). Zack, round 1: "you went backwards". **Back to one Status column** with the prototype's statuses; Outcome as before. Data saved with stages moves back once on load (the furthest stage decides: Interview, then Applied/Rejected, Meeting, then Wrote back!!, Reached out, Gathering). Replied came back as Reached out for anything v12 had moved.
@@ -286,6 +286,33 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
 - **Dark navy by default,** Light in Settings → Appearance.
 - **Look:** Kitsu for how it works, Reacher's own look. Kitsu is AGPL, so it's inspiration only; no code copied.
 - **Fresh screens, not a retrofit.** The emails, meetings and applications sections and the settings forms still use the older components; they get reworked later.
+
+**Round 2 (v14, Zack's notes of 2026-10-30)**
+- The Status menu sits right next to Post. Feed cards have no names; your comments read like notes (Markdown works), and lines from the AI, Gmail or Calendar get a small mark.
+- A comment is a quick update about that company. The AI writes one plain-words line per company in the feed ("Sibling Rivalry isn't hiring as of 10/30"), not "Status → Rejected". A comment with nothing to change is just kept as a note.
+- **Suggested next steps**, only when something's owed: they wrote back (reply), a follow-up is due (check-in), or a meeting or interview in the last week with nothing sent since (thank-you). Each opens the email writer set up for it.
+- A click outside the panel closes it. The panel only shows with the sheet and the board; My Tasks and News Feed open a company on the sheet with its panel. Opening the full page closes the panel (they were both open at once).
+- Board lanes fold away with a click again (remembered). Stars 40% smaller. Darker navy. Dropdowns open and close instantly (no fade).
+- Add a company: no suggestions in All companies (they're all there); in a sprint, only companies not in it yet. Clicking away clears the row. The typed name is gray.
+- **Status types, Email templates and Sprints** are their own pages in the menu (Customize). Settings keeps Your details, Appearance, Gmail & Calendar, Import & export and AI check. The template dropdown is labeled "Suggested email".
+- Answered: Gmail already checks every 10 minutes while Reacher is open, once allowed (Settings → Gmail & Calendar), and a reply sets Wrote back!! on its own. The Emails section shows every chain a company has.
+
+#### Test list for M7 round 2 (Reacher Test v14)
+1. It's a darker navy.
+2. Open a company. The Status menu sits right next to Post.
+3. Type a comment with Markdown: `**bold**`, then a line starting with `- `. Click Post. It shows in the feed bold and as a list, with no name on it. The box clears.
+4. Type "they're not hiring right now" and Post. Under your comment, a second line in plain words from the AI (small mark, no name), like "Psyop isn't hiring as of 10/30", and the status changes.
+5. Open loyalkaspar (Wrote back!!). A suggestion shows: "They wrote back. Reply to them". Click it: it jumps to the email writer, replying in their latest chain. Companies with nothing owed show no suggestion.
+6. With a panel open, click somewhere else on the page (the search box, empty space). The panel closes. Clicking another company's name or status switches to it.
+7. Click ↗ in a panel. The full page opens and the panel is gone. Back to companies: still no panel.
+8. Open Settings, My Tasks or News Feed: no panel. Click a task: you land on the sheet with that company's panel open.
+9. Board: click a lane's header. It folds to a thin strip; click again to open it. Dragging onto a folded lane still works.
+10. Stars in Details are smaller.
+11. In All companies, type a name you already have in "+ Add a company": no list pops up; Enter says it's already on the list. In a sprint, only companies not in it show up.
+12. Type a name, then click somewhere else: the row clears. The name you type is gray.
+13. Menu: Customize has Status types, Email templates and Sprints. Settings no longer has them.
+14. Status types: each status has a "Suggested email" dropdown, explained at the top.
+15. Any dropdown (status, sprint, filters) opens and closes instantly.
 
 #### Test list for M7 round 1 (Reacher Test v13)
 Your test data moves back to one Status the first time it opens.
@@ -387,6 +414,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-30 | Round 2: comments are notes (no names, Markdown); the AI writes a plain-words line per company; suggestions only when something's owed; the panel only on the sheet and board, never with the full page; Status types, Email templates and Sprints get their own pages. Then on to M7g. |
 | 2026-10-30 | Reverted after Zack tested v12 ("you went backwards"): one Status column with the prototype's statuses. The side panel is the company page (comment box, status by Post, feed, then sections); name and status both open it. No multi-select. Star fields to show them on the sheet. Navy palette. Outcome stays as in the prototype until Zack decides. |
 | 2026-10-30 | Kitsu is inspiration for how things work, not the look, and no code is copied (it's AGPL). Screens are built fresh, not retrofitted. |
 
