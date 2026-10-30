@@ -8,13 +8,13 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Test M7 on Reacher Test (version 12).** The test list is under M7 below. Send numbered notes with screenshots.
-2. ⏳ **Check the default stages and statuses** (Outreach, Meeting, Application, Interview × To do, Sent, Reply, Scheduled, Done, No). Rename or add any in Settings → Stages & statuses, or tell Claude.
+1. ⏳ **Test M7 round 1 on Reacher Test (version 13).** The test list is under M7 below. Send numbered notes with screenshots.
+2. ⏳ **Outcome:** kept as in the prototype for now (a field that appears once there's been a meeting or interview). Zack wasn't sure what to do with it; decide once he's used it.
 3. ⏳ Still open from before: the M8 (Calendar) and M9 (Gmail) test lists below. They still apply; the buttons now live on the company page tabs.
 
 ## Now
 
-M7 (sprints, stages and the new UI) is published to Reacher Test v12. Next: Zack's M7 notes, then rework the company page tabs (emails, meetings, applications) and the settings forms in the new style, then motion and polish (M7g). Moving real data to the real Reacher artifact waits for Zack's OK.
+M7 round 1 (one Status column again, the side panel as the company page, navy palette) is published to Reacher Test v13. Next: Zack's M7 notes, then rework the company page tabs (emails, meetings, applications) and the settings forms in the new style, then motion and polish (M7g). Moving real data to the real Reacher artifact waits for Zack's OK.
 
 ## Links
 
@@ -255,7 +255,7 @@ Zack's notes on the round 2 list:
 - ✅ **AI check:** ⚙️ Your details → Run AI check. Six sample quick updates, each graded (✓/✗) against the real AI. Cases live in `src/ai/aiCheck.ts`.
 - Dropped: the shared UI kit. Zack expects the UI rework to be a rewrite (see M7), so that waits for the new design.
 
-### M7: Kitsu-style rework (sprints) 🔨 M7a–f published to Reacher Test v12, waiting on Zack's test
+### M7: Kitsu-style rework (sprints) 🔨 round 1 published to Reacher Test v13, waiting on Zack's test
 Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → companies the way sequences → shots work, while still seeing every company. Clicking a status opens the side panel with a comment feed and status change (comments replace notes, and they update details, chains and meetings). Quick update stays. Sidebar pages: My Tasks, News Feed, Settings. Research: `docs/research/KITSU.md` (from Kitsu's source and a local Kitsu with fake data; screenshots in `docs/research/kitsu/`).
 
 **Approach: rewrite the screens, extend the data.**
@@ -277,36 +277,31 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
 - M7g Motion and polish rounds with Zack.
 
 **What changed from the plan (Zack's calls, 2026-10-29/30)**
-- **Stages instead of one Status.** The colored columns are stages (like Kitsu task types): Outreach, Meeting, Application, Interview. Each company has a status in each stage: To do, Sent, Reply, Scheduled, Done, No. Both lists are editable in Settings → Stages & statuses; each status has a plain meaning the AI reads. Fields are the uncolored columns (custom metadata).
-- **Status per sprint.** A company in two sprints has its own stage statuses in each. All companies shows the latest. The company page shows a row per sprint.
+- v12 tried stages (a colored column per stage, each with its own status). Zack, round 1: "you went backwards". **Back to one Status column** with the prototype's statuses; Outcome as before. Data saved with stages moves back once on load (the furthest stage decides: Interview, then Applied/Rejected, Meeting, then Wrote back!!, Reached out, Gathering). Replied came back as Reached out for anything v12 had moved.
+- **Status per sprint.** A company in two sprints has its own status in each. All companies shows the latest. The company page shows a row per sprint.
 - **Sprint names** are "<name> <start>", like "First Light 10/29/26". When a newer sprint is made or two weeks pass with no activity, the end date is added ("First Light 10/29/26 - 11/15/26"). Editable anytime; an ended sprint still works.
-- **Dark by default,** Light in Settings → Appearance.
-- **A comment is an update about that company.** Posting "they're not hiring" in a company's panel logs the comment and runs it through the AI as a quick update scoped to that company.
-- **Look:** Kitsu for how it works, Reacher's own look (Zack: "don't make it look too much kitsu"). Kitsu is AGPL, so it's inspiration only; no code copied.
-- **Fresh screens, not a retrofit** (Zack: "Please don't" retrofit). The company page tabs (Emails, Meetings, Applications) and the settings forms still use the older components inside the new layout; they get reworked next.
+- **The side panel is the company page,** opened by clicking a company's name or its status (Zack, round 1). On top, the comment box with the status next to Post (it changes on Post, like Kitsu); then the feed; then Details, Emails, Meetings and Applications. Enter is a new line; Post or Ctrl/Cmd+Enter posts. A comment is an AI update about that company. The full page (↗) is still there.
+- **No multi-select** (Zack: unnecessary with one status).
+- **Star a field** (in Details) to show it on the sheet; no "not on the list" labels. Display does the same.
+- **Dark navy by default,** Light in Settings → Appearance.
+- **Look:** Kitsu for how it works, Reacher's own look. Kitsu is AGPL, so it's inspiration only; no code copied.
+- **Fresh screens, not a retrofit.** The emails, meetings and applications sections and the settings forms still use the older components; they get reworked later.
 
-**Moving old data:** runs once on load (and on importing a prototype export). Reached out → Outreach Sent. Wrote back!! → Outreach Reply. Replied → Outreach Sent. Meeting → Outreach Done + Meeting Done. Applied → Application Sent. Rejected → Application No. Interview → Application Done + Interview Done. Gathering → Outreach To do. An upcoming meeting or interview shows as Scheduled. Outcome becomes a plain field. Notes show as comments.
-
-**Automations:** a reply (pasted or from Gmail) sets the active stage to Reply. Logging a sent email sets Sent. An application sets Application Sent. A meeting sets Meeting Scheduled/Done (and Outreach Done). An interview sets Interview Scheduled/Done (and Application Done). Each one shows in the toast and the feed, like "Outreach → Reply".
-
-#### Test list for M7 (Reacher Test v12)
-Your test data moves to stages the first time it opens.
-1. Open Reacher Test. It's dark. The single Status column is now four colored stage columns. Check a few companies against "Moving old data" above.
-2. Click a status cell. It highlights and the panel opens on the right: that stage's status, a follow-up date, a comment box and Activity.
-3. Change the status in the panel. The cell changes right away, and Activity shows a line like "Outreach: Sent → Reply".
-4. In the comment box type "they're not hiring right now" and press Enter. The comment shows in Activity, and the AI updates that company (no need to name it), with Undo.
-5. Ctrl-click (Cmd on Mac) two cells, or Shift-click for a range. The panel says "2 selected". Pick a status, click "Change status for the 2 selected". Both change.
-6. Top left, **All companies ▾ → New sprint**, type "First Light", Enter. The list is empty and the label reads "First Light 10/30/26".
-7. In "+ Add a company" type a company you already have. It's suggested; pick it and it joins with its stage statuses. A new name creates the company and looks it up.
-8. Change a status inside First Light, then switch to All companies. All shows the latest status. Open the company page (↗ on the row): the Stages table shows Latest plus a row per sprint.
-9. Make a second sprint. First Light no longer says Current (its end date shows from the next day on). You can still work in it.
-10. **Board** (top right toggle). Pick a stage in the Stage menu. Lanes are its statuses. Drag cards between lanes and reorder them; a reload keeps the order.
-11. Search: `outreach=reply` shows only those. `status=sent` matches Sent in any stage. Try `city=la` and `-buck`. The bookmark icon saves a search as a chip.
-12. Edit a field cell in place: City, type LA, Enter → Los Angeles. **Display** turns stages and fields on or off. Column headers have menus (rename, sort, move, hide).
-13. Click the R logo for the menu. **My Tasks** lists replies you owe, follow-ups, prep and check-ins; click one to open the panel. **News Feed** shows everything by day, with Type, Stage, Status and Who filters.
-14. Settings → Stages & statuses: add a stage "Offer". It shows as a new colored column. Rename, recolor and reorder work.
-15. Settings → Appearance → Light. Everything switches to light.
-16. The quick update bar still works: "Applied to Buck today" → Buck's Application → Sent.
+#### Test list for M7 round 1 (Reacher Test v13)
+Your test data moves back to one Status the first time it opens.
+1. Open Reacher Test. It's dark navy. There's one Status column again, then Outcome and your starred fields.
+2. Click a company's **status**. The panel opens on the right: comment box on top, the Status menu next to Post, the feed under it. Scroll down for Details, Emails, Meetings and Applications.
+3. Close it, then click a company's **name**. The same panel opens.
+4. In the comment box type a line, press Enter. It makes a new line (nothing posts).
+5. Pick a different status next to Post. "Changes on Post" shows and the sheet doesn't change yet. Click **Post**: the status changes, and the feed shows your comment and "Status: X → Y".
+6. Type "they're not hiring right now" and click Post. The AI updates that company (likely Rejected), with Undo.
+7. In Details, click a field's **star** (Website, say). It shows up as a column on the sheet. Click it again to take it off.
+8. In "+ Add a company", type "Gre". **Gretel comes first**, New company "Gre" last. Enter adds Gretel (already on the list), not a duplicate.
+9. Type "Gre" again, press **Escape**: the list closes and the name stays. Escape again clears it. Type again and click somewhere else: the list closes.
+10. The top bar has only the sprint menu now. News Feed is in the menu (R logo).
+11. Board: lanes are the statuses again. Drag cards between lanes and reorder; a reload keeps it. Click a card to open its panel.
+12. Settings → Statuses: rename a status, change its color or group, pick the template it suggests, reorder, add one ("Ghosted"). It shows in the Status menu right away.
+13. Sprints still work as before: a new sprint, add companies, each sprint keeps its own status.
 
 ### M8: Google Calendar 🔨 (published to Reacher Test v10–11, waiting on Zack's test)
 - ✅ Through the viewer's own Google Calendar connector (artifact `mcp` capability; tools `create_event` and `list_events` only). Nothing is fetched until a company page is open.
@@ -392,6 +387,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-30 | Reverted after Zack tested v12 ("you went backwards"): one Status column with the prototype's statuses. The side panel is the company page (comment box, status by Post, feed, then sections); name and status both open it. No multi-select. Star fields to show them on the sheet. Navy palette. Outcome stays as in the prototype until Zack decides. |
 | 2026-10-30 | Kitsu is inspiration for how things work, not the look, and no code is copied (it's AGPL). Screens are built fresh, not retrofitted. |
 
 ## Notes and risks
