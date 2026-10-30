@@ -247,12 +247,6 @@ function CompanyPanel({ company: stored }: { company: Company }) {
             className="block w-full resize-y rounded-t-xl border-0 bg-transparent px-3 py-2.5 text-[14px] text-fg outline-none placeholder:text-faint"
           />
           <div className="flex flex-wrap items-center gap-2 border-t border-line px-2.5 py-2">
-            <span
-              className="text-[11.5px] text-faint"
-              title="**bold**, *italic*, - lists, [links](url)"
-            >
-              Markdown works
-            </span>
             <span className="ml-auto flex items-center gap-2">
               {changed && <span className="text-[12px] text-faint">Changes on Post</span>}
               <StatusPicker col={sc} value={status} onPick={setStatus} label="Status" />
