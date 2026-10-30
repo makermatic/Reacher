@@ -11,6 +11,8 @@ export type AppUI = {
   openSidebar: () => void;
   /** The full company page. */
   openPage: (id: string) => void;
+  /** The companies list with this company open in the side panel. */
+  showCompany: (id: string) => void;
 };
 
 export const AppUIContext = createContext<AppUI | null>(null);

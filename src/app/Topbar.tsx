@@ -30,7 +30,14 @@ export function Topbar() {
   const { me } = useWorkspace();
   const sprintPages =
     route.page === 'companies' || route.page === 'news' || route.page === 'company';
-  const title = route.page === 'tasks' ? 'My Tasks' : route.page === 'settings' ? 'Settings' : '';
+  const title =
+    {
+      tasks: 'My Tasks',
+      settings: 'Settings',
+      statuses: 'Status types',
+      templates: 'Email templates',
+      sprints: 'Sprints',
+    }[route.page as string] ?? '';
 
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-topbar px-3">
@@ -170,7 +177,7 @@ function SprintPicker() {
         muted
         onSelect={() => {
           setOpen(false);
-          navigate({ page: 'settings', tab: 'sprints' });
+          navigate({ page: 'sprints' });
         }}
       >
         Manage sprints…

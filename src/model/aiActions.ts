@@ -39,7 +39,25 @@ export type QuickAction =
   | { type: 'set_field'; company: string; column: string; value: unknown };
 
 /** What the quick update prompt asks for back. */
-export type QuickReply = { confirm?: boolean; reply?: string; actions?: unknown };
+export type QuickReply = { confirm?: boolean; reply?: string; actions?: unknown; feed?: unknown };
+
+/** The AI's feed line per company, by company name (M7 round 2). */
+export type FeedLines = Record<string, string>;
+
+/** Keeps the feed lines that are plain, short strings. */
+export function feedLines(raw: unknown): FeedLines {
+  if (!isPlainObject(raw)) return {};
+  const out: FeedLines = {};
+  for (const [name, line] of Object.entries(raw))
+    if (typeof line === 'string' && line.trim() && line.length <= 300) out[name] = line.trim();
+  return out;
+}
+
+/** The line for this company: matched by name like findCompany does, or null. */
+export function feedLineFor(lines: FeedLines, name: string): string | null {
+  const key = Object.keys(lines).find((k) => norm(k) === norm(name));
+  return key ? lines[key]! : null;
+}
 
 /**
  * Find a tracked company by name: exact (ignoring case and punctuation),

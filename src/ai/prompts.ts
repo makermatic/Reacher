@@ -120,7 +120,7 @@ Companies already tracked: ${tracked}
 ${history ? `What the tracker already has for the companies in this note:\n${history}\n` : ''}
 The note: """${note}"""
 ${about ? `The note was written on ${about}'s page, so it's about ${about} (already tracked) even if it doesn't name them. Use that exact name for every action unless the note clearly names another company.\n` : ''}
-Reply with only JSON: {"confirm": false, "reply": "one short sentence saying what you understood", "actions": [ ... ]}
+Reply with only JSON: {"confirm": false, "reply": "one short sentence saying what you understood", "actions": [ ... ], "feed": {"<company name>": "one line for that company's feed"}}
 Set "confirm" to true only when you're genuinely unsure (which company is meant, an ambiguous date, conflicting details), and put the question in "reply". Otherwise false: the changes are applied straight away.
 Action shapes:
 {"type":"add_company","company":"Official name"}   only if not already tracked
@@ -142,7 +142,8 @@ Rules:
 - Use the tracked company's exact name when the note refers to it. Use the company's official spelling for new ones (e.g. BigStar, not Big Star).
 - Treat abbreviations as the full thing (LA = Los Angeles, NYC = New York) and store full names in fields.
 - When the note repeats something the tracker already has (another call, another email), word the new entry as a follow-up ("Spoke again…", "Followed up…"). Never copy details from older entries into the new one.
-- If the note is too unclear to act on, return no actions and ask one short question in "reply".`;
+- If the note is too unclear to act on, return no actions and ask one short question in "reply".
+- "feed" (M7 round 2): for each company with actions, one short line in plain words, the way a person would note it in a tracker, with the date where it helps. Like "Sibling Rivalry isn't hiring as of 10/30" or "Interview with Buck on 11/6 at 12:30". Not "Status → Rejected". No Markdown.`;
 }
 
 /** Columns lookup may fill: facts about the company, never the job seeker's own fields. */

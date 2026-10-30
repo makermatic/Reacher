@@ -74,7 +74,16 @@ function hideAfter(n: Notice): number | null {
 }
 
 /** The quick update's result card, under whatever posted it (`origin`: 'bar' or a company id). */
-export function NoticeCard({ origin, onApplied }: { origin: string; onApplied: () => void }) {
+export function NoticeCard({
+  origin,
+  onApplied,
+  inline = false,
+}: {
+  origin: string;
+  onApplied: () => void;
+  /** In the flow of the page (the side panel) instead of floating under the bar. */
+  inline?: boolean;
+}) {
   const { notice: current, noticeOrigin, dismiss, undo, applyConfirmed } = useAssistant();
   const notice = noticeOrigin === origin ? current : null;
   const hovered = useRef(false);
@@ -103,7 +112,7 @@ export function NoticeCard({ origin, onApplied }: { origin: string; onApplied: (
           role="status"
           onMouseEnter={() => (hovered.current = true)}
           onMouseLeave={() => (hovered.current = false)}
-          className={`absolute inset-x-0 top-[calc(100%+6px)] grid gap-2 rounded-xl border border-line-strong bg-surface px-3.5 py-3 shadow-panel ${
+          className={`${inline ? 'mt-2' : 'absolute inset-x-0 top-[calc(100%+6px)] shadow-panel'} grid gap-2 rounded-xl border border-line-strong bg-surface px-3.5 py-3 ${
             notice.kind === 'done' ? 'border-l-[3px] border-l-accent' : ''
           }`}
         >

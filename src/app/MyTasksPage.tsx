@@ -170,7 +170,7 @@ function DueText({ due }: { due: string }) {
 
 function TaskTable({ tasks }: { tasks: Task[] }) {
   const { board, pages } = useWorkspace();
-  const { select, selected } = useAppUI();
+  const { showCompany, selected } = useAppUI();
   const info = useSprintInfo();
   if (!tasks.length)
     return (
@@ -201,7 +201,7 @@ function TaskTable({ tasks }: { tasks: Task[] }) {
             return (
               <tr
                 key={t.id}
-                onClick={() => select(t.company.id)}
+                onClick={() => showCompany(t.company.id)}
                 aria-selected={selected === t.company.id}
                 className="cursor-pointer transition-colors hover:bg-hover aria-selected:bg-selected/40"
               >
@@ -232,11 +232,11 @@ function TaskTable({ tasks }: { tasks: Task[] }) {
 
 function TaskCard({ task }: { task: Task }) {
   const { board } = useWorkspace();
-  const { select } = useAppUI();
+  const { showCompany } = useAppUI();
   return (
     <button
       type="button"
-      onClick={() => select(task.company.id)}
+      onClick={() => showCompany(task.company.id)}
       className="grid gap-2 rounded-[10px] bg-surface p-3 text-left transition-colors hover:bg-hover"
     >
       <b className="text-[14px] text-strong">{task.title}</b>
@@ -276,7 +276,7 @@ function TaskBoard({ tasks }: { tasks: Task[] }) {
 }
 
 function TaskCalendar({ tasks }: { tasks: Task[] }) {
-  const { select } = useAppUI();
+  const { showCompany } = useAppUI();
   const today = todayISO();
   const [month, setMonth] = useState(today.slice(0, 7));
   const [y, m] = month.split('-').map(Number) as [number, number];
@@ -337,7 +337,7 @@ function TaskCalendar({ tasks }: { tasks: Task[] }) {
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => select(t.company.id)}
+                    onClick={() => showCompany(t.company.id)}
                     className="mb-1 block w-full truncate rounded border-l-[3px] bg-surface-2 px-1.5 py-0.5 text-left text-[12px] text-fg hover:bg-hover"
                     style={{ borderLeftColor: KIND_COLOR[t.kind] }}
                     title={t.title}

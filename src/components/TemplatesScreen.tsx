@@ -13,7 +13,7 @@ import { useToast } from './Toast';
 import { useFieldPicker } from './FieldPicker';
 import { fromHashes, toHashes } from '../model/mention';
 
-/** The Email templates editor (SPEC section 8), shown in Settings → Email templates. */
+/** The Email templates editor (SPEC section 8), a page of its own (menu → Email templates). */
 export function TemplatesScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
@@ -288,7 +288,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
       <p className="m-0 text-[13px] text-muted">
         {usedBy.length
           ? `Suggested at: ${usedBy.join(', ')}`
-          : 'Not suggested at any status yet. Set that in Settings → Statuses.'}
+          : 'Not suggested at any status yet. Set that in Status types (menu).'}
       </p>
       <div className="flex gap-2">
         <button

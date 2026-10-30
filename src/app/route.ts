@@ -9,22 +9,17 @@ export type Route =
   | { page: 'company'; id: string; tab: CompanyTab }
   | { page: 'tasks'; tab: TasksTab }
   | { page: 'news' }
+  /** Statuses, Email templates and Sprints have their own pages (Zack, M7 round 2). */
+  | { page: 'statuses' }
+  | { page: 'templates' }
+  | { page: 'sprints' }
   | { page: 'settings'; tab: SettingsTab };
 
 export const COMPANY_TABS = ['info', 'emails', 'meetings', 'applications'] as const;
 export type CompanyTab = (typeof COMPANY_TABS)[number];
 export const TASKS_TABS = ['list', 'board', 'calendar'] as const;
 export type TasksTab = (typeof TASKS_TABS)[number];
-export const SETTINGS_TABS = [
-  'details',
-  'statuses',
-  'templates',
-  'sprints',
-  'appearance',
-  'connections',
-  'data',
-  'ai',
-] as const;
+export const SETTINGS_TABS = ['details', 'appearance', 'connections', 'data', 'ai'] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 const oneOf = <T extends string>(list: readonly T[], v: string | undefined, fallback: T): T =>
@@ -40,8 +35,13 @@ export function parseRoute(hash: string): Route {
     case 'tasks':
       return { page: 'tasks', tab: oneOf(TASKS_TABS, a, 'list') };
     case 'news':
-      return { page: 'news' };
+    case 'statuses':
+    case 'templates':
+    case 'sprints':
+      return { page };
     case 'settings':
+      // Old links to the tabs that became pages still land on them.
+      if (a === 'statuses' || a === 'templates' || a === 'sprints') return { page: a };
       return { page: 'settings', tab: oneOf(SETTINGS_TABS, a, 'details') };
     default:
       return { page: 'companies' };
@@ -55,7 +55,10 @@ export function formatRoute(r: Route): string {
     case 'tasks':
       return `#/tasks/${r.tab}`;
     case 'news':
-      return '#/news';
+    case 'statuses':
+    case 'templates':
+    case 'sprints':
+      return `#/${r.page}`;
     case 'settings':
       return `#/settings/${r.tab}`;
     default:

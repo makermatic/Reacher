@@ -34,7 +34,14 @@ type Edit = { subject: string; body: string; fromAI: boolean } | null;
  * template, fill it from the company, contact and Your details, edit freely,
  * then copy it, open it in a mail app, or log it as sent.
  */
-export function ComposeEmail({ company }: { company: Company }) {
+export function ComposeEmail({
+  company,
+  preset,
+}: {
+  company: Company;
+  /** Start from a suggested next step (M7 round 2): its template and chain. */
+  preset?: { template: string; target: string };
+}) {
   const { board, chains, templates, me, actions } = useWorkspace();
   const assistant = useAssistant();
   const { navigate } = useAppUI();
@@ -44,8 +51,10 @@ export function ComposeEmail({ company }: { company: Company }) {
   const myChains = chains
     .filter((ch) => ch.companyId === company.id)
     .sort((a, b) => (a.started < b.started ? 1 : -1));
-  const [target, setTarget] = useState(() => defaultTarget(company, chains));
-  const [tplId, setTplId] = useState(() => defaultTemplateId(board, company, templates));
+  const [target, setTarget] = useState(() => preset?.target ?? defaultTarget(company, chains));
+  const [tplId, setTplId] = useState(
+    () => preset?.template || defaultTemplateId(board, company, templates),
+  );
   const [personCol, setPersonCol] = useState('');
   const [edit, setEdit] = useState<Edit>(null);
   const [followDays, setFollowDays] = useState(7);

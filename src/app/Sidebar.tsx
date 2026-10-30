@@ -1,4 +1,14 @@
-import { Building2, CheckSquare, Mail, Radio, Settings, Sparkles, UserRound } from 'lucide-react';
+import {
+  Building2,
+  CheckSquare,
+  Layers,
+  Mail,
+  Radio,
+  Settings,
+  Sparkles,
+  Tags,
+  UserRound,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, type ReactNode } from 'react';
 import { duration, ease, fade } from '../motion';
@@ -81,6 +91,20 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               'Companies',
               route.page === 'companies' || route.page === 'company',
             )}
+            <div className={group}>Customize</div>
+            {item(
+              { page: 'statuses' },
+              <Tags size={20} />,
+              'Status types',
+              route.page === 'statuses',
+            )}
+            {item(
+              { page: 'templates' },
+              <Mail size={20} />,
+              'Email templates',
+              route.page === 'templates',
+            )}
+            {item({ page: 'sprints' }, <Layers size={20} />, 'Sprints', route.page === 'sprints')}
             <div className={group}>Settings</div>
             {item(
               { page: 'settings', tab: 'details' },
@@ -89,22 +113,16 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               route.page === 'settings' && route.tab === 'details',
             )}
             {item(
-              { page: 'settings', tab: 'templates' },
-              <Mail size={20} />,
-              'Email templates',
-              route.page === 'settings' && route.tab === 'templates',
-            )}
-            {item(
               { page: 'settings', tab: 'ai' },
               <Sparkles size={20} />,
               'AI check',
               route.page === 'settings' && route.tab === 'ai',
             )}
             {item(
-              { page: 'settings', tab: 'sprints' },
+              { page: 'settings', tab: 'appearance' },
               <Settings size={20} />,
               'Settings',
-              route.page === 'settings' && !['details', 'templates', 'ai'].includes(route.tab),
+              route.page === 'settings' && !['details', 'ai'].includes(route.tab),
             )}
           </motion.nav>
         </>

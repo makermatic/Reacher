@@ -1,5 +1,6 @@
 import { Bot, Calendar, Mail, UserRound } from 'lucide-react';
 import { colById } from '../model/board';
+import { Markdown } from '../lib/markdown';
 import { BY_LABEL, dayOf, KIND_LABEL, timeOf } from '../model/events';
 import { fmtDate, todayISO } from '../model/dates';
 import type { EventBy, FeedEvent } from '../model/types';
@@ -60,19 +61,30 @@ export function when(e: FeedEvent) {
   return `${day === todayISO() ? 'Today' : fmtDate(day)} ${timeOf(e)}`.trim();
 }
 
-/** One event as a card: the status it set (or its kind), who, when, the text. */
+/**
+ * One event as a card: what you typed reads like a note (Markdown works);
+ * lines from the AI, Gmail or Calendar get a small mark. No names.
+ */
 export function FeedCard({ event }: { event: FeedEvent }) {
   const info = useSprintInfo();
-
+  const mine = event.by === 'you';
+  const tagged = !(mine && event.kind === 'comment');
   return (
-    <article className="grid gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-3">
-      <header className="flex items-center gap-2.5">
-        <EventTag event={event} />
-        <ByBadge by={event.by} size={24} />
-        <b className="text-[14px] text-strong">{BY_LABEL[event.by]}</b>
-        <span className="ml-auto text-[12px] whitespace-nowrap text-muted">{when(event)}</span>
+    <article
+      className={`grid gap-1.5 rounded-xl border px-3.5 py-3 ${
+        mine ? 'border-line bg-surface' : 'border-line/70 bg-surface-2/60'
+      }`}
+    >
+      <header className="flex min-h-5 items-center gap-2">
+        {!mine && (
+          <span title={BY_LABEL[event.by]} className="inline-flex">
+            <ByBadge by={event.by} size={18} />
+          </span>
+        )}
+        {tagged && <EventTag event={event} />}
+        <span className="ml-auto text-[12px] whitespace-nowrap text-faint">{when(event)}</span>
       </header>
-      <p className="m-0 text-[14px] whitespace-pre-wrap text-fg">{event.text}</p>
+      <Markdown text={event.text} className="text-[14px] text-fg" />
       {event.sprintId && info[event.sprintId] && (
         <span className="text-[11.5px] text-faint">{info[event.sprintId]!.label}</span>
       )}

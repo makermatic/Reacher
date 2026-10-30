@@ -13,9 +13,24 @@ test('one Status column, with Outcome after a meeting', async ({ page }) => {
   await expect(field(page, 'Psyop', 'Outcome')).toHaveCount(0);
 });
 
-test('add a company: companies you have come first, Escape closes the list', async ({ page }) => {
+test('add a company: in a sprint, companies you have come first', async ({ page }) => {
   const input = page.locator('#new-company');
   const list = page.getByRole('listbox', { name: 'Companies you have' });
+  // In All companies they're all on the list already: no suggestions.
+  await input.fill('Gre');
+  await expect(list).toHaveCount(0);
+  await input.fill('buck');
+  await input.press('Enter');
+  await expectToast(page, 'Buck is already on the list');
+  await expect(row(page, 'Buck')).toHaveCount(1);
+  await input.fill('Sibling Rivalry');
+  await input.press('Enter');
+  await expect(row(page, 'Sibling Rivalry')).toBeVisible();
+  // In a sprint: the ones not in it yet, then New company.
+  await page.getByRole('button', { name: 'Sprint', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'New sprint' }).click();
+  await page.fill('#new-sprint-name', 'First Light');
+  await page.keyboard.press('Enter');
   await input.fill('Gre');
   await expect(list.getByRole('menuitemradio')).toHaveText([/Gretel/, 'New company “Gre”']);
   await page.keyboard.press('Escape');
@@ -23,20 +38,16 @@ test('add a company: companies you have come first, Escape closes the list', asy
   await expect(input).toHaveValue('Gre');
   await page.keyboard.press('Escape');
   await expect(input).toHaveValue('');
-  // Enter picks the company you have, never a duplicate.
-  await input.fill('buck');
+  // Enter adds the company you have, never a duplicate.
+  await input.fill('gre');
   await input.press('Enter');
-  await expectToast(page, 'Buck is already on the list');
-  await expect(row(page, 'Buck')).toHaveCount(1);
-  // A new name makes a new company.
-  await input.fill('Sibling Rivalry');
-  await input.press('Enter');
-  await expect(row(page, 'Sibling Rivalry')).toBeVisible();
-  // A click elsewhere closes the list.
-  await input.fill('Gre');
+  await expectToast(page, 'Added Gretel to First Light');
+  // Clicking away clears the row.
+  await input.fill('Bu');
   await expect(list).toBeVisible();
   await page.locator('#sheet-search').click();
   await expect(list).toHaveCount(0);
+  await expect(input).toHaveValue('');
 });
 
 test('name and status both open the panel; status changes on Post', async ({ page }) => {
@@ -50,6 +61,16 @@ test('name and status both open the panel; status changes on Post', async ({ pag
   await expect(panel(page)).toHaveCount(0);
   await page.locator('button[title="Open Psyop"]').click();
   await expect(panel(page).getByText('Psyop').first()).toBeVisible();
+  // A click outside the panel closes it.
+  await page.locator('#sheet-search').click();
+  await expect(panel(page)).toHaveCount(0);
+  // The full page and the panel are never open together.
+  await statusCell(page, 'Psyop').click();
+  await panel(page).getByRole('button', { name: 'Open the company page' }).click();
+  await expect(page.getByLabel('Rename company')).toBeVisible();
+  await expect(panel(page)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Back to companies' }).click();
+  await expect(panel(page)).toHaveCount(0);
 });
 
 test('fields edit in place; abbreviations expand', async ({ page }) => {

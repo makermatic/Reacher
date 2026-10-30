@@ -5,11 +5,9 @@
  */
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronDown } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import { colorFor, optionLabel, optionOf, optList } from '../model/board';
 import type { Column, ColorName } from '../model/types';
-import { popIn } from '../motion';
 
 export const ui = {
   button:
@@ -137,31 +135,19 @@ export function Pop({
   return (
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
       <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
-      <AnimatePresence>
-        {open && (
-          <RadixPopover.Portal forceMount>
-            <RadixPopover.Content
-              asChild
-              forceMount
-              align={align}
-              sideOffset={6}
-              collisionPadding={12}
-              aria-label={label}
-            >
-              <motion.div
-                variants={popIn}
-                initial="initial"
-                animate="enter"
-                exit="exit"
-                style={{ width }}
-                className={className}
-              >
-                {children}
-              </motion.div>
-            </RadixPopover.Content>
-          </RadixPopover.Portal>
-        )}
-      </AnimatePresence>
+      {/* No fade (Zack, M7 round 2): menus open and close instantly. */}
+      <RadixPopover.Portal>
+        <RadixPopover.Content
+          align={align}
+          sideOffset={6}
+          collisionPadding={12}
+          aria-label={label}
+          style={{ width }}
+          className={className}
+        >
+          {children}
+        </RadixPopover.Content>
+      </RadixPopover.Portal>
     </RadixPopover.Root>
   );
 }

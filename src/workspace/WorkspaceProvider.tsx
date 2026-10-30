@@ -12,7 +12,13 @@ import { useToast } from '../components/Toast';
 import { nextStatus, type StatusEvent } from '../model/automation';
 import { isStagesBoard, unstageCompany } from '../model/unstage';
 import { boardOrDefault, colById, metaPatch, optionOf, statusCol } from '../model/board';
-import { findCompany, describeAction, type QuickAction } from '../model/aiActions';
+import {
+  describeAction,
+  feedLineFor,
+  findCompany,
+  type FeedLines,
+  type QuickAction,
+} from '../model/aiActions';
 import { makeEvent, statusText } from '../model/events';
 import {
   joinPatch,
@@ -459,7 +465,7 @@ function makeActions(
      * companies join the sprint on screen. Each company's feed gets the note
      * and what the AI changed.
      */
-    applyQuick(plan: QuickPlan, note: string, about?: string) {
+    applyQuick(plan: QuickPlan, note: string, about?: string, feed: FeedLines = {}) {
       const today = todayISO();
       const created = plan.created.map((c) =>
         active ? { ...c, ...joinPatch(board, c, active, today) } : c,
@@ -487,21 +493,33 @@ function makeActions(
       for (const [id, acts] of byCompany) {
         const c = all.find((x) => x.id === id)!;
         const sid = sprintFor(company(id) ?? c) ?? (active && c.sprints?.[active] ? active : null);
+        // What the AI did, as one line in plain words (M7 round 2): the AI's own
+        // line when it gave one, else each change spelled out. A status change
+        // keeps its chip.
+        const set = acts.find((a) => a.type === 'set_status' && a.column === statusCol(board).name);
+        const from = (company(id)?.meta ?? {}).status ?? null;
+        const text =
+          feedLineFor(feed, c.name) ??
+          acts
+            .map((a) =>
+              a.type === 'set_status' && a.column === statusCol(board).name
+                ? statusText(board, 'status', from, c.meta.status)
+                : describeAction(board, a),
+            )
+            .join('\n');
         const events = [
           ...(id === about ? [] : [makeEvent('comment', note, 'you', { sprintId: sid })]),
-          ...acts.map((a) => {
-            if (a.type !== 'set_status')
-              return makeEvent(KIND_OF[a.type], describeAction(board, a), 'ai', { sprintId: sid });
-            const colId = board.columns.find((col) => col.name === a.column)?.id ?? 'status';
-            const from = (company(id)?.meta ?? {})[colId] ?? null;
-            return makeEvent('status', statusText(board, colId, from, c.meta[colId]), 'ai', {
-              sprintId: sid,
-              status: {
-                col: colId,
-                from: from as string | null,
-                to: (c.meta[colId] as string) ?? null,
-              },
-            });
+          makeEvent(set ? 'status' : KIND_OF[acts[0]!.type], text, 'ai', {
+            sprintId: sid,
+            ...(set
+              ? {
+                  status: {
+                    col: 'status',
+                    from: from as string | null,
+                    to: (c.meta.status as string) ?? null,
+                  },
+                }
+              : {}),
           }),
         ];
         const p = pagesOut[id] ?? api.pageOf(id);

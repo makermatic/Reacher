@@ -7,12 +7,12 @@
  */
 :root {
   /* Dark navy (Zack, round 1 of M7: "more dark blueish"). */
-  --bg: #0e1420;
-  --surface: #141b29;
-  --surface-2: #1a2232;
-  --hover: #212b3e;
-  --line: #222c3e;
-  --line-strong: #314058;
+  --bg: #0a0f19;
+  --surface: #0f1521;
+  --surface-2: #141c2b;
+  --hover: #1b2436;
+  --line: #1c2536;
+  --line-strong: #2b3850;
   --fg: #e3e8f1;
   --strong: #ffffff;
   --muted: #92a0b6;
@@ -20,9 +20,9 @@
   --accent: #3ddc84;
   --accent-ink: #06210f;
   --accent-soft: rgb(61 220 132 / 0.14);
-  --topbar: #0b101a;
-  --sidebar: #111827;
-  --panel: #111826;
+  --topbar: #070b13;
+  --sidebar: #0d1320;
+  --panel: #0c121e;
   --selected: rgb(108 140 255 / 0.28);
   --selectable: #6c8cff;
   --c-grey: #8b94a1;
@@ -379,6 +379,53 @@ input:-webkit-autofill:focus {
   .rtable tr.add-row td {
     background: transparent;
     border-bottom: 0;
+  }
+
+  /* Comments in Markdown (M7 round 2). */
+  .md {
+    display: grid;
+    gap: 0.45em;
+    overflow-wrap: anywhere;
+  }
+  .md p,
+  .md ul,
+  .md ol,
+  .md blockquote {
+    margin: 0;
+  }
+  .md ul,
+  .md ol {
+    padding-left: 1.3em;
+  }
+  .md ul {
+    list-style: disc;
+  }
+  .md ol {
+    list-style: decimal;
+  }
+  .md .md-h {
+    font-weight: 700;
+    color: var(--strong);
+  }
+  .md strong {
+    color: var(--strong);
+  }
+  .md code {
+    font-family: var(--f-mono);
+    font-size: 0.9em;
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background: var(--surface-2);
+  }
+  .md a {
+    color: var(--selectable);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .md blockquote {
+    border-left: 2px solid var(--line-strong);
+    padding-left: 0.7em;
+    color: var(--muted);
   }
 
   /*

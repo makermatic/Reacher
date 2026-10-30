@@ -4,7 +4,7 @@
  * status in each sprint, and its emails.
  */
 import { ChevronDown, ChevronRight, Star } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChainsBody, NewChainButton } from '../company/ChainsBody';
 import { ComposeEmail } from '../company/ComposeEmail';
 import { colShows, meta, statusCol } from '../model/board';
@@ -58,7 +58,7 @@ export function FieldRows({ company }: { company: Company }) {
     (col) => col.id !== 'status' && (colShows(col, company) || meta(company, col.id) != null),
   );
   return (
-    <div className="grid grid-cols-[32px_minmax(110px,170px)_minmax(0,1fr)] overflow-hidden rounded-xl border border-line">
+    <div className="grid grid-cols-[26px_minmax(110px,170px)_minmax(0,1fr)] overflow-hidden rounded-xl border border-line">
       {cols.map((col) => {
         const starred = col.onSheet !== false;
         return (
@@ -72,9 +72,9 @@ export function FieldRows({ company }: { company: Company }) {
                 }
                 aria-label={`Show ${col.name} on the sheet`}
                 title={starred ? 'On the sheet. Click to take it off' : 'Star to show on the sheet'}
-                className="grid size-7 place-items-center rounded-md text-faint transition-colors hover:bg-hover hover:text-fg aria-pressed:text-[var(--c-amber)]"
+                className="grid size-5 place-items-center rounded text-faint transition-colors hover:bg-hover hover:text-fg aria-pressed:text-[var(--c-amber)]"
               >
-                <Star size={15} fill={starred ? 'currentColor' : 'none'} />
+                <Star size={9} fill={starred ? 'currentColor' : 'none'} />
               </button>
             </div>
             <div className="flex min-h-11 items-center border-b border-line pr-2 text-[13px] text-muted">
@@ -151,7 +151,14 @@ export function SprintStatuses({ company }: { company: Company }) {
 }
 
 /** Its email chains (the newest starts open), a new chain, and the writer. */
-export function EmailsSection({ company }: { company: Company }) {
+export function EmailsSection({
+  company,
+  preset,
+}: {
+  company: Company;
+  /** A suggested next step to start the writer from; it scrolls into view. */
+  preset?: { template: string; target: string; key: number };
+}) {
   const { chains } = useWorkspace();
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
     const latest = chains
@@ -160,13 +167,19 @@ export function EmailsSection({ company }: { company: Company }) {
     return latest ? { [latest.id]: true } : {};
   });
   const setChainOpen = (id: string, o: boolean) => setOpen((cur) => ({ ...cur, [id]: o }));
+  const writer = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (preset) writer.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [preset]);
   return (
     <>
       <ChainsBody company={company} open={open} setOpen={setChainOpen} />
       <div>
         <NewChainButton company={company} onCreated={(id) => setChainOpen(id, true)} />
       </div>
-      <ComposeEmail company={company} />
+      <div ref={writer} className="scroll-mt-4">
+        <ComposeEmail key={preset?.key ?? 0} company={company} preset={preset} />
+      </div>
     </>
   );
 }

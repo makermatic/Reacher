@@ -19,7 +19,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import { useToast } from '../components/Toast';
+import { readPref, writePref } from '../lib/prefs';
+import { glide } from '../motion';
 import { meta, optList, optionOf, statusCol } from '../model/board';
 import { rankBetween, rankOf, byRank } from '../model/ranking';
 import type { Company } from '../model/types';
@@ -28,6 +31,8 @@ import { useAppUI } from './AppUI';
 import { colorVar, StatusTag } from './ui';
 
 const NONE = '_none';
+const isFlags = (v: unknown): v is Record<string, boolean> =>
+  !!v && typeof v === 'object' && !Array.isArray(v);
 type Lanes = Record<string, string[]>;
 
 /**
@@ -41,6 +46,12 @@ export function StatusBoard({ list }: { list: Company[] }) {
   const toast = useToast();
   const sc = statusCol(board);
   const opts = optList(sc);
+  const [collapsed, setCollapsed] = useState(() => readPref('collapsed-lanes', {}, isFlags));
+  const toggleLane = (key: string) => {
+    const next = { ...collapsed, [key]: !collapsed[key] };
+    setCollapsed(next);
+    writePref('collapsed-lanes', next);
+  };
   const [preview, setPreview] = useState<Lanes | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(
@@ -137,6 +148,8 @@ export function StatusBoard({ list }: { list: Company[] }) {
                 label={k === NONE ? 'No status' : (optionOf(sc, k)?.label ?? k)}
                 color={k === NONE ? 'grey' : (optionOf(sc, k)?.color ?? 'grey')}
                 cards={(shown[k] ?? []).map((id) => byId.get(id)!).filter(Boolean)}
+                collapsed={!!collapsed[k]}
+                onToggle={() => toggleLane(k)}
                 isSelected={(id) => selected === id}
                 onPick={(id) => select(id)}
               />
@@ -154,6 +167,8 @@ function Lane({
   label,
   color,
   cards,
+  collapsed,
+  onToggle,
   isSelected,
   onPick,
 }: {
@@ -161,32 +176,75 @@ function Lane({
   label: string;
   color: string;
   cards: Company[];
+  collapsed: boolean;
+  onToggle: () => void;
   isSelected: (id: string) => boolean;
   onPick: (id: string) => void;
 }) {
+  // The lane itself takes drops, so empty and collapsed lanes accept cards.
   const { setNodeRef, isOver } = useDroppable({ id: laneKey });
+  const dot = (
+    <span
+      className="size-2 shrink-0 rounded-full"
+      style={{ background: colorVar(color as never) }}
+    />
+  );
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       role="group"
       aria-label={label}
-      className={`flex w-64 shrink-0 flex-col rounded-xl border bg-surface transition-colors ${isOver ? 'border-selectable' : 'border-line'}`}
+      initial={false}
+      animate={{ width: collapsed ? 44 : 256 }}
+      transition={glide}
+      className={`flex shrink-0 flex-col overflow-hidden rounded-xl border bg-surface transition-colors ${isOver ? 'border-selectable' : 'border-line'}`}
     >
-      <div className="flex items-center justify-between px-3 py-2.5">
-        <span className="flex items-center gap-2 text-[13.5px] font-semibold text-strong">
-          <span className="size-2 rounded-full" style={{ background: colorVar(color as never) }} />
-          {label}
-        </span>
-        <span className="text-[12px] text-faint">{cards.length}</span>
-      </div>
-      <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
-          {cards.map((c) => (
-            <Card key={c.id} company={c} selected={isSelected(c.id)} onPick={() => onPick(c.id)} />
-          ))}
-        </div>
-      </SortableContext>
-    </div>
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={false}
+          title={`Show ${label}`}
+          aria-label={`Show ${label}`}
+          className="flex flex-1 flex-col items-center gap-2 py-2.5 transition-colors hover:bg-hover"
+        >
+          {dot}
+          <span className="text-[12px] text-faint tabular-nums">{cards.length}</span>
+          <span className="text-[13.5px] font-semibold whitespace-nowrap text-strong [writing-mode:vertical-rl]">
+            {label}
+          </span>
+        </button>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded
+            title={`Collapse ${label}`}
+            aria-label={`Collapse ${label}`}
+            className="flex items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-hover"
+          >
+            <span className="flex min-w-0 items-center gap-2 text-[13.5px] font-semibold text-strong">
+              {dot}
+              <span className="truncate">{label}</span>
+            </span>
+            <span className="text-[12px] text-faint tabular-nums">{cards.length}</span>
+          </button>
+          <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex min-h-16 w-64 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+              {cards.map((c) => (
+                <Card
+                  key={c.id}
+                  company={c}
+                  selected={isSelected(c.id)}
+                  onPick={() => onPick(c.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </>
+      )}
+    </motion.div>
   );
 }
 
@@ -212,6 +270,7 @@ function Card({
       tabIndex={0}
       aria-label={`${company.name}. Select, or drag to change status or order`}
       onClick={onPick}
+      data-opens-panel
       onKeyDown={(e) => e.key === 'Enter' && onPick()}
       className={`cursor-grab rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-selectable ${isDragging ? 'opacity-30' : ''}`}
     >

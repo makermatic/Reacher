@@ -1,8 +1,8 @@
 import { Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { AiCheck } from '../components/AiCheck';
-import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import { Templates } from '../components/TemplatesScreen';
+import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import { useToast } from '../components/Toast';
 import { DetailsForm, ExportButton } from '../components/YourDetailsDialog';
 import { readPref, writePref } from '../lib/prefs';
@@ -21,9 +21,6 @@ import { COLORS, type Column, type ColorName, type StatusOption } from '../model
 
 const TAB_LABEL: Record<SettingsTab, string> = {
   details: 'Your details',
-  statuses: 'Statuses',
-  templates: 'Email templates',
-  sprints: 'Sprints',
   appearance: 'Appearance',
   connections: 'Gmail & Calendar',
   data: 'Import & export',
@@ -63,13 +60,6 @@ export function SettingsPage({ tab, onImport }: { tab: SettingsTab; onImport: ()
       <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-6 pb-12">
         <h1 className={`${ui.sectionTitle} mb-5`}>{TAB_LABEL[tab]}</h1>
         {tab === 'details' && <DetailsTab />}
-        {tab === 'templates' && (
-          <div className={`${ui.block} flex min-h-[600px] flex-col overflow-hidden`}>
-            <Templates />
-          </div>
-        )}
-        {tab === 'statuses' && <StatusesTab />}
-        {tab === 'sprints' && <SprintsTab />}
         {tab === 'appearance' && <AppearanceTab />}
         {tab === 'connections' && <ConnectionsTab />}
         {tab === 'data' && <DataTab onImport={onImport} />}
@@ -105,7 +95,7 @@ function DetailsTab() {
 }
 
 /** Rename, re-date or delete sprints. Being over never stops you working in one. */
-function SprintsTab() {
+export function SprintsTab() {
   const { sprints, actions } = useWorkspace();
   const info = useSprintInfo();
   const toast = useToast();
@@ -264,7 +254,7 @@ function DataTab({ onImport }: { onImport: () => void }) {
 }
 
 /** The choices of Status and Outcome: name, group, color, the template each suggests, order. */
-function StatusesTab() {
+export function StatusesTab() {
   const { board } = useWorkspace();
   const cols = board.columns.filter((c) => c.type === 'status');
   return (
@@ -312,8 +302,8 @@ function ChoicesEditor({ col }: { col: Column }) {
       <h2 className={ui.sectionTitle}>{col.name}</h2>
       {col.id === 'status' && (
         <p className="m-0 text-[13.5px] text-muted">
-          The status column on the sheet. The template is what the email writer suggests at that
-          status.
+          The status column on the sheet. “Suggested email” is the template the email writer starts
+          with when a company is at that status (for example, Reached out → Check-in).
         </p>
       )}
       <div className={`${ui.block} divide-y divide-line`}>
@@ -345,19 +335,22 @@ function ChoicesEditor({ col }: { col: Column }) {
             )}
             {swatches(o)}
             {col.id === 'status' && (
-              <select
-                value={o.tpl}
-                onChange={(e) => patch(o.id, { tpl: e.target.value })}
-                aria-label={`Template for ${o.label}`}
-                className={`${ui.input} w-44`}
-              >
-                <option value="">No template</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              <label className="flex items-center gap-2 text-[12.5px] text-muted">
+                Suggested email
+                <select
+                  value={o.tpl}
+                  onChange={(e) => patch(o.id, { tpl: e.target.value })}
+                  aria-label={`Suggested email for ${o.label}`}
+                  className={`${ui.input} w-44`}
+                >
+                  <option value="">None</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
             <span className="ml-auto flex items-center gap-1">
               <button
@@ -417,5 +410,24 @@ function ChoicesEditor({ col }: { col: Column }) {
         </button>
       </form>
     </section>
+  );
+}
+
+/** A page of its own from the menu: Statuses, Email templates, Sprints (Zack, M7 round 2). */
+export function ManagePage({ page }: { page: 'statuses' | 'templates' | 'sprints' }) {
+  const title = { statuses: 'Status types', templates: 'Email templates', sprints: 'Sprints' }[
+    page
+  ];
+  return (
+    <div className="h-full min-h-0 overflow-y-auto px-8 pt-6 pb-12">
+      <h1 className={`${ui.sectionTitle} mb-5 text-[22px]`}>{title}</h1>
+      {page === 'statuses' && <StatusesTab />}
+      {page === 'sprints' && <SprintsTab />}
+      {page === 'templates' && (
+        <div className={`${ui.block} flex min-h-[600px] flex-col overflow-hidden`}>
+          <Templates />
+        </div>
+      )}
+    </div>
   );
 }

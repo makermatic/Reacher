@@ -11,6 +11,8 @@ import {
 import {
   cleanActions,
   describeAction,
+  feedLines,
+  type FeedLines,
   type QuickAction,
   type QuickReply,
 } from '../model/aiActions';
@@ -45,6 +47,7 @@ export type Notice =
       note: string;
       /** Posted from this company's panel (its comment is already in the feed). */
       about?: string;
+      feed: FeedLines;
     }
   /** `skipped`: things the note mentioned that the tracker already had. */
   | { kind: 'done'; lines: string[]; skipped: string[]; undo: QuickUndo };
@@ -228,14 +231,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   );
 
   const apply = useCallback(
-    (actions: QuickAction[], note: string, about?: string) => {
+    (actions: QuickAction[], note: string, about?: string, feed: FeedLines = {}) => {
       const { board, companies, pages, chains, actions: write } = wsRef.current;
       const plan = planQuick({ board, companies, pages, chains }, actions);
       if (!plan.applied.length) {
         setNotice({ kind: 'message', text: 'Nothing new: your tracker already has all of that.' });
         return;
       }
-      write.applyQuick(plan, note, about);
+      write.applyQuick(plan, note, about, feed);
       setNotice({
         kind: 'done',
         lines: plan.applied.map((a) => describeAction(board, a)),
@@ -277,8 +280,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         );
         const actions = cleanActions(wsRef.current.board, reply?.actions);
         const lines = actions.map((a) => describeAction(wsRef.current.board, a));
+        const feed = feedLines(reply?.feed);
         if (actions.length && reply?.confirm !== true) {
-          apply(actions, note, about?.id);
+          apply(actions, note, about?.id, feed);
+          return true;
+        }
+        // A comment with nothing to change is just a note: it's in the feed already.
+        if (about && !actions.length) {
+          setNotice(null);
           return true;
         }
         setNotice(
@@ -290,6 +299,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
                 lines,
                 note,
                 about: about?.id,
+                feed,
               }
             : { kind: 'message', text: String(reply?.reply ?? '') || 'Nothing to change.' },
         );
@@ -313,7 +323,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       dismiss: () => setNotice(null),
       quickUpdate,
       applyConfirmed: () => {
-        if (notice?.kind === 'confirm') apply(notice.actions, notice.note, notice.about);
+        if (notice?.kind === 'confirm')
+          apply(notice.actions, notice.note, notice.about, notice.feed);
       },
       undo: () => {
         if (notice?.kind !== 'done') return;

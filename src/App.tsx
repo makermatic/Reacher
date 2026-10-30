@@ -8,7 +8,7 @@ import { CompanyPage } from './app/CompanyPage';
 import { MyTasksPage } from './app/MyTasksPage';
 import { NewsFeedPage } from './app/NewsFeedPage';
 import { useRoute } from './app/route';
-import { applyTheme, readTheme, SettingsPage } from './app/SettingsPage';
+import { applyTheme, ManagePage, readTheme, SettingsPage } from './app/SettingsPage';
 import { clampPanel, SidePanel } from './app/SidePanel';
 import { Sidebar } from './app/Sidebar';
 import { Topbar } from './app/Topbar';
@@ -80,7 +80,15 @@ function Shell() {
       selected,
       select,
       openSidebar: () => setSidebarOpen(true),
-      openPage: (id) => navigate({ page: 'company', id, tab: 'info' }),
+      // The full page replaces the panel; they're never open together (Zack, M7 round 2).
+      openPage: (id) => {
+        select(null);
+        navigate({ page: 'company', id, tab: 'info' });
+      },
+      showCompany: (id) => {
+        navigate({ page: 'companies' });
+        select(id);
+      },
     }),
     [route, navigate, selected],
   );
@@ -96,16 +104,31 @@ function Shell() {
         <Topbar />
         <NoAccessNotice />
         <div className="flex min-h-0 flex-1">
-          <main className="min-h-0 min-w-0 flex-1">
+          <main
+            className="min-h-0 min-w-0 flex-1"
+            // A click outside the panel closes it (Zack, M7 round 2), unless it
+            // opens another company (a name, a status, a card).
+            // On click, not press: closing first would shift the page under the pointer.
+            onClick={(e) => {
+              if (selected && !(e.target as HTMLElement).closest('[data-opens-panel]'))
+                select(null);
+            }}
+          >
             {route.page === 'companies' && <CompaniesPage onImport={() => setImportOpen(true)} />}
             {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
             {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
             {route.page === 'news' && <NewsFeedPage />}
+            {(route.page === 'statuses' ||
+              route.page === 'templates' ||
+              route.page === 'sprints') && <ManagePage page={route.page} />}
             {route.page === 'settings' && (
               <SettingsPage tab={route.tab} onImport={() => setImportOpen(true)} />
             )}
           </main>
-          <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
+          {/* Only with the sheet and the board (Zack, M7 round 2). */}
+          {route.page === 'companies' && (
+            <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
+          )}
         </div>
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <ImportDialog open={importOpen} onOpenChange={setImportOpen} />

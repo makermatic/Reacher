@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, Layers, Search, Trash2, X } from 'lucide-react';
+import { ArrowUpRight, Check, Layers, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAssistant } from '../ai/Assistant';
 import { ApplicationsBody } from '../company/EntrySections';
@@ -9,6 +9,7 @@ import { useToast } from '../components/Toast';
 import { meta, statusCol } from '../model/board';
 import { daysUntil } from '../model/dates';
 import { eventsOf } from '../model/events';
+import { nextSteps } from '../model/nextSteps';
 import { inView } from '../model/sprints';
 import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
@@ -77,7 +78,7 @@ export function SidePanel({ width, onResize }: { width: number; onResize: (w: nu
 }
 
 function CompanyPanel({ company: stored }: { company: Company }) {
-  const { board, pages, sprint, actions } = useWorkspace();
+  const { board, pages, chains, templates, sprint, actions } = useWorkspace();
   const { openPage, select } = useAppUI();
   const assistant = useAssistant();
   const toast = useToast();
@@ -109,9 +110,13 @@ function CompanyPanel({ company: stored }: { company: Company }) {
       setText('');
       return;
     }
-    if (await assistant.quickUpdate(note, company)) setText('');
+    // The comment goes in the feed straight away, whatever the AI makes of it.
+    setText('');
+    await assistant.quickUpdate(note, company);
   };
 
+  const [preset, setPreset] = useState<{ template: string; target: string; key: number }>();
+  const steps = nextSteps(company, pages[company.id], chains, templates);
   const events = eventsOf(pages[company.id]);
   const feed = allFeed ? events : events.slice(0, FEED_PREVIEW);
   const due = company.due ? daysUntil(company.due) : null;
@@ -241,19 +246,47 @@ function CompanyPanel({ company: stored }: { company: Company }) {
             }
             className="block w-full resize-y rounded-t-xl border-0 bg-transparent px-3 py-2.5 text-[14px] text-fg outline-none placeholder:text-faint"
           />
-          <div className="flex items-center gap-2 border-t border-line px-2.5 py-2">
-            <StatusPicker col={sc} value={status} onPick={setStatus} label="Status" />
-            {changed && <span className="text-[12px] text-faint">Changes on Post</span>}
-            <button
-              type="submit"
-              disabled={busy || (!text.trim() && !changed)}
-              className={`${ui.primary} ml-auto`}
+          <div className="flex flex-wrap items-center gap-2 border-t border-line px-2.5 py-2">
+            <span
+              className="text-[11.5px] text-faint"
+              title="**bold**, *italic*, - lists, [links](url)"
             >
-              {busy ? 'Reading…' : 'Post'}
-            </button>
+              Markdown works
+            </span>
+            <span className="ml-auto flex items-center gap-2">
+              {changed && <span className="text-[12px] text-faint">Changes on Post</span>}
+              <StatusPicker col={sc} value={status} onPick={setStatus} label="Status" />
+              <button
+                type="submit"
+                disabled={busy || (!text.trim() && !changed)}
+                className={ui.primary}
+              >
+                {busy ? 'Reading…' : 'Post'}
+              </button>
+            </span>
           </div>
-          <NoticeCard origin={company.id} onApplied={() => setText('')} />
         </form>
+        <NoticeCard inline origin={company.id} onApplied={() => setText('')} />
+
+        {steps.length > 0 && (
+          <ul aria-label="Suggested" className="m-0 mt-3 grid list-none gap-1.5 p-0">
+            {steps.map((st) => (
+              <li key={st.id}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreset({ template: st.template, target: st.target, key: Date.now() })
+                  }
+                  className="flex w-full items-center gap-2 rounded-lg border border-dashed border-line-strong px-3 py-2 text-left text-[13.5px] text-fg transition-colors hover:border-accent hover:bg-accent-soft"
+                >
+                  <Sparkles size={14} className="shrink-0 text-accent" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">{st.text}</span>
+                  <span className="shrink-0 text-[12px] text-muted">Write it →</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-4 grid gap-2" role="feed" aria-label="Feed">
           {feed.length ? (
@@ -278,8 +311,8 @@ function CompanyPanel({ company: stored }: { company: Company }) {
           <Section title="Details">
             <FieldRows company={company} />
           </Section>
-          <Section title="Emails">
-            <EmailsSection company={company} />
+          <Section key={preset?.key ?? 0} title="Emails">
+            <EmailsSection company={company} preset={preset} />
           </Section>
           <Section title="Meetings">
             <MeetingsBody company={company} />

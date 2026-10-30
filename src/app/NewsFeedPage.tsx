@@ -15,7 +15,7 @@ import { Dropdown, MenuItem, StatusTag, ui } from './ui';
  */
 export function NewsFeedPage() {
   const { board, companies, pages, sprint } = useWorkspace();
-  const { select, selected } = useAppUI();
+  const { showCompany, selected } = useAppUI();
   const info = useSprintInfo();
   const [kind, setKind] = useState<EventKind | null>(null);
   const [by, setBy] = useState<EventBy | null>(null);
@@ -132,7 +132,7 @@ export function NewsFeedPage() {
                 <li key={e.id} className="border-b border-line last:border-b-0">
                   <button
                     type="button"
-                    onClick={() => select(c.id)}
+                    onClick={() => showCompany(c.id)}
                     aria-current={selected === c.id || undefined}
                     className="grid w-full grid-cols-[44px_26px_minmax(0,1fr)] items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-hover aria-[current]:bg-selected"
                   >

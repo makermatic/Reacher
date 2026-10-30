@@ -38,3 +38,13 @@ test('a click on a card opens its panel', async ({ page }) => {
     page.locator('aside[aria-label="Company panel"]').getByText('MSG Networks').first(),
   ).toBeVisible();
 });
+
+test('a lane folds away with a click and still takes cards', async ({ page }) => {
+  await page.getByRole('button', { name: 'Collapse Gathering' }).click();
+  await expect(page.getByRole('button', { name: 'Show Gathering' })).toBeVisible();
+  await drag(page, card(page, 'Gretel'), page.getByRole('button', { name: 'Show Gathering' }), 20);
+  await expectToast(page, 'Gretel → Gathering');
+  await page.reload();
+  await page.getByRole('button', { name: 'Show Gathering' }).click();
+  await expect.poll(() => lane(page, 'Gathering')).toContain('Gretel');
+});

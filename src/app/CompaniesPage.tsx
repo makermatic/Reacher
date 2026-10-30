@@ -333,6 +333,7 @@ function CompanyTable({
                     <button
                       type="button"
                       onClick={() => select(c.id)}
+                      data-opens-panel
                       title={`Open ${c.name}`}
                       className="min-w-0 flex-1 truncate px-3 py-2.5 text-left text-[14px] font-semibold text-strong hover:underline"
                     >
@@ -360,6 +361,7 @@ function CompanyTable({
                 </td>
                 <td
                   onClick={() => select(c.id)}
+                  data-opens-panel
                   aria-selected={open}
                   aria-label={`${sc.name} for ${c.name}`}
                   className="stage-cell cursor-pointer px-3"
@@ -431,11 +433,11 @@ function Message({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The last row: type a name. Companies you have come first (Enter picks the
- * highlighted one) and adding one puts it in this sprint with everything it
- * has; "New company" is last, so Enter never makes a duplicate by accident.
- * A new company joins this sprint and the AI looks it up. Escape or a click
- * elsewhere closes the list.
+ * The last row: type a name. In a sprint, companies you have that aren't in
+ * it yet come first (Enter picks the highlighted one) and join with
+ * everything they have; "New company" is last, so Enter never makes a
+ * duplicate. A new company joins this sprint and the AI looks it up. Escape
+ * closes the list; clicking away clears the row.
  */
 function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) {
   const { companies, sprint, actions } = useWorkspace();
@@ -448,12 +450,15 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
   const [open, setOpen] = useState(false);
 
   const n = norm(name);
-  const matches = n
-    ? companies
-        .filter((c) => norm(c.name).includes(n))
-        .sort((a, b) => Number(norm(b.name).startsWith(n)) - Number(norm(a.name).startsWith(n)))
-        .slice(0, 6)
-    : [];
+  // Only in a sprint, and only companies not in it yet: in All companies
+  // they're all on the list already (Zack, M7 round 2).
+  const matches =
+    n && sprint
+      ? companies
+          .filter((c) => !inSprint(c, sprint) && norm(c.name).includes(n))
+          .sort((a, b) => Number(norm(b.name).startsWith(n)) - Number(norm(a.name).startsWith(n)))
+          .slice(0, 6)
+      : [];
   const exact = matches.some((c) => norm(c.name) === n);
   // Existing companies, then "New company" (unless the name is already taken).
   const options = [...matches.map((c) => ({ c })), ...(exact || !n ? [] : [{ c: null }])];
@@ -521,14 +526,19 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
+          // Clicking away drops the half-typed name, so it can't look added.
+          onBlur={() => {
+            setOpen(false);
+            reset();
+          }}
           onKeyDown={onKeyDown}
           placeholder="+ Add a company"
           aria-label="Add a company"
           aria-autocomplete="list"
           aria-expanded={showList}
           autoComplete="off"
-          className="w-full bg-transparent px-3 py-3 text-[14px] outline-none placeholder:text-faint"
+          // Gray while typing: it isn't a company yet.
+          className="w-full bg-transparent px-3 py-3 text-[14px] text-muted outline-none placeholder:text-faint"
         />
         {showList && (
           <div

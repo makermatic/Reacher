@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   expectToast,
   main,
+  panel,
   openDemo,
   openPage,
   postStatus,
@@ -86,18 +87,23 @@ test('News Feed and My Tasks', async ({ page }) => {
     .getByRole('button', { name: 'My Tasks' })
     .click();
   await expect(page.getByText('Reply to Gretel')).toBeVisible();
-  await page.getByText('Reply to Gretel').click();
-  await expect(main(page).locator('..').getByLabel('Company panel')).toBeVisible();
   await page.getByRole('tab', { name: 'Board' }).click();
   await expect(page.getByText('Reply to Gretel')).toBeVisible();
+  // A task opens the company on the sheet, with its panel.
+  await page.getByText('Reply to Gretel').click();
+  await expect(panel(page).getByText('Gretel').first()).toBeVisible();
+  await expect(statusCell(page, 'Gretel')).toBeVisible();
 });
 
 test('statuses are editable; light theme', async ({ page }) => {
-  await settings(page, 'Settings');
-  await page.getByRole('button', { name: 'Statuses' }).click();
+  await settings(page, 'Status types');
+  await expect(page.getByRole('combobox', { name: 'Suggested email for Reached out' })).toHaveValue(
+    'tpl-check',
+  );
   await page.fill('#new-status', 'Ghosted');
   await page.getByRole('button', { name: 'Add', exact: true }).first().click();
   await expectToast(page, 'Added Ghosted');
+  await settings(page, 'Settings');
   await page.getByRole('button', { name: 'Appearance' }).click();
   await page.getByRole('radio', { name: 'Light' }).click();
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('light');
