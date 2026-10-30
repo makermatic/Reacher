@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { field, openDemo, openPage, panel, stageCell, tab, type Reply } from './support';
+import { main, openDemo, openPage, panel, statusCell, tab, type Reply } from './support';
 
 const QUICK = 'You update a job seeker';
 const LOOKUP = 'adding a company';
@@ -10,7 +10,7 @@ const replies: Reply[] = [
     json: {
       confirm: false,
       reply: 'Psyop is not hiring.',
-      actions: [{ type: 'set_status', company: 'Psyop', stage: 'Outreach', status: 'No' }],
+      actions: [{ type: 'set_status', company: 'Psyop', column: 'Status', value: 'Rejected' }],
     },
   },
   {
@@ -30,7 +30,7 @@ const replies: Reply[] = [
       confirm: false,
       reply: 'Interview at Buck on Nov 6.',
       actions: [
-        { type: 'set_status', company: 'Buck', stage: 'Interview', status: 'Scheduled' },
+        { type: 'set_status', company: 'Buck', column: 'Status', value: 'Interview' },
         {
           type: 'add_meeting',
           company: 'Buck',
@@ -65,9 +65,9 @@ test('quick update applies, glows while working, and undoes', async ({ page }) =
   await page.press('#quick-input', 'Enter');
   await expect(page.locator('form.ai-working')).toBeVisible();
   await expect(card(page)).toContainText('Updated');
-  await expect(stageCell(page, 'Buck', 'Interview')).toHaveText('Scheduled');
+  await expect(statusCell(page, 'Buck')).toHaveText('Interview');
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(stageCell(page, 'Buck', 'Interview')).not.toHaveText('Scheduled');
+  await expect(statusCell(page, 'Buck')).toHaveText('Gathering');
 });
 
 test('the same update twice adds nothing the second time', async ({ page }) => {
@@ -94,10 +94,10 @@ test('the prompt carries what the tracker already has for a named company', asyn
 });
 
 test('a comment in the panel is an update about that company', async ({ page }) => {
-  await stageCell(page, 'Psyop', 'Outreach').click();
+  await statusCell(page, 'Psyop').click();
   await panel(page).getByLabel('Comment').fill('they are not hiring');
-  await panel(page).getByLabel('Comment').press('Enter');
-  await expect(stageCell(page, 'Psyop', 'Outreach')).toHaveText('No');
+  await panel(page).getByRole('button', { name: 'Post' }).click();
+  await expect(statusCell(page, 'Psyop')).toHaveText('Rejected');
   await expect(panel(page).getByText('they are not hiring', { exact: true })).toBeVisible();
   const p = (await prompts(page)).find((x) => x.includes(QUICK))!;
   expect(p).toContain("written on Psyop's page");
@@ -111,11 +111,11 @@ test('an unclear new company opens the panel and asks there', async ({ page }) =
     .getByRole('button', { name: /^BigStar/ })
     .click();
   await expect(panel(page).getByText('Filled in BigStar')).toBeVisible();
-  await expect(field(page, 'BigStar', 'City')).toHaveValue('New York');
+  await expect(main(page).getByLabel('City for BigStar', { exact: true })).toHaveValue('New York');
 });
 
 test('a lookup from the panel shows its progress there', async ({ page }) => {
-  await stageCell(page, 'Buck', 'Outreach').click();
+  await statusCell(page, 'Buck').click();
   await panel(page).getByRole('button', { name: 'Look up company details' }).click();
   await expect(panel(page).locator('.ai-working')).toContainText('Looking up Buck');
   await expect(panel(page).getByText(/Couldn't find a media company/)).toBeVisible();

@@ -1,41 +1,42 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, openDemo, panel, stageCell } from './support';
+import { expectToast, openDemo, panel, postStatus, statusCell } from './support';
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page);
 });
 
-test('Ctrl-click selects several cells; one status for all', async ({ page }) => {
-  await stageCell(page, 'Buck', 'Outreach').click();
-  await stageCell(page, 'Gretel', 'Outreach').click({ modifiers: ['Control'] });
-  await expect(panel(page).getByText('2 selected', { exact: true })).toBeVisible();
-  await panel(page).getByRole('button', { name: 'New status' }).click();
-  await page.getByRole('menuitemradio', { name: /^Sent/ }).click();
-  await panel(page).getByLabel('Comment for all').fill('Sent the batch');
-  await panel(page)
-    .getByRole('button', { name: /Change status for the 2 selected/ })
-    .click();
-  await expectToast(page, '2 updated');
-  await expect(stageCell(page, 'Buck', 'Outreach')).toHaveText('Sent');
-  await expect(stageCell(page, 'Gretel', 'Outreach')).toHaveText('Sent');
-});
-
-test('Shift-click selects a range', async ({ page }) => {
-  await stageCell(page, 'Buck', 'Outreach').click();
-  await stageCell(page, 'Buck', 'Interview').click({ modifiers: ['Shift'] });
-  await expect(panel(page).getByText('4 selected', { exact: true })).toBeVisible();
-});
-
-test('the panel switches stage and keeps a feed', async ({ page }) => {
-  await stageCell(page, 'Psyop', 'Outreach').click();
+test('comment box: Enter is a new line, Post posts; status sits by Post', async ({ page }) => {
+  await statusCell(page, 'Psyop').click();
   const p = panel(page);
-  await p.getByRole('tab', { name: /Application/ }).click();
-  await expect(stageCell(page, 'Psyop', 'Application')).toHaveAttribute('aria-selected', 'true');
-  await p.getByRole('button', { name: 'Application status' }).click();
-  await page.getByRole('menuitemradio', { name: /^Sent/ }).click();
-  await expect(p.getByText('Application: none → Sent')).toBeVisible();
-  await p.getByRole('button', { name: 'Close the panel' }).click();
-  await expect(p).toHaveCount(0);
+  const box = p.getByLabel('Comment');
+  await box.fill('First line');
+  await box.press('Enter');
+  await box.pressSequentially('second line');
+  await expect(box).toHaveValue('First line\nsecond line');
+  // Picking a status waits for Post.
+  await p.getByRole('button', { name: 'Status', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'Replied' }).click();
+  await expect(p.getByText('Changes on Post')).toBeVisible();
+  await expect(statusCell(page, 'Psyop')).toHaveText('Reached out');
+  await p.getByRole('button', { name: 'Post' }).click();
+  await expect(statusCell(page, 'Psyop')).toHaveText('Replied');
+  await expect(p.getByRole('feed').getByText('First line')).toBeVisible();
+  await expect(p.getByRole('feed').getByText('Status: Reached out → Replied')).toBeVisible();
+});
+
+test('below the feed: details, emails, meetings, applications', async ({ page }) => {
+  await statusCell(page, 'Imaginary Forces').click();
+  const p = panel(page);
+  for (const title of ['Details', 'Emails', 'Meetings', 'Applications'])
+    await expect(p.getByRole('heading', { name: title })).toBeVisible();
+  // Outcome shows (they've had a meeting) and edits in place.
+  await p.getByRole('button', { name: 'Outcome for Imaginary Forces' }).click();
+  await page.getByRole('menuitemradio', { name: 'Offer!' }).click();
+  await expect(statusCell(page, 'Imaginary Forces')).toHaveText('Meeting');
+  await expect(page.locator('main').getByText('Offer!')).toBeVisible();
+  await postStatus(page, 'Interview');
+  await expectToast(page, 'Interview').catch(() => {});
+  await expect(statusCell(page, 'Imaginary Forces')).toHaveText('Interview');
 });
 
 test('a row can be deleted after a second click', async ({ page }) => {

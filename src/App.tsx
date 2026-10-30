@@ -1,8 +1,8 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { MotionConfig } from 'motion/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AssistantProvider } from './ai/Assistant';
-import { AppUIContext, nextSelection, type AppUI, type Cell } from './app/AppUI';
+import { AppUIContext, type AppUI } from './app/AppUI';
 import { CompaniesPage } from './app/CompaniesPage';
 import { CompanyPage } from './app/CompanyPage';
 import { MyTasksPage } from './app/MyTasksPage';
@@ -50,28 +50,24 @@ export function App() {
 
 /**
  * The frame, after Kitsu (M7): top bar, the page, the side panel for the
- * selected companies, and the sidebar that slides in from the mark.
+ * selected company, and the sidebar that slides in from the mark.
  */
 function Shell() {
   const [route, navigate] = useRoute();
-  const [selected, setSelected] = useState<Cell[]>([]);
-  const anchor = useRef<Cell | null>(null);
+  const [selected, select] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => readPref('panel-width', 520, isNumber));
 
-  const clearSelection = useCallback(() => setSelected([]), []);
-  const select = useCallback<AppUI['select']>((cell, how = 'only', order = []) => {
-    setSelected((cur) => nextSelection(cur, cell, how, order, anchor.current));
-    anchor.current = cell;
-  }, []);
-
-  // Escape clears the selection, unless a menu, picker or dialog is in front.
+  // Escape closes the side panel, unless a menu, picker or dialog is in front,
+  // or you're halfway through typing something.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
       if (document.querySelector('[data-radix-popper-content-wrapper], [role="dialog"]')) return;
-      setSelected([]);
+      const t = e.target as HTMLInputElement | null;
+      if ((t?.tagName === 'TEXTAREA' || t?.tagName === 'INPUT') && t.value) return;
+      select(null);
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
@@ -83,12 +79,10 @@ function Shell() {
       navigate,
       selected,
       select,
-      setSelection: setSelected,
-      clearSelection,
       openSidebar: () => setSidebarOpen(true),
       openPage: (id) => navigate({ page: 'company', id, tab: 'info' }),
     }),
-    [route, navigate, selected, select, clearSelection],
+    [route, navigate, selected],
   );
 
   const resize = (w: number) => {

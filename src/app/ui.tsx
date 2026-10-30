@@ -6,9 +6,9 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { ReactNode } from 'react';
-import type { Board, ColorName } from '../model/types';
-import { statusById } from '../model/stages';
+import { useState, type ReactNode } from 'react';
+import { colorFor, optionLabel, optionOf, optList } from '../model/board';
+import type { Column, ColorName } from '../model/types';
 import { popIn } from '../motion';
 
 export const ui = {
@@ -30,38 +30,26 @@ export const ui = {
 
 export const colorVar = (c: ColorName | '' | undefined) => `var(--c-${c || 'grey'})`;
 
-/** A stage status: a soft tag in its color with a dot. Empty shows a faint dash. */
+/** A status choice: a soft tag in its color with a dot. Empty shows a faint dash. */
 export function StatusTag({
-  board,
+  col,
   value,
   className = '',
 }: {
-  board: Board;
-  value: string | null | undefined;
+  col: Column | undefined;
+  value: unknown;
   className?: string;
 }) {
-  const s = statusById(board, value);
-  if (!s) return <span className={`text-[13px] text-faint ${className}`}>—</span>;
+  const o = col && value ? optionOf(col, value) : undefined;
+  if (!o) return <span className={`text-[13px] text-faint ${className}`}>—</span>;
+  const color = colorVar(o.color || colorFor(col!, o.id));
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap ${className}`}
-      style={{
-        color: colorVar(s.color),
-        background: `color-mix(in srgb, ${colorVar(s.color)} 16%, transparent)`,
-      }}
+      style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
     >
-      <span className="size-1.5 rounded-full" style={{ background: colorVar(s.color) }} />
-      {s.label}
-    </span>
-  );
-}
-
-/** A stage's name with its color dot (column headers, panel). */
-export function StageName({ name, color }: { name: string; color: ColorName }) {
-  return (
-    <span className="inline-flex items-center gap-2 whitespace-nowrap">
-      <span className="size-2 rounded-full" style={{ background: colorVar(color) }} />
-      {name}
+      <span className="size-1.5 rounded-full" style={{ background: color }} />
+      {optionLabel(o)}
     </span>
   );
 }
@@ -246,3 +234,62 @@ export function MenuItem({
 }
 
 export const MenuSeparator = () => <div className="my-1 border-t border-line" />;
+
+/** Pick a status choice: the tag, then the list grouped like the prototype's picker. */
+export function StatusPicker({
+  col,
+  value,
+  onPick,
+  label,
+  className = '',
+}: {
+  col: Column;
+  value: unknown;
+  onPick: (id: string | null) => void;
+  label: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const opts = optList(col);
+  const groups = [...new Set(opts.map((o) => o.group))];
+  const pick = (id: string | null) => {
+    onPick(id);
+    setOpen(false);
+  };
+  return (
+    <Pop
+      open={open}
+      onOpenChange={setOpen}
+      width={230}
+      label={label}
+      trigger={
+        <button
+          type="button"
+          aria-label={label}
+          className={`flex h-9 items-center gap-2 rounded-lg border border-line bg-bg px-2.5 hover:border-line-strong ${className}`}
+        >
+          <StatusTag col={col} value={value} />
+          <ChevronDown size={15} className="text-faint" />
+        </button>
+      }
+    >
+      {groups.map((g, i) => (
+        <div key={g || i} className="grid gap-0.5">
+          {i > 0 && <MenuSeparator />}
+          {g && <div className={`${ui.label} px-2.5 pt-1 pb-0.5`}>{g}</div>}
+          {opts
+            .filter((o) => o.group === g)
+            .map((o) => (
+              <MenuItem key={o.id} active={o.id === value} onSelect={() => pick(o.id)}>
+                <StatusTag col={col} value={o.id} />
+              </MenuItem>
+            ))}
+        </div>
+      ))}
+      <MenuSeparator />
+      <MenuItem muted active={!value} onSelect={() => pick(null)}>
+        No status
+      </MenuItem>
+    </Pop>
+  );
+}

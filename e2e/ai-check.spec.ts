@@ -10,5 +10,5 @@ test('AI check runs every sample and grades it', async ({ page }) => {
   await page.getByRole('button', { name: 'Run AI check' }).click();
   await expect(page.getByText('1 of 6 passed')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('✓ asks what you meant')).toBeVisible();
-  await expect(page.getByText('✗ Interview stage Scheduled')).toBeVisible();
+  await expect(page.getByText('✗ status Interview')).toBeVisible();
 });

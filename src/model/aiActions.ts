@@ -1,15 +1,13 @@
-import { colByName, optList } from './board';
+import { colByName, optionOf, optList } from './board';
 import { fmtDate, fmtTime, isISODate, todayISO } from './dates';
 import { normalizeUrl } from '../lib/links';
-import { stageById, statusLabel } from './stages';
 import { isPlainObject, norm } from './text';
 import type { Board, Column, Company } from './types';
 
 /** The changes a quick update can make (SPEC section 9). */
 export type QuickAction =
   | { type: 'add_company'; company: string }
-  /** A stage's status (M7): stage and status ids. */
-  | { type: 'set_status'; company: string; stage: string; value: string }
+  | { type: 'set_status'; company: string; column: string; value: string }
   | {
       type: 'log_email';
       company: string;
@@ -127,18 +125,14 @@ export function cleanActions(board: Board, list: unknown, today = todayISO()): Q
         out.push({ type: 'add_company', company });
         break;
       case 'set_status': {
-        const named = str(raw.stage ?? raw.column);
-        const stage =
-          board.stages.find((s) => s.id === named || norm(s.name) === norm(named)) ??
-          (named ? undefined : board.stages[0]);
-        const v = raw.status ?? raw.value;
-        const status = board.statuses.find((s) => s.id === v || norm(s.label) === norm(v));
-        if (stage && status)
+        const col = colByName(board, str(raw.column) || 'Status');
+        const id = col?.type === 'status' ? coerce(col, raw.value) : undefined;
+        if (col && typeof id === 'string')
           out.push({
             type: 'set_status',
             company,
-            stage: stage.id,
-            value: status.id,
+            column: col.name,
+            value: optionOf(col, id)?.label ?? id,
           });
         break;
       }
@@ -199,7 +193,7 @@ export function describeAction(board: Board, a: QuickAction): string {
     case 'add_company':
       return `Add ${a.company}`;
     case 'set_status':
-      return `${a.company} · ${stageById(board, a.stage)?.name ?? a.stage} → ${statusLabel(board, a.value)}`;
+      return `${a.company} · ${a.column} → ${a.value}`;
     case 'log_email':
       return `${a.company} · email chain “${a.chain}”: ${a.dir === 'in' ? 'email from them' : 'email you sent'} on ${fmtDate(a.date, true)}: “${a.text}”`;
     case 'add_note':

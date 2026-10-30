@@ -44,7 +44,7 @@ test('before the OK: the page offers Check Gmail, and replies come in', async ({
   await openTab(page, 'Psyop', 'Emails');
   const panel = main(page);
   await panel.getByRole('button', { name: 'Check Gmail' }).click();
-  await expectToast(page, 'Psyop: 2 new emails from Gmail. Outreach → Reply');
+  await expectToast(page, 'Psyop: 2 new emails from Gmail. Status → Wrote back!!');
   await expect(panel.getByText('Thanks Zack! Can you send your rates?')).toBeVisible();
   // The quoted older email is cut off.
   await expect(panel.getByText('> Hi Sam')).toHaveCount(0);

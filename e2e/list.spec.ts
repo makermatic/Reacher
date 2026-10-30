@@ -1,38 +1,55 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, field, openDemo, panel, row, stageCell } from './support';
+import { expectToast, field, openDemo, panel, postStatus, row, statusCell } from './support';
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page);
 });
 
-test('old statuses arrive as stages', async ({ page }) => {
-  await expect(stageCell(page, 'Psyop', 'Outreach')).toHaveText('Sent');
-  await expect(stageCell(page, 'loyalkaspar', 'Outreach')).toHaveText('Reply');
-  await expect(stageCell(page, 'MSG Networks', 'Application')).toHaveText('Sent');
-  await expect(field(page, 'Imaginary Forces', 'Outcome')).toHaveValue('Hopeful');
+test('one Status column, with Outcome after a meeting', async ({ page }) => {
+  await expect(statusCell(page, 'Psyop')).toHaveText('Reached out');
+  await expect(statusCell(page, 'loyalkaspar')).toHaveText(/Wrote back!!/);
+  await expect(statusCell(page, 'MSG Networks')).toHaveText('Applied');
+  await expect(field(page, 'Imaginary Forces', 'Outcome')).toHaveText('Hopeful');
+  await expect(field(page, 'Psyop', 'Outcome')).toHaveCount(0);
 });
 
-test('add a company; duplicates are caught', async ({ page }) => {
-  await page.fill('#new-company', 'Sibling Rivalry');
-  await page.press('#new-company', 'Enter');
-  await expect(row(page, 'Sibling Rivalry')).toBeVisible();
-  await page.fill('#new-company', 'buck');
-  await page.press('#new-company', 'Enter');
+test('add a company: companies you have come first, Escape closes the list', async ({ page }) => {
+  const input = page.locator('#new-company');
+  const list = page.getByRole('listbox', { name: 'Companies you have' });
+  await input.fill('Gre');
+  await expect(list.getByRole('menuitemradio')).toHaveText([/Gretel/, 'New company “Gre”']);
+  await page.keyboard.press('Escape');
+  await expect(list).toHaveCount(0);
+  await expect(input).toHaveValue('Gre');
+  await page.keyboard.press('Escape');
+  await expect(input).toHaveValue('');
+  // Enter picks the company you have, never a duplicate.
+  await input.fill('buck');
+  await input.press('Enter');
   await expectToast(page, 'Buck is already on the list');
+  await expect(row(page, 'Buck')).toHaveCount(1);
+  // A new name makes a new company.
+  await input.fill('Sibling Rivalry');
+  await input.press('Enter');
+  await expect(row(page, 'Sibling Rivalry')).toBeVisible();
+  // A click elsewhere closes the list.
+  await input.fill('Gre');
+  await expect(list).toBeVisible();
+  await page.locator('#sheet-search').click();
+  await expect(list).toHaveCount(0);
 });
 
-test('a stage cell selects; the panel changes its status', async ({ page }) => {
-  await stageCell(page, 'Gretel', 'Outreach').click();
-  await expect(stageCell(page, 'Gretel', 'Outreach')).toHaveAttribute('aria-selected', 'true');
+test('name and status both open the panel; status changes on Post', async ({ page }) => {
+  await statusCell(page, 'Gretel').click();
+  await expect(statusCell(page, 'Gretel')).toHaveAttribute('aria-selected', 'true');
   await expect(panel(page).getByText('Gretel').first()).toBeVisible();
-  await panel(page).getByRole('button', { name: 'Outreach status' }).click();
-  await page.getByRole('menuitemradio', { name: /^Reply/ }).click();
-  await expect(stageCell(page, 'Gretel', 'Outreach')).toHaveText('Reply');
-  // The change is in the feed.
-  await expect(panel(page).getByText('Outreach: none → Reply')).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'Outreach status' })).toHaveCount(0);
+  await postStatus(page, /Wrote back/);
+  await expect(statusCell(page, 'Gretel')).toHaveText(/Wrote back!!/);
+  await expect(panel(page).getByText('Status: none → Wrote back!!')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(panel(page)).toHaveCount(0);
+  await page.locator('button[title="Open Psyop"]').click();
+  await expect(panel(page).getByText('Psyop').first()).toBeVisible();
 });
 
 test('fields edit in place; abbreviations expand', async ({ page }) => {
@@ -47,28 +64,27 @@ test('fields edit in place; abbreviations expand', async ({ page }) => {
   await expect(field(page, 'Gretel', 'Priority')).toHaveValue('Dream');
 });
 
-test('search: words, abbreviations, stage=status, status=any', async ({ page }) => {
+test('search: words, abbreviations, status=', async ({ page }) => {
   await field(page, 'Buck', 'City').fill('Los Angeles');
   await field(page, 'Buck', 'City').press('Enter');
   const search = page.locator('#sheet-search');
   await search.fill('LA');
   await expect(row(page, 'Buck')).toBeVisible();
   await expect(row(page, 'Psyop')).toHaveCount(0);
-  await search.fill('outreach=reply');
-  await expect(row(page, 'loyalkaspar')).toBeVisible();
-  await expect(row(page, 'Psyop')).toHaveCount(0);
-  await search.fill('status=sent');
-  await expect(row(page, 'Psyop')).toBeVisible();
+  await search.fill('status=applied');
   await expect(row(page, 'MSG Networks')).toBeVisible();
-  await expect(row(page, 'Gretel')).toHaveCount(0);
+  await expect(row(page, 'Psyop')).toHaveCount(0);
+  await search.fill('status=none');
+  await expect(row(page, 'Gretel')).toBeVisible();
+  await expect(row(page, 'Psyop')).toHaveCount(0);
   // Saved searches come back as chips.
   await page.getByRole('button', { name: 'Save this search' }).click();
   await search.fill('');
-  await page.getByRole('button', { name: 'status=sent', exact: true }).click();
-  await expect(search).toHaveValue('status=sent');
+  await page.getByRole('button', { name: 'status=none', exact: true }).click();
+  await expect(search).toHaveValue('status=none');
 });
 
-test('add a field, hide one, sort by name', async ({ page }) => {
+test('add a field, take one off the sheet, sort by name', async ({ page }) => {
   await page.getByRole('button', { name: 'Add a field' }).click();
   await page.fill('#field-name', 'Salary');
   await page.selectOption('#field-type', 'number');
@@ -79,8 +95,20 @@ test('add a field, hide one, sort by name', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(field(page, 'Buck', 'City')).toHaveCount(0);
   await page.getByRole('button', { name: 'Company', exact: true }).click();
-  const names = await page.locator('tbody tr button[title^="Open"]').allTextContents();
+  const names = await page
+    .locator('tbody tr button[title^="Open"]:not([aria-label])')
+    .allTextContents();
   expect(names).toEqual([...names].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())));
+});
+
+test('star a field in the panel to show it on the sheet', async ({ page }) => {
+  await expect(field(page, 'Buck', 'Website')).toHaveCount(0);
+  await page.locator('button[title="Open Buck"]').click();
+  const star = panel(page).getByRole('button', { name: 'Show Website on the sheet' });
+  await expect(star).toHaveAttribute('aria-pressed', 'false');
+  await star.click();
+  await expect(star).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('main').getByLabel('Website for Buck', { exact: true })).toBeVisible();
 });
 
 test('changes survive a reload', async ({ page }) => {

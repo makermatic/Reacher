@@ -69,44 +69,7 @@ export type Column = {
   showWhen?: ShowWhen | null;
 };
 
-/**
- * A stage (M7): a colored column like Kitsu's task types (Outreach, Meeting,
- * Application, Interview). Each company has a status in each stage.
- */
-export type Stage = {
-  id: string;
-  name: string;
-  color: ColorName;
-  /** Shown on the list (Display settings); hidden stages keep their statuses. */
-  onSheet?: boolean;
-};
-
-/** A status any stage can be in (shared, like Kitsu's task statuses). */
-export type StageStatus = {
-  id: string;
-  label: string;
-  color: ColorName | '';
-  /** What it means, for the AI and for people (e.g. "they answered; your move"). */
-  meaning: string;
-};
-
-/** Which email template to suggest when a stage is at a status. */
-export type Suggest = { stage: string; status: string; tpl: string };
-
-/**
- * Version 3 (M7): stages and their statuses are separate from the fields.
- * `columns` are the fields only (City, Priority...), shown uncolored.
- */
-export type Board = {
-  version: 3;
-  columns: Column[];
-  stages: Stage[];
-  statuses: StageStatus[];
-  suggest: Suggest[];
-};
-
-/** The board before M7: Status and Outcome were status-type columns. */
-export type LegacyBoard = { version: 2; columns: Column[] };
+export type Board = { version: 2; columns: Column[] };
 
 export type Person = { name: string; role: string; email: string };
 export type ChecklistItem = { t: string; done: boolean };
@@ -126,13 +89,11 @@ export type Company = {
   gmailIgnore?: string[];
   /** Fields filled by company lookup (true) rather than typed. */
   auto?: Record<string, boolean | null>;
-  /** Its status in each stage (M7): stage id → status id. The latest from any sprint. */
-  stages?: Record<string, string | null>;
   /**
-   * The sprints it's in (M7), by sprint id. Each keeps its own stage statuses:
-   * a company can be at Interview in one sprint and turned down in an earlier
-   * one. `stages` above holds the latest, which "All companies" shows.
-   * null = taken out of that sprint.
+   * The sprints it's in (M7), by sprint id. Each keeps its own status (and
+   * other status columns, like Outcome): a company can be "Interview" in one
+   * sprint and "Rejected" in an earlier one. `meta` above holds the latest of
+   * them, which is what "All companies" shows. null = taken out of that sprint.
    */
   sprints?: Record<string, SprintEntry | null>;
   example?: boolean;
@@ -204,8 +165,8 @@ export type Sprint = {
 
 /** A company's place in one sprint. */
 export type SprintEntry = {
-  /** Its status in each stage, in this sprint. */
-  stages: Record<string, string | null>;
+  /** Its status columns in this sprint (Status, Outcome...). */
+  meta: Record<string, unknown>;
   /** YYYY-MM-DD it joined the sprint, and its latest change there. */
   added: string;
   updated: string;
@@ -227,8 +188,8 @@ export type FeedEvent = {
   by: EventBy;
   /** The sprint it happened in, if any. */
   sprintId?: string | null;
-  /** For status changes: which stage, from and to (status ids). */
-  status?: { stage: string; from: string | null; to: string | null };
+  /** For status changes: which column, from and to (option ids). */
+  status?: { col: string; from: string | null; to: string | null };
 };
 
 export type Template = { id: string; name: string; subject: string; body: string };

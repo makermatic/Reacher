@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { colById, colorFor, valueText } from './board';
+import { colById, colorFor, metaPatch, sheetColumns, statusCol, valueText } from './board';
 import { addDays, daysUntil, fmtTime, monthDay } from './dates';
-import { DEFAULT_BOARD, LEGACY_DEFAULT_BOARD } from './defaults';
+import { DEFAULT_BOARD } from './defaults';
 import { describeImport, ImportError, parseExport } from './importData';
+import { rankOptions, splitMatch } from './picker';
 import { matchesSearch, needsMe, visibleCompanies } from './search';
 import { textSuggestions } from './suggest';
-import { googleCalendarLink } from './automation';
-import { stageMoves } from './stages';
+import { googleCalendarLink, nextStatus } from './automation';
 import { byRank, rankBetween } from './ranking';
 import type { Company } from './types';
 
@@ -24,6 +24,31 @@ const co = (
   ...extra,
 });
 const NOW = new Date(2026, 9, 28); // Oct 28 2026
+
+describe('status picker ranking', () => {
+  const labels = (q: string) => rankOptions(statusCol(board), q).map((o) => o.label);
+
+  it('lists every choice in order when nothing is typed', () => {
+    expect(labels('')).toHaveLength(8);
+    expect(labels('')[0]).toBe('Gathering');
+  });
+
+  it('puts labels that start with the text first, then word starts, then contains', () => {
+    expect(labels('re')).toEqual(['Reached out', 'Replied', 'Rejected']);
+    expect(labels('ed')).toEqual(['Reached out', 'Replied', 'Applied', 'Rejected']);
+    expect(labels('back')).toEqual(['Wrote back!!']);
+    expect(labels('ack')).toEqual(['Wrote back!!']);
+  });
+
+  it('falls back to categories only when no label matches', () => {
+    expect(labels('job')).toEqual(['Applied', 'Rejected', 'Interview']);
+  });
+
+  it('splits a label around the match for underlining', () => {
+    expect(splitMatch('Wrote back!!', 'BA')).toEqual(['Wrote ', 'ba', 'ck!!']);
+    expect(splitMatch('Applied', 'x')).toEqual(['Applied', '', '']);
+  });
+});
 
 describe('search', () => {
   const nyc = co('Psyop', { city: 'New York', tags: ['Studio'] });
@@ -43,8 +68,8 @@ describe('search', () => {
     expect(matchesSearch(board, nyc, 'studio')).toBe(true);
   });
 
-  it('Needs me = a stage at Reply, or follow-up due or late', () => {
-    expect(needsMe(co('A', {}, { stages: { outreach: 'reply' } }), NOW)).toBe(true);
+  it('Needs me = wrote back, or follow-up due or late', () => {
+    expect(needsMe(co('A', { status: 'wroteback' }), NOW)).toBe(true);
     expect(needsMe(co('B', {}, { due: '2026-10-28' }), NOW)).toBe(true);
     expect(needsMe(co('C', {}, { due: '2026-10-20' }), NOW)).toBe(true);
     expect(needsMe(co('D', {}, { due: '2026-11-02' }), NOW)).toBe(false);
@@ -62,6 +87,22 @@ describe('search', () => {
 });
 
 describe('board helpers', () => {
+  it('clears Outcome when Status moves away from Meeting or Interview', () => {
+    const c = co('IF', { status: 'meeting', outcome: 'hopeful' });
+    expect(metaPatch(board, c, 'status', 'applied').meta).toEqual({
+      status: 'applied',
+      outcome: null,
+    });
+    expect(metaPatch(board, c, 'status', 'interview').meta).toEqual({ status: 'interview' });
+  });
+
+  it('only shows Outcome on the sheet when some company can have one', () => {
+    const names = (cs: Company[]) => sheetColumns(board, cs).map((c) => c.id);
+    expect(names([co('A', { status: 'applied' })])).not.toContain('outcome');
+    expect(names([co('A', { status: 'meeting' })])).toContain('outcome');
+    expect(names([])).not.toContain('website'); // hidden by default: page only
+  });
+
   it('gives list choices steady, non-grey colors', () => {
     const priority = colById(board, 'priority')!;
     expect(colorFor(priority, 'Dream')).toBe('blue');
@@ -70,7 +111,7 @@ describe('board helpers', () => {
   });
 
   it('turns values into text for search', () => {
-    expect(valueText(colById(board, 'outcome')!, 'Hopeful')).toBe('Hopeful');
+    expect(valueText(statusCol(board), 'wroteback')).toBe('Wrote back!!');
     expect(valueText(colById(board, 'contact')!, { name: 'Fred Smith', role: '', email: '' })).toBe(
       'Fred Smith',
     );
@@ -95,7 +136,7 @@ describe('dates', () => {
 describe('import', () => {
   const file = {
     exported: '2026-10-28T20:00:00Z',
-    board: LEGACY_DEFAULT_BOARD,
+    board: DEFAULT_BOARD,
     companies: [
       { id: 'co-1', name: 'Psyop', order: 1, meta: { status: 'reached' }, due: '2026-10-30' },
       { id: 'co-2', name: 'Buck', order: 2, meta: {}, due: null },
@@ -126,16 +167,6 @@ describe('import', () => {
   it('reads a prototype export', () => {
     const d = parseExport(JSON.stringify(file));
     expect(d.companies.map((c) => c.name)).toEqual(['Psyop', 'Buck']);
-    // M7: the prototype's Status moves to stages; the board gets the four stages.
-    expect(d.companies[0]?.stages).toEqual({ outreach: 'sent' });
-    expect(d.companies[0]?.meta.status).toBeUndefined();
-    expect(d.board.version).toBe(3);
-    expect(d.board.stages.map((x) => x.id)).toEqual([
-      'outreach',
-      'meeting',
-      'application',
-      'interview',
-    ]);
     expect(d.chains.map((c) => c.id)).toEqual(['ch-1']);
     expect(d.pages['co-1']?.notes).toHaveLength(1);
     expect(d.me?.name).toBe('Zack');
@@ -175,50 +206,35 @@ describe('text autofill', () => {
   });
 });
 
-describe('stage automations (M7)', () => {
-  const moves = (stages: Record<string, string>, e: Parameters<typeof stageMoves>[2]) =>
-    stageMoves(board, stages, e, '2026-10-28');
+describe('automatic status changes', () => {
+  const at = (status: string) => co('X', status ? { status } : {});
+  const next = (status: string, e: Parameters<typeof nextStatus>[2]) =>
+    nextStatus(board, at(status), e);
 
-  it('an email I send: Outreach → Sent, or a stage at Reply → Sent', () => {
-    expect(moves({}, { kind: 'sent' })).toEqual({ outreach: 'sent' });
-    expect(moves({ outreach: 'todo' }, { kind: 'sent' })).toEqual({ outreach: 'sent' });
-    expect(moves({ outreach: 'reply' }, { kind: 'sent' })).toEqual({ outreach: 'sent' });
-    expect(moves({ outreach: 'done', interview: 'reply' }, { kind: 'sent' })).toEqual({
-      interview: 'sent',
-    });
-    expect(moves({ outreach: 'sent' }, { kind: 'sent' })).toEqual({});
+  it('moves forward when I send an email', () => {
+    expect(next('', { kind: 'sent' })).toBe('reached');
+    expect(next('gathering', { kind: 'sent' })).toBe('reached');
+    expect(next('wroteback', { kind: 'sent' })).toBe('replied');
+    expect(next('applied', { kind: 'sent' })).toBeNull();
   });
 
-  it('an email from them: the active stage → Reply', () => {
-    expect(moves({ outreach: 'sent' }, { kind: 'received' })).toEqual({ outreach: 'reply' });
-    expect(moves({ outreach: 'done', application: 'sent' }, { kind: 'received' })).toEqual({
-      application: 'reply',
-    });
-    expect(moves({}, { kind: 'received' })).toEqual({ outreach: 'reply' });
-    expect(moves({ outreach: 'reply' }, { kind: 'received' })).toEqual({});
+  it('marks Wrote back!! when they email, only during outreach', () => {
+    expect(next('reached', { kind: 'received' })).toBe('wroteback');
+    expect(next('replied', { kind: 'received' })).toBe('wroteback');
+    expect(next('wroteback', { kind: 'received' })).toBeNull();
+    expect(next('interview', { kind: 'received' })).toBeNull();
   });
 
-  it('applying: Application → Sent when not started', () => {
-    expect(moves({}, { kind: 'applied' })).toEqual({ application: 'sent' });
-    expect(moves({ application: 'no' }, { kind: 'applied' })).toEqual({});
+  it('moves to Applied from empty or Gathering', () => {
+    expect(next('', { kind: 'applied' })).toBe('applied');
+    expect(next('reached', { kind: 'applied' })).toBeNull();
   });
 
-  it('meetings and interviews: Scheduled when upcoming, Done when past', () => {
-    expect(
-      moves({ outreach: 'reply' }, { kind: 'meeting', meetingKind: 'meeting', date: '2026-11-02' }),
-    ).toEqual({
-      meeting: 'scheduled',
-      outreach: 'done',
-    });
-    expect(
-      moves(
-        { application: 'sent' },
-        { kind: 'meeting', meetingKind: 'interview', date: '2026-10-01' },
-      ),
-    ).toEqual({
-      interview: 'done',
-      application: 'done',
-    });
+  it('picks Meeting or Interview', () => {
+    expect(next('reached', { kind: 'meeting', meetingKind: 'meeting' })).toBe('meeting');
+    expect(next('reached', { kind: 'meeting', meetingKind: 'interview' })).toBe('interview');
+    expect(next('applied', { kind: 'meeting', meetingKind: 'meeting' })).toBe('interview');
+    expect(next('meeting', { kind: 'meeting', meetingKind: 'interview' })).toBeNull();
   });
 });
 

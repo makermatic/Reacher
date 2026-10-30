@@ -15,7 +15,7 @@ import { textSuggestions } from '../model/suggest';
 import { norm } from '../model/text';
 import type { Column, Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { Pop, ui } from './ui';
+import { Pop, StatusPicker, ui } from './ui';
 
 type Variant = 'cell' | 'row';
 
@@ -39,6 +39,8 @@ export function FieldInput({
   switch (col.type) {
     case 'checkbox':
       return <CheckboxField company={company} col={col} label={label} variant={variant} />;
+    case 'status':
+      return <StatusField company={company} col={col} label={label} variant={variant} />;
     case 'values':
       return <SelectField company={company} col={col} label={label} variant={variant} />;
     case 'tags':
@@ -148,6 +150,20 @@ function CheckboxField({ company, col, label, variant }: FieldProps) {
 }
 
 /** A list of values: a dropdown, like Kitsu's list descriptors. */
+/** A status-type field (Outcome): its colored choices. */
+function StatusField({ company, col, label }: FieldProps) {
+  const { actions } = useWorkspace();
+  return (
+    <StatusPicker
+      col={col}
+      value={meta(company, col.id)}
+      label={label}
+      onPick={(v) => actions.setMeta(company.id, col.id, v)}
+      className="border-transparent bg-transparent"
+    />
+  );
+}
+
 function SelectField({ company, col, label, variant }: FieldProps) {
   const { actions } = useWorkspace();
   const value = meta(company, col.id);

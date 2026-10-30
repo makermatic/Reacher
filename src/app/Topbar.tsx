@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, ChevronRight, Layers, Plus, Radio } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Layers, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { QuickUpdateBar } from '../components/QuickUpdateBar';
 import { useToast } from '../components/Toast';
@@ -46,8 +46,12 @@ export function Topbar() {
       {sprintPages ? (
         <nav aria-label="Where you are" className="flex min-w-0 items-center gap-2">
           <SprintPicker />
-          <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
-          <SectionPicker />
+          {route.page === 'news' && (
+            <>
+              <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
+              <span className="text-[14px] font-semibold text-strong">News Feed</span>
+            </>
+          )}
         </nav>
       ) : (
         <div className="flex items-center gap-2">
@@ -170,40 +174,6 @@ function SprintPicker() {
         }}
       >
         Manage sprints…
-      </MenuItem>
-    </Dropdown>
-  );
-}
-
-/** The page within a sprint: Companies or News Feed (Kitsu's section list). */
-function SectionPicker() {
-  const { route, navigate } = useAppUI();
-  const [open, setOpen] = useState(false);
-  const news = route.page === 'news';
-  const go = (page: 'companies' | 'news') => {
-    setOpen(false);
-    navigate(page === 'news' ? { page: 'news' } : { page: 'companies' });
-  };
-  return (
-    <Dropdown
-      open={open}
-      onOpenChange={setOpen}
-      ariaLabel="Page"
-      icon={
-        news ? (
-          <Radio size={16} className="text-muted" aria-hidden="true" />
-        ) : (
-          <Building2 size={16} className="text-muted" aria-hidden="true" />
-        )
-      }
-      label={news ? 'News Feed' : 'Companies'}
-      width={200}
-    >
-      <MenuItem active={!news} onSelect={() => go('companies')}>
-        <Building2 size={16} aria-hidden="true" /> Companies
-      </MenuItem>
-      <MenuItem active={news} onSelect={() => go('news')}>
-        <Radio size={16} aria-hidden="true" /> News Feed
       </MenuItem>
     </Dropdown>
   );

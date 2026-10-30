@@ -6,22 +6,23 @@
  * (data-theme="light" on <html>).
  */
 :root {
-  --bg: #15171b;
-  --surface: #1c1f24;
-  --surface-2: #22262c;
-  --hover: #2a2e35;
-  --line: #2b3038;
-  --line-strong: #3a4049;
-  --fg: #e6e9ee;
+  /* Dark navy (Zack, round 1 of M7: "more dark blueish"). */
+  --bg: #0e1420;
+  --surface: #141b29;
+  --surface-2: #1a2232;
+  --hover: #212b3e;
+  --line: #222c3e;
+  --line-strong: #314058;
+  --fg: #e3e8f1;
   --strong: #ffffff;
-  --muted: #9aa2ad;
-  --faint: #6c7480;
+  --muted: #92a0b6;
+  --faint: #66748c;
   --accent: #3ddc84;
   --accent-ink: #06210f;
   --accent-soft: rgb(61 220 132 / 0.14);
-  --topbar: #111316;
-  --sidebar: #181a1f;
-  --panel: #181b20;
+  --topbar: #0b101a;
+  --sidebar: #111827;
+  --panel: #111826;
   --selected: rgb(108 140 255 / 0.28);
   --selectable: #6c8cff;
   --c-grey: #8b94a1;
@@ -33,7 +34,7 @@
   --c-red: #ff6b6b;
   --c-violet: #a78bfa;
   --chip-ink: #0d0f12;
-  --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  --shadow: 0 12px 40px rgb(2 6 16 / 0.6);
   --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
   --f-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -316,7 +317,7 @@ input:-webkit-autofill:focus {
     background: var(--selected);
   }
 
-  /* The companies list (M7): rows on one surface, stage columns lightly tinted in their color. */
+  /* The companies list (M7): rows on one surface, the Status column lightly tinted. */
   .rtable th,
   .rtable td {
     border-bottom: 1px solid var(--line);
@@ -340,23 +341,21 @@ input:-webkit-autofill:focus {
   .rtable tbody tr:hover > td {
     background: var(--hover);
   }
-  .rtable .sticky-a,
-  .rtable .sticky-b {
+  .rtable .sticky-a {
     position: sticky;
     z-index: 1;
-  }
-  .rtable .sticky-a {
     left: 0;
-    width: 40px;
-    min-width: 40px;
-  }
-  .rtable .sticky-b {
-    left: 40px;
     border-right: 1px solid var(--line);
   }
-  .rtable thead .sticky-a,
-  .rtable thead .sticky-b {
+  .rtable thead .sticky-a {
     z-index: 3;
+  }
+  .rtable tbody tr[aria-selected='true'] > td {
+    background: color-mix(in srgb, var(--selectable) 10%, var(--surface));
+  }
+  .rtable .stage-col,
+  .rtable .stage-cell {
+    --tint: var(--accent);
   }
   .rtable th.stage-col {
     background: color-mix(in srgb, var(--tint) 10%, var(--surface-2));

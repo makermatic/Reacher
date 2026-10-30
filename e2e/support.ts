@@ -205,18 +205,27 @@ export const expectToast = (page: Page, text: string) =>
 /** The side panel (M7). */
 export const panel = (page: Page) => page.locator('aside[aria-label="Company panel"]');
 export const row = (page: Page, name: string) => page.locator('tr', { hasText: name });
-/** A stage cell on the list: click it to select. */
-export const stageCell = (page: Page, company: string, stage: string) =>
-  page.getByRole('cell', { name: `${stage} for ${company}`, exact: true });
+/** A company's Status cell on the list: click it to open the side panel. */
+export const statusCell = (page: Page, company: string) =>
+  page.getByRole('cell', { name: `Status for ${company}`, exact: true });
+/** Opens a company in the side panel (its name on the list). */
+export const openPanel = (page: Page, name: string) =>
+  page.locator(`button[title="Open ${name}"]`).click();
+/** Picks a status next to Post in the side panel and posts it. */
+export async function postStatus(page: Page, label: RegExp | string) {
+  await panel(page).getByRole('button', { name: 'Status', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: label }).click();
+  await panel(page).getByRole('button', { name: 'Post' }).click();
+}
 /** A field's editor (list cell or company page row). */
 export const field = (page: Page, company: string, col: string) =>
   page.getByLabel(`${col} for ${company}`, { exact: true });
-/** The company page. */
+/** The full company page (the ↗ on its row). */
 export const openPage = async (page: Page, name: string) => {
   // From a company page, go back to the list first.
   const back = page.getByRole('button', { name: 'Back to companies' });
   if (await back.isVisible()) await back.click();
-  await page.locator(`button[title="Open ${name}"]`).click();
+  await page.getByRole('button', { name: `Open ${name}'s page`, exact: true }).click();
 };
 /** A tab on the company page. */
 export const tab = (page: Page, name: string) =>

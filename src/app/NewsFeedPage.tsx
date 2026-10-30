@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
+import { optList, statusCol } from '../model/board';
 import { allEvents, BY_LABEL, dayOf, KIND_LABEL, timeOf } from '../model/events';
 import type { EventBy, EventKind } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
-import { ByBadge, KindTag, StageTag } from './Feed';
+import { ByBadge, EventTag } from './Feed';
 import { useSprintInfo } from './sprintLabels';
-import { Dropdown, MenuItem, StageName, StatusTag, ui } from './ui';
+import { Dropdown, MenuItem, StatusTag, ui } from './ui';
 
 /**
  * The News Feed (M7), like Kitsu's: everything that happened, newest first,
@@ -18,7 +19,6 @@ export function NewsFeedPage() {
   const info = useSprintInfo();
   const [kind, setKind] = useState<EventKind | null>(null);
   const [by, setBy] = useState<EventBy | null>(null);
-  const [stage, setStage] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -29,10 +29,9 @@ export function NewsFeedPage() {
           (!sprint || e.sprintId === sprint || (!e.sprintId && c.sprints?.[sprint])) &&
           (!kind || e.kind === kind) &&
           (!by || e.by === by) &&
-          (!stage || e.status?.stage === stage) &&
           (!status || e.status?.to === status),
       ),
-    [companies, pages, sprint, kind, by, stage, status],
+    [companies, pages, sprint, kind, by, status],
   );
   const days: { day: string; items: typeof events }[] = [];
   for (const item of events) {
@@ -97,22 +96,12 @@ export function NewsFeedPage() {
             setKind,
           )}
           {filter(
-            'stage',
-            'Stage',
-            stage,
-            board.stages.map((s): [string, React.ReactNode] => [
-              s.id,
-              <StageName key={s.id} name={s.name} color={s.color} />,
-            ]),
-            setStage,
-          )}
-          {filter(
             'status',
             'Status',
             status,
-            board.statuses.map((s): [string, React.ReactNode] => [
-              s.id,
-              <StatusTag key={s.id} board={board} value={s.id} />,
+            optList(statusCol(board)).map((o): [string, React.ReactNode] => [
+              o.id,
+              <StatusTag key={o.id} col={statusCol(board)} value={o.id} />,
             ]),
             setStatus,
           )}
@@ -143,8 +132,8 @@ export function NewsFeedPage() {
                 <li key={e.id} className="border-b border-line last:border-b-0">
                   <button
                     type="button"
-                    onClick={() => select({ id: c.id, stage: e.status?.stage ?? null })}
-                    aria-current={selected.some((x) => x.id === c.id) || undefined}
+                    onClick={() => select(c.id)}
+                    aria-current={selected === c.id || undefined}
                     className="grid w-full grid-cols-[44px_26px_minmax(0,1fr)] items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-hover aria-[current]:bg-selected"
                   >
                     <span className="text-[12px] text-faint">{timeOf(e)}</span>
@@ -152,14 +141,7 @@ export function NewsFeedPage() {
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-2">
                         <b className="text-[14px] text-strong">{c.name}</b>
-                        {e.status ? (
-                          <>
-                            <StageTag stage={e.status.stage} />
-                            <StatusTag board={board} value={e.status.to} />
-                          </>
-                        ) : (
-                          <KindTag kind={e.kind} />
-                        )}
+                        <EventTag event={e} />
                         {e.sprintId && info[e.sprintId] && !sprint && (
                           <span className="text-[12px] text-faint">{info[e.sprintId]!.label}</span>
                         )}

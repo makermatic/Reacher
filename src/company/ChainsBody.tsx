@@ -321,7 +321,7 @@ function AddEmailForm({ chain }: { chain: Chain }) {
     if (!text.trim()) return toast('Paste the email first');
     const label = actions.addEmail(chain, { dir, date: date || todayISO(), text: text.trim() });
     setText('');
-    toast(label ? `Added. ${label}` : 'Email added');
+    toast(label ? `Added. Status → ${label}` : 'Email added');
   };
   return (
     <div className={addForm}>

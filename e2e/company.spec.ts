@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, field, openDemo, openPage, stageCell, tab } from './support';
+import { expectToast, field, openDemo, openPage, postStatus, statusCell, tab } from './support';
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page);
 });
 
-test('the company page: rename, stages table, fields', async ({ page }) => {
+test('the company page: rename, status by sprint, fields', async ({ page }) => {
   await openPage(page, 'Buck');
   const name = page.getByLabel('Rename company');
   await name.click();
@@ -20,19 +20,17 @@ test('the company page: rename, stages table, fields', async ({ page }) => {
   await expect(field(page, 'Buck Design', 'Role I want')).toHaveValue('Animator');
 });
 
-test('an email from them puts Outreach at Reply and clears the follow-up', async ({ page }) => {
+test('an email from them sets Wrote back!! and clears the follow-up', async ({ page }) => {
   await openPage(page, 'Psyop');
   await tab(page, 'Emails');
   await page.getByLabel('Email text').first().fill('Thanks! Can you send your reel?');
   await page.getByRole('button', { name: 'Add email' }).first().click();
-  await expectToast(page, 'Outreach → Reply');
+  await expectToast(page, 'Status → Wrote back!!');
   await page.getByRole('button', { name: 'Back to companies' }).click();
-  await expect(stageCell(page, 'Psyop', 'Outreach')).toHaveText('Reply');
+  await expect(statusCell(page, 'Psyop')).toHaveText(/Wrote back!!/);
 });
 
-test('an upcoming interview puts Interview at Scheduled; an application at Sent', async ({
-  page,
-}) => {
+test('an interview sets Interview', async ({ page }) => {
   await openPage(page, 'loyalkaspar');
   await tab(page, 'Meetings');
   await page.getByRole('button', { name: 'Interview', exact: true }).click();
@@ -40,22 +38,25 @@ test('an upcoming interview puts Interview at Scheduled; an application at Sent'
   await page.locator('#meet-start').fill('12:30');
   await page.locator('#meet-with').fill('Alex');
   await page.locator('#meet-with').press('Enter');
-  await expectToast(page, 'Interview → Scheduled');
+  await expectToast(page, 'Status → Interview');
+  await page.getByRole('button', { name: 'Back to companies' }).click();
+  await expect(statusCell(page, 'loyalkaspar')).toHaveText('Interview');
+});
+
+test('an application sets Applied', async ({ page }) => {
+  await openPage(page, 'Buck');
   await tab(page, 'Applications');
   await page.locator('#app-role').fill('Motion Designer');
   await page.locator('#app-role').press('Enter');
-  await expectToast(page, 'Application → Sent');
-  await page.getByRole('button', { name: 'Back to companies' }).click();
-  await expect(stageCell(page, 'loyalkaspar', 'Interview')).toHaveText('Scheduled');
-  await expect(stageCell(page, 'loyalkaspar', 'Application')).toHaveText('Sent');
+  await expectToast(page, 'Status → Applied');
 });
 
 test('the timeline shows what happened', async ({ page }) => {
-  await stageCell(page, 'Gretel', 'Outreach').click();
-  await page.getByRole('button', { name: 'Outreach status' }).click();
-  await page.getByRole('menuitemradio', { name: /^Sent/ }).click();
+  await statusCell(page, 'Gretel').click();
+  await postStatus(page, 'Reached out');
+  await expect(statusCell(page, 'Gretel')).toHaveText('Reached out');
   await openPage(page, 'Gretel');
   await expect(
-    page.getByRole('complementary', { name: 'Timeline' }).getByText('Outreach: none → Sent'),
+    page.getByRole('complementary', { name: 'Timeline' }).getByText('Status: none → Reached out'),
   ).toBeVisible();
 });

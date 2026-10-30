@@ -9,30 +9,23 @@ import {
   X,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useMemo, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { useAssistant } from '../ai/Assistant';
 import { useToast } from '../components/Toast';
 import { readPref, writePref } from '../lib/prefs';
-import { meta, valueText } from '../model/board';
+import { colShows, meta, optList, sheetColumns, statusCol, valueText } from '../model/board';
 import { matchesQuery, parseQuery } from '../model/query';
 import { inSprint, inView } from '../model/sprints';
 import { norm } from '../model/text';
 import type { Company } from '../model/types';
 import { glide } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { sameCell, useAppUI, type Cell } from './AppUI';
-import {
-  AddFieldDialog,
-  DisplaySettings,
-  FieldHeader,
-  StageHeader,
-  TwoClick,
-  type Sort,
-} from './columns';
+import { useAppUI } from './AppUI';
+import { AddFieldDialog, DisplaySettings, FieldHeader, TwoClick, type Sort } from './columns';
 import { FieldInput } from './fields';
-import { StageBoard } from './StageBoard';
+import { StatusBoard } from './StatusBoard';
 import { useSprintInfo } from './sprintLabels';
-import { colorVar, MenuItem, Pop, StatusTag, ui } from './ui';
+import { MenuItem, Pop, StatusTag, ui } from './ui';
 
 type View = 'sheet' | 'board';
 const isView = (v: unknown): v is View => v === 'sheet' || v === 'board';
@@ -43,9 +36,9 @@ const isSort = (v: unknown): v is Sort =>
 
 /**
  * The companies list (M7), working like Kitsu's shot list: the companies in
- * the sprint on screen (or all of them), a colored column per stage and a
- * plain column per field. Click a stage cell to select it and open the side
- * panel; Ctrl/Cmd-click or Shift-click to select more. Fields edit in place.
+ * the sprint on screen (or all of them), the Status column, then the starred
+ * fields. Click a company's name or its status to open its side panel.
+ * Fields edit in place.
  */
 export function CompaniesPage({ onImport }: { onImport: () => void }) {
   const { board, companies, sprint, loading } = useWorkspace();
@@ -70,11 +63,12 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
     if (!sort) return rows.sort((a, b) => order(a) - order(b));
     const key = (c: Company): string | number => {
       if (sort.key === 'name') return c.name.toLowerCase();
-      if (sort.key.startsWith('stage:')) {
-        const i = board.statuses.findIndex((s) => s.id === c.stages?.[sort.key.slice(6)]);
+      const col = board.columns.find((x) => x.id === sort.key);
+      if (col?.type === 'status') {
+        // Status order (Gathering, Reached out...), not A to Z.
+        const i = optList(col).findIndex((o) => o.id === meta(c, col.id));
         return i < 0 ? 999 : i;
       }
-      const col = board.columns.find((x) => x.id === sort.key);
       return col ? valueText(col, meta(c, col.id)).toLowerCase() : '';
     };
     return rows.sort((a, b) => {
@@ -106,7 +100,7 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search, or filter like outreach=reply city=la"
+            placeholder="Search, or filter like status=applied city=la"
             aria-label="Search companies"
             className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-faint [&::-webkit-search-cancel-button]:hidden"
           />
@@ -198,7 +192,7 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
 
       <div className="min-h-0 flex-1">
         {view === 'board' ? (
-          <StageBoard list={list} />
+          <StatusBoard list={list} />
         ) : (
           <CompanyTable
             list={list}
@@ -226,7 +220,7 @@ function SearchHelp({ onPick }: { onPick: (q: string) => void }) {
     onPick(q);
     setOpen(false);
   };
-  const first = board.stages[0];
+  const sc = statusCol(board);
   return (
     <Pop
       open={open}
@@ -246,10 +240,7 @@ function SearchHelp({ onPick }: { onPick: (q: string) => void }) {
           <code>buck</code> finds names and any field
         </li>
         <li>
-          <code>{(first?.name ?? 'outreach').toLowerCase()}=reply</code> a stage at a status
-        </li>
-        <li>
-          <code>status=reply</code> any stage at that status
+          <code>status=applied</code> a status (<code>status=none</code> for none yet)
         </li>
         <li>
           <code>city=la,nyc</code> a field, either value
@@ -258,11 +249,11 @@ function SearchHelp({ onPick }: { onPick: (q: string) => void }) {
           <code>-buck</code> leaves names out
         </li>
       </ul>
-      <b className="text-[13.5px] text-strong">Any stage at</b>
+      <b className="text-[13.5px] text-strong">Status</b>
       <div className="flex flex-wrap gap-1.5">
-        {board.statuses.map((s) => (
-          <button key={s.id} type="button" onClick={() => pick(`status=[${s.label}]`)}>
-            <StatusTag board={board} value={s.id} />
+        {optList(sc).map((o) => (
+          <button key={o.id} type="button" onClick={() => pick(`status=[${o.label}]`)}>
+            <StatusTag col={sc} value={o.id} />
           </button>
         ))}
       </div>
@@ -284,24 +275,18 @@ function CompanyTable({
   onImport: () => void;
 }) {
   const { board, companies, loading, actions } = useWorkspace();
-  const { selected, select, setSelection, openPage } = useAppUI();
+  const { selected, select, openPage } = useAppUI();
   const toast = useToast();
   const [addingField, setAddingField] = useState(false);
-  const stages = board.stages.filter((s) => s.onSheet !== false);
-  const fields = board.columns.filter((c) => c.onSheet !== false);
-  // Cells in reading order, for Shift-click ranges.
-  const order: Cell[] = list.flatMap((c) => stages.map((s) => ({ id: c.id, stage: s.id })));
-  const isSel = (cell: Cell) => selected.some((x) => sameCell(x, cell));
-  const pick = (e: MouseEvent, cell: Cell) =>
-    select(cell, e.metaKey || e.ctrlKey ? 'toggle' : e.shiftKey ? 'range' : 'only', order);
+  const sc = statusCol(board);
+  const fields = sheetColumns(board, list);
 
   return (
     <div className="h-full overflow-auto rounded-xl border border-line bg-surface">
       <table className="rtable w-max min-w-full border-separate border-spacing-0">
         <thead>
           <tr>
-            <th className="sticky-a w-10" aria-label="Select" />
-            <th className="sticky-b w-60 min-w-56">
+            <th className="sticky-a w-60 min-w-56">
               <div className="flex items-center justify-between pr-2">
                 <button
                   type="button"
@@ -327,15 +312,9 @@ function CompanyTable({
                 </button>
               </div>
             </th>
-            {stages.map((s) => (
-              <th
-                key={s.id}
-                className="stage-col min-w-40"
-                style={{ '--tint': colorVar(s.color) } as React.CSSProperties}
-              >
-                <StageHeader stage={s} sort={sort} onSort={onSort} />
-              </th>
-            ))}
+            <th className="stage-col min-w-44">
+              <FieldHeader col={sc} sort={sort} onSort={onSort} />
+            </th>
             {fields.map((col) => (
               <th key={col.id} className="min-w-36">
                 <FieldHeader col={col} sort={sort} onSort={onSort} />
@@ -346,30 +325,14 @@ function CompanyTable({
         </thead>
         <tbody>
           {list.map((c) => {
-            const rowCells = stages.map((s) => ({ id: c.id, stage: s.id }));
-            const rowSelected = rowCells.length > 0 && rowCells.every(isSel);
+            const open = selected === c.id;
             return (
-              <tr key={c.id} className="group">
-                <td className="sticky-a text-center">
-                  <input
-                    type="checkbox"
-                    checked={rowSelected}
-                    onChange={() =>
-                      setSelection(
-                        rowSelected
-                          ? selected.filter((x) => x.id !== c.id)
-                          : [...selected.filter((x) => x.id !== c.id), ...rowCells],
-                      )
-                    }
-                    aria-label={`Select ${c.name}`}
-                    className="size-4 accent-[var(--selectable)]"
-                  />
-                </td>
-                <td className="sticky-b">
+              <tr key={c.id} className="group" aria-selected={open}>
+                <td className="sticky-a">
                   <div className="flex items-center pr-1">
                     <button
                       type="button"
-                      onClick={() => openPage(c.id)}
+                      onClick={() => select(c.id)}
                       title={`Open ${c.name}`}
                       className="min-w-0 flex-1 truncate px-3 py-2.5 text-left text-[14px] font-semibold text-strong hover:underline"
                     >
@@ -380,6 +343,7 @@ function CompanyTable({
                         type="button"
                         onClick={() => openPage(c.id)}
                         aria-label={`Open ${c.name}'s page`}
+                        title="Open the full page"
                         className={ui.ghostIcon}
                       >
                         <ArrowUpRight size={15} />
@@ -394,31 +358,26 @@ function CompanyTable({
                     </span>
                   </div>
                 </td>
-                {stages.map((s) => {
-                  const cell = { id: c.id, stage: s.id };
-                  return (
-                    <td
-                      key={s.id}
-                      onClick={(e) => pick(e, cell)}
-                      aria-selected={isSel(cell)}
-                      aria-label={`${s.name} for ${c.name}`}
-                      style={{ '--tint': colorVar(s.color) } as React.CSSProperties}
-                      className="stage-cell cursor-pointer px-3"
-                    >
-                      <StatusTag board={board} value={c.stages?.[s.id]} />
-                    </td>
-                  );
-                })}
+                <td
+                  onClick={() => select(c.id)}
+                  aria-selected={open}
+                  aria-label={`${sc.name} for ${c.name}`}
+                  className="stage-cell cursor-pointer px-3"
+                >
+                  <StatusTag col={sc} value={meta(c, sc.id)} />
+                </td>
                 {fields.map((col) => (
                   <td key={col.id} className="field-cell max-w-72">
-                    <FieldInput company={c} col={col} />
+                    {colShows(col, c) || meta(c, col.id) != null ? (
+                      <FieldInput company={c} col={col} />
+                    ) : null}
                   </td>
                 ))}
                 <td />
               </tr>
             );
           })}
-          <AddCompanyRow disabled={loading} span={stages.length + fields.length + 1} />
+          <AddCompanyRow disabled={loading} span={fields.length + 2} />
         </tbody>
       </table>
       {!loading && !companies.length ? (
@@ -472,9 +431,11 @@ function Message({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The last row: type a name. Companies you have are suggested; picking one
- * adds it to this sprint with everything it has. A new name makes a new
- * company (in this sprint) and the AI looks it up.
+ * The last row: type a name. Companies you have come first (Enter picks the
+ * highlighted one) and adding one puts it in this sprint with everything it
+ * has; "New company" is last, so Enter never makes a duplicate by accident.
+ * A new company joins this sprint and the AI looks it up. Escape or a click
+ * elsewhere closes the list.
  */
 function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) {
   const { companies, sprint, actions } = useWorkspace();
@@ -484,6 +445,7 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
   const toast = useToast();
   const [name, setName] = useState('');
   const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false);
 
   const n = norm(name);
   const matches = n
@@ -492,9 +454,18 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
         .sort((a, b) => Number(norm(b.name).startsWith(n)) - Number(norm(a.name).startsWith(n)))
         .slice(0, 6)
     : [];
+  const exact = matches.some((c) => norm(c.name) === n);
+  // Existing companies, then "New company" (unless the name is already taken).
+  const options = [...matches.map((c) => ({ c })), ...(exact || !n ? [] : [{ c: null }])];
+  const showList = open && matches.length > 0;
+
+  const reset = () => {
+    setName('');
+    setActive(0);
+  };
 
   const addExisting = (c: Company) => {
-    setName('');
+    reset();
     if (sprint && !inSprint(c, sprint)) {
       actions.addToSprint(c.id, sprint);
       toast(`Added ${c.name} to ${info[sprint]?.label ?? 'this sprint'}`);
@@ -507,33 +478,39 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
     const existing = actions.findByName(typed);
     if (existing) return addExisting(existing);
     const c = actions.addCompany(typed);
-    setName('');
+    reset();
     // Sure answers fill in quietly; a "which one?" opens the panel to ask there.
-    if (available)
-      void lookup(c, { announce: true, onAsk: () => select({ id: c.id, stage: null }) });
+    if (available) void lookup(c, { announce: true, onAsk: () => select(c.id) });
+  };
+
+  const choose = (i: number) => {
+    const o = showList ? options[i] : undefined;
+    if (o?.c) addExisting(o.c);
+    else create();
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.nativeEvent.isComposing) return;
-    if (e.key === 'ArrowDown' && matches.length) {
+    if (e.key === 'ArrowDown' && showList) {
       e.preventDefault();
-      setActive((a) => Math.min(a + 1, matches.length));
-    } else if (e.key === 'ArrowUp' && matches.length) {
+      setActive((a) => Math.min(a + 1, options.length - 1));
+    } else if (e.key === 'ArrowUp' && showList) {
       e.preventDefault();
       setActive((a) => Math.max(a - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      // 0 = what you typed; 1.. = a suggestion.
-      if (active > 0 && matches[active - 1]) addExisting(matches[active - 1]!);
-      else create();
-      setActive(0);
-    } else if (e.key === 'Escape') setName('');
+      choose(active);
+    } else if (e.key === 'Escape') {
+      // First Escape closes the list; the next clears the name.
+      e.preventDefault();
+      if (showList) setOpen(false);
+      else reset();
+    }
   };
 
   return (
     <tr className="add-row">
-      <td className="sticky-a" />
-      <td className="sticky-b relative">
+      <td className="sticky-a relative">
         <input
           id="new-company"
           value={name}
@@ -541,34 +518,44 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
           onChange={(e) => {
             setName(e.target.value);
             setActive(0);
+            setOpen(true);
           }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
           placeholder="+ Add a company"
           aria-label="Add a company"
           aria-autocomplete="list"
+          aria-expanded={showList}
           autoComplete="off"
           className="w-full bg-transparent px-3 py-3 text-[14px] outline-none placeholder:text-faint"
         />
-        {matches.length > 0 && (
+        {showList && (
           <div
             role="listbox"
             aria-label="Companies you have"
+            // Keep focus in the input so a click on an option lands before blur closes the list.
+            onMouseDown={(e) => e.preventDefault()}
             className={`${ui.menu} absolute top-full left-2 w-80`}
           >
-            <MenuItem active={active === 0} onSelect={create}>
-              <span className="text-muted">New company “{name.trim()}”</span>
-            </MenuItem>
-            {matches.map((c, i) => {
-              const here = !!sprint && inSprint(c, sprint);
-              return (
-                <MenuItem key={c.id} active={active === i + 1} onSelect={() => addExisting(c)}>
-                  <span className="min-w-0 flex-1 truncate font-semibold">{c.name}</span>
+            {options.map((o, i) =>
+              o.c ? (
+                <MenuItem key={o.c.id} active={active === i} onSelect={() => choose(i)}>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{o.c.name}</span>
                   <span className="shrink-0 text-[11.5px] text-faint">
-                    {here ? 'In this sprint' : sprint ? 'Add to sprint' : 'On your list'}
+                    {sprint && inSprint(o.c, sprint)
+                      ? 'In this sprint'
+                      : sprint
+                        ? 'Add to sprint'
+                        : 'On your list'}
                   </span>
                 </MenuItem>
-              );
-            })}
+              ) : (
+                <MenuItem key="new" active={active === i} onSelect={() => choose(i)}>
+                  <span className="text-muted">New company “{name.trim()}”</span>
+                </MenuItem>
+              ),
+            )}
           </div>
         )}
       </td>

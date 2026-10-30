@@ -1,5 +1,4 @@
 import { meta, valueText } from './board';
-import { statusLabel, yourMove } from './stages';
 import { daysUntil } from './dates';
 import { norm } from './text';
 import type { Board, Company } from './types';
@@ -56,16 +55,12 @@ export function matchesSearch(board: Board, c: Company, query: string) {
     const t = String(v ?? '');
     return norm(t).includes(q) || expand(t).includes(qx);
   };
-  return (
-    hit(c.name) ||
-    board.columns.some((col) => hit(valueText(col, meta(c, col.id)))) ||
-    Object.values(c.stages ?? {}).some((s) => hit(statusLabel(board, s)))
-  );
+  return hit(c.name) || board.columns.some((col) => hit(valueText(col, meta(c, col.id))));
 }
 
 /** Needs me: they wrote back, or the follow-up is due or late. */
 export const needsMe = (c: Company, now = new Date()) =>
-  yourMove(c.stages ?? {}) || (!!c.due && daysUntil(c.due, now) <= 0);
+  meta(c, 'status') === 'wroteback' || (!!c.due && daysUntil(c.due, now) <= 0);
 
 export type Filter = 'all' | 'needs';
 

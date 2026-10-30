@@ -20,53 +20,43 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 import { useToast } from '../components/Toast';
-import { readPref, writePref } from '../lib/prefs';
+import { meta, optList, optionOf, statusCol } from '../model/board';
 import { rankBetween, rankOf, byRank } from '../model/ranking';
-import { statusLabel } from '../model/stages';
 import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { sameCell, useAppUI } from './AppUI';
-import { colorVar, Dropdown, MenuItem, StageName, StatusTag } from './ui';
+import { useAppUI } from './AppUI';
+import { colorVar, StatusTag } from './ui';
 
 const NONE = '_none';
 type Lanes = Record<string, string[]>;
-const isString = (v: unknown): v is string => typeof v === 'string';
 
 /**
- * The Board (M7): one stage at a time, a lane per status. Drag a card to
- * another lane to change that stage's status, or within a lane to reorder;
- * the others make room as you drag. Click a card to select it (side panel).
+ * The Board (M7): a lane per status. Drag a card to another lane to change
+ * its status, or within a lane to reorder; the others make room as you drag.
+ * Click a card to open its panel.
  */
-export function StageBoard({ list }: { list: Company[] }) {
+export function StatusBoard({ list }: { list: Company[] }) {
   const { board, actions } = useWorkspace();
   const { selected, select } = useAppUI();
   const toast = useToast();
-  const [stageId, setStageId] = useState(() =>
-    readPref('board-stage', board.stages[0]?.id ?? '', isString),
-  );
-  const [picking, setPicking] = useState(false);
-  const stage = board.stages.find((s) => s.id === stageId) ?? board.stages[0];
+  const sc = statusCol(board);
+  const opts = optList(sc);
   const [preview, setPreview] = useState<Lanes | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
   );
-  if (!stage)
-    return <p className="text-muted">Add a stage in Settings → Stages to use the Board.</p>;
 
   const byId = new Map(list.map((c) => [c.id, c]));
-  const laneKeys = [NONE, ...board.statuses.map((s) => s.id)];
+  const laneKeys = [NONE, ...opts.map((o) => o.id)];
+  const statusOf = (c: Company) => (meta(c, 'status') as string | null) ?? null;
   const stored: Lanes = Object.fromEntries(
     laneKeys.map((k) => [
       k,
-      byRank(
-        list.filter(
-          (c) =>
-            (c.stages?.[stage.id] ?? NONE) === k ||
-            (k === NONE && !board.statuses.some((s) => s.id === c.stages?.[stage.id])),
-        ),
-      ).map((c) => c.id),
+      byRank(list.filter((c) => (k === NONE ? !optionOf(sc, statusOf(c)) : statusOf(c) === k))).map(
+        (c) => c.id,
+      ),
     ]),
   );
   const shown = preview ?? stored;
@@ -106,48 +96,24 @@ export function StageBoard({ list }: { list: Company[] }) {
     const idx = order.indexOf(id);
     const status = lane === NONE ? null : lane;
     const c = byId.get(id)!;
-    const moved = (c.stages?.[stage.id] ?? null) !== status;
+    const moved = statusOf(c) !== status;
     if (!moved && stored[lane]!.indexOf(id) === idx) return;
     const prev = order[idx - 1];
     const next = order[idx + 1];
     actions.moveCard(
       id,
-      stage.id,
       status,
       rankBetween(
         prev ? rankOf(byId.get(prev)!) : undefined,
         next ? rankOf(byId.get(next)!) : undefined,
       ),
     );
-    if (moved) toast(`${c.name} · ${stage.name} → ${statusLabel(board, status) || 'No status'}`);
+    if (moved) toast(`${c.name} → ${optionOf(sc, status)?.label ?? 'No status'}`);
   };
   const active = activeId ? byId.get(activeId) : undefined;
 
   return (
     <section aria-label="Board" className="flex h-full min-h-0 flex-col gap-3">
-      <div>
-        <Dropdown
-          open={picking}
-          onOpenChange={setPicking}
-          ariaLabel="Stage"
-          label={<StageName name={stage.name} color={stage.color} />}
-          width={220}
-        >
-          {board.stages.map((s) => (
-            <MenuItem
-              key={s.id}
-              active={s.id === stage.id}
-              onSelect={() => {
-                setStageId(s.id);
-                writePref('board-stage', s.id);
-                setPicking(false);
-              }}
-            >
-              <StageName name={s.name} color={s.color} />
-            </MenuItem>
-          ))}
-        </Dropdown>
-      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={collide}
@@ -168,21 +134,16 @@ export function StageBoard({ list }: { list: Company[] }) {
               <Lane
                 key={k}
                 laneKey={k}
-                label={k === NONE ? 'No status' : statusLabel(board, k)}
-                color={
-                  k === NONE ? 'grey' : (board.statuses.find((s) => s.id === k)?.color ?? 'grey')
-                }
+                label={k === NONE ? 'No status' : (optionOf(sc, k)?.label ?? k)}
+                color={k === NONE ? 'grey' : (optionOf(sc, k)?.color ?? 'grey')}
                 cards={(shown[k] ?? []).map((id) => byId.get(id)!).filter(Boolean)}
-                stageId={stage.id}
-                isSelected={(id) => selected.some((x) => sameCell(x, { id, stage: stage.id }))}
-                onPick={(id) => select({ id, stage: stage.id })}
+                isSelected={(id) => selected === id}
+                onPick={(id) => select(id)}
               />
             ))}
           </div>
         </div>
-        <DragOverlay>
-          {active && <CardFace company={active} stageId={stage.id} lifted />}
-        </DragOverlay>
+        <DragOverlay>{active && <CardFace company={active} lifted />}</DragOverlay>
       </DndContext>
     </section>
   );
@@ -193,7 +154,6 @@ function Lane({
   label,
   color,
   cards,
-  stageId,
   isSelected,
   onPick,
 }: {
@@ -201,7 +161,6 @@ function Lane({
   label: string;
   color: string;
   cards: Company[];
-  stageId: string;
   isSelected: (id: string) => boolean;
   onPick: (id: string) => void;
 }) {
@@ -223,13 +182,7 @@ function Lane({
       <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
           {cards.map((c) => (
-            <Card
-              key={c.id}
-              company={c}
-              stageId={stageId}
-              selected={isSelected(c.id)}
-              onPick={() => onPick(c.id)}
-            />
+            <Card key={c.id} company={c} selected={isSelected(c.id)} onPick={() => onPick(c.id)} />
           ))}
         </div>
       </SortableContext>
@@ -239,12 +192,10 @@ function Lane({
 
 function Card({
   company,
-  stageId,
   selected,
   onPick,
 }: {
   company: Company;
-  stageId: string;
   selected: boolean;
   onPick: () => void;
 }) {
@@ -264,24 +215,22 @@ function Card({
       onKeyDown={(e) => e.key === 'Enter' && onPick()}
       className={`cursor-grab rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-selectable ${isDragging ? 'opacity-30' : ''}`}
     >
-      <CardFace company={company} stageId={stageId} selected={selected} />
+      <CardFace company={company} selected={selected} />
     </div>
   );
 }
 
 function CardFace({
   company,
-  stageId,
   selected = false,
   lifted = false,
 }: {
   company: Company;
-  stageId: string;
   selected?: boolean;
   lifted?: boolean;
 }) {
   const { board } = useWorkspace();
-  const others = board.stages.filter((s) => s.id !== stageId && company.stages?.[s.id]);
+  const outcome = board.columns.find((c) => c.id === 'outcome');
   return (
     <div
       className={`grid gap-1.5 rounded-lg border px-3 py-2.5 ${
@@ -289,15 +238,12 @@ function CardFace({
       } ${lifted ? 'rotate-1 shadow-panel' : ''}`}
     >
       <b className="truncate text-[14px] text-strong">{company.name}</b>
-      {others.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {others.map((s) => (
-            <span key={s.id} className="flex items-center gap-1 text-[11.5px] text-muted">
-              {s.name}
-              <StatusTag board={board} value={company.stages?.[s.id]} className="text-[11px]" />
-            </span>
-          ))}
-        </div>
+      {outcome && meta(company, outcome.id) != null && (
+        <StatusTag
+          col={outcome}
+          value={meta(company, outcome.id)}
+          className="justify-self-start text-[11px]"
+        />
       )}
     </div>
   );

@@ -1,12 +1,13 @@
 /**
  * Sprints (M7): blocks of time to organize the hunt, like sequences in Kitsu.
- * A company can be in any number of sprints and keeps separate stage statuses
- * in each (Zack, 2026-10-29). Its `stages` holds the latest from any of them,
- * which "All companies" shows.
+ * A company can be in any number of sprints and keeps a separate status in
+ * each (Zack, 2026-10-29). Its `meta` holds the latest status from any of
+ * them, which "All companies" shows.
  */
+import { metaPatch } from './board';
 import { addDays, daysUntil, isISODate, todayISO } from './dates';
 import { uid } from './text';
-import type { Company, FeedEvent, Page, Sprint, SprintEntry } from './types';
+import type { Board, Company, FeedEvent, Page, Sprint, SprintEntry } from './types';
 
 /** Two weeks without activity, or a newer sprint, ends a sprint. */
 export const QUIET_DAYS = 14;
@@ -46,20 +47,44 @@ export function targetSprint(c: Company, sprints: Sprint[], active: string | nul
 }
 
 /**
- * The company as seen from a sprint: its stage statuses in that sprint.
- * From "All companies" (null) it's the company as stored (the latest).
+ * The company as seen from a sprint: its status columns from that sprint.
+ * From "All companies" (null) it's the company as stored (the latest status).
  */
 export function inView(c: Company, sprintId: string | null): Company {
   if (!sprintId) return c;
   const e = entryOf(c, sprintId);
-  return e ? { ...c, stages: { ...e.stages } } : c;
+  return e ? { ...c, meta: { ...c.meta, ...e.meta } } : c;
 }
 
-/** Adds a company to a sprint, starting from its current stage statuses. */
-export function joinPatch(c: Company, sprintId: string, today = todayISO()) {
+/**
+ * One status-column change: into the sprint's entry (when there is one) and
+ * into the company's latest status, clearing dependent columns (like Outcome)
+ * in both. Returns the store patch.
+ */
+export function statusPatch(
+  board: Board,
+  c: Company,
+  sprintId: string | null,
+  colId: string,
+  value: unknown,
+  today = todayISO(),
+) {
+  const overall = metaPatch(board, c, colId, value);
+  if (!sprintId || !inSprint(c, sprintId)) return overall;
+  const inSprintView = metaPatch(board, inView(c, sprintId), colId, value);
   return {
-    sprints: { [sprintId]: { stages: { ...(c.stages ?? {}) }, added: today, updated: today } },
+    ...overall,
+    sprints: { [sprintId]: { meta: inSprintView.meta, updated: today } },
   };
+}
+
+/** Adds a company to a sprint, starting from its current statuses. */
+export function joinPatch(board: Board, c: Company, sprintId: string, today = todayISO()) {
+  const statusCols = board.columns.filter((col) => col.type === 'status').map((col) => col.id);
+  const meta = Object.fromEntries(
+    statusCols.filter((id) => c.meta?.[id] != null).map((id) => [id, c.meta[id]]),
+  );
+  return { sprints: { [sprintId]: { meta, added: today, updated: today } } };
 }
 
 /** The latest day anything happened in a sprint (at least its start). */
@@ -115,10 +140,11 @@ export const eventsIn = (events: FeedEvent[], sprintId: string) =>
 export const quietEnd = (last: string) => addDays(last, QUIET_DAYS);
 
 /**
- * After a change written to the company's latest stages (a quick update),
- * copies the stages that moved into its entry for `sprintId`.
+ * After a change written to the company's latest status (a quick update),
+ * copies the status columns that moved into its entry for `sprintId`.
  */
-export function mirrorStages(
+export function mirrorStatus(
+  board: Board,
   before: Company | undefined,
   after: Company,
   sprintId: string | null,
@@ -126,14 +152,14 @@ export function mirrorStages(
 ): Company {
   const e = sprintId ? after.sprints?.[sprintId] : null;
   if (!sprintId || !e) return after;
-  const keys = new Set([...Object.keys(before?.stages ?? {}), ...Object.keys(after.stages ?? {})]);
-  const moved = [...keys].filter(
-    (k) => (before?.stages?.[k] ?? null) !== (after.stages?.[k] ?? null),
-  );
+  const moved = board.columns
+    .filter((col) => col.type === 'status')
+    .map((col) => col.id)
+    .filter((id) => (before?.meta?.[id] ?? null) !== (after.meta?.[id] ?? null));
   if (!moved.length) return after;
-  const stages = {
-    ...e.stages,
-    ...Object.fromEntries(moved.map((k) => [k, after.stages?.[k] ?? null])),
+  const meta = {
+    ...e.meta,
+    ...Object.fromEntries(moved.map((id) => [id, after.meta[id] ?? null])),
   };
-  return { ...after, sprints: { ...after.sprints, [sprintId]: { ...e, stages, updated: today } } };
+  return { ...after, sprints: { ...after.sprints, [sprintId]: { ...e, meta, updated: today } } };
 }

@@ -31,7 +31,7 @@ test('To saves the contact and fills their name; Log as sent moves status', asyn
   await panel.getByRole('button', { name: 'Draft with AI' }).click();
   await expect(panel.locator('#compose-subject')).toHaveValue('Hello from Zack');
   await panel.getByRole('button', { name: 'Log as sent' }).click();
-  await expectToast(page, 'Outreach → Sent');
+  await expectToast(page, 'Status → Reached out');
 });
 
 test('templates: # opens the field menu, typing narrows it, Enter fills in', async ({ page }) => {

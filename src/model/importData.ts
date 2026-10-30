@@ -1,7 +1,6 @@
 import { boardOrDefault } from './board';
-import { LEGACY_DEFAULT_BOARD } from './defaults';
-import { isLegacyBoard, migrateCompany } from './stages';
 import { isPlainObject } from './text';
+import { statusFromStages, unstageCompany } from './unstage';
 import type {
   Board,
   Chain,
@@ -58,9 +57,10 @@ export function parseExport(text: string): ImportData {
     due: typeof c.due === 'string' && c.due ? c.due : null,
     auto: isPlainObject(c.auto) ? (c.auto as Company['auto']) : {},
     ...(typeof c.rank === 'number' ? { rank: c.rank } : {}),
+    // Stage statuses from Reacher Test v12, turned back into Status below.
+    ...(isPlainObject(c.stages) ? { stages: c.stages } : {}),
     ...(c.example ? { example: true } : {}),
     ...(isPlainObject(c.sprints) ? { sprints: sprintEntries(c.sprints) } : {}),
-    ...(isPlainObject(c.stages) ? { stages: c.stages as Company['stages'] } : {}),
   }));
   const companyIds = new Set(companies.map((c) => c.id));
 
@@ -157,20 +157,12 @@ export function parseExport(text: string): ImportData {
       order: typeof x.order === 'number' ? x.order : i,
     }));
 
-  // Exports from before M7 (the prototype's included) have one Status column: move it to stages.
-  const legacy = isLegacyBoard(raw.board)
-    ? raw.board
-    : isPlainObject(raw.board)
-      ? null
-      : LEGACY_DEFAULT_BOARD;
-  const moved = legacy
-    ? companies.map((c) => (c.stages ? c : migrateCompany(legacy, c, pages[c.id])))
-    : companies;
-
+  const board = boardOrDefault(isPlainObject(raw.board) ? raw.board : null);
   return {
     sprints,
-    board: boardOrDefault(isPlainObject(raw.board) ? raw.board : null),
-    companies: moved,
+    board,
+    // Saved with stages (Reacher Test v12): back to one Status.
+    companies: companies.map((c) => unstageCompany(board, c)),
     chains,
     pages,
     templates,
@@ -199,7 +191,9 @@ function sprintEntries(raw: Record<string, unknown>): Record<string, SprintEntry
   for (const [id, e] of Object.entries(raw))
     if (isPlainObject(e))
       out[id] = {
-        stages: isPlainObject(e.stages) ? (e.stages as SprintEntry['stages']) : {},
+        meta: isPlainObject(e.meta)
+          ? e.meta
+          : { status: statusFromStages(isPlainObject(e.stages) ? e.stages : {}) },
         added: str(e.added),
         updated: str(e.updated),
       };

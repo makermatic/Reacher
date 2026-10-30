@@ -3,7 +3,8 @@
  * is an event on its company's page. The side panel, the company timeline and
  * the News Feed all read these. Notes from before M7 show as comments.
  */
-import { stageById, statusLabel } from './stages';
+import { unstageEvent } from './unstage';
+import { optionOf, colById } from './board';
 import { uid } from './text';
 import type { Board, Company, EventBy, EventKind, FeedEvent, Page } from './types';
 
@@ -21,7 +22,7 @@ export function makeEvent(
 /** A company's events, newest first, with old notes as comments. */
 export function eventsOf(page: Page | undefined): FeedEvent[] {
   if (!page) return [];
-  const events = page.events ?? [];
+  const events = (page.events ?? []).map(unstageEvent);
   const known = new Set(events.map((e) => e.id));
   const notes = (page.notes ?? [])
     .filter((n) => !known.has(n.id))
@@ -42,10 +43,11 @@ export function allEvents(companies: Company[], pages: Record<string, Page>) {
     .sort((a, b) => (a.event.at < b.event.at ? 1 : a.event.at > b.event.at ? -1 : 0));
 }
 
-/** "Outreach: Sent → Reply" */
-export function stageText(board: Board, stageId: string, from: unknown, to: unknown) {
-  const label = (v: unknown) => statusLabel(board, v) || 'none';
-  return `${stageById(board, stageId)?.name ?? stageId}: ${label(from)} → ${label(to)}`;
+/** "Status: Reached out → Wrote back!!" */
+export function statusText(board: Board, colId: string, from: unknown, to: unknown) {
+  const col = colById(board, colId);
+  const label = (v: unknown) => (v ? (col && optionOf(col, v)?.label) || String(v) : 'none');
+  return `${col?.name ?? 'Status'}: ${label(from)} → ${label(to)}`;
 }
 
 /** The event's day, YYYY-MM-DD (local). */

@@ -1,21 +1,17 @@
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
-import { ChainsBody, NewChainButton } from '../company/ChainsBody';
-import { ComposeEmail } from '../company/ComposeEmail';
-import { FieldInput } from './fields';
 import { ApplicationsBody } from '../company/EntrySections';
 import { InlineText } from '../company/InlineText';
 import { MeetingsBody } from '../company/MeetingsBody';
-import { fmtDate } from '../model/dates';
 import { eventsOf } from '../model/events';
-import { inSprint, sprintsOf } from '../model/sprints';
+import { inSprint, inView } from '../model/sprints';
 import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
-import { ByBadge, KindTag, StageTag, when } from './Feed';
+import { EmailsSection, FieldRows, SprintStatuses } from './CompanySections';
+import { ByBadge, EventTag, when } from './Feed';
 import { COMPANY_TABS, type CompanyTab } from './route';
 import { useSprintInfo } from './sprintLabels';
-import { StageName, StatusTag, Tabs, ui } from './ui';
+import { Tabs, ui } from './ui';
 
 const TAB_LABEL: Record<CompanyTab, string> = {
   info: 'Info',
@@ -107,8 +103,8 @@ export function CompanyPage({ id, tab }: { id: string; tab: CompanyTab }) {
             onChange={(t) => navigate({ page: 'company', id, tab: t })}
           />
           <div className="mt-5 grid gap-6">
-            {tab === 'info' && <InfoTab company={company} />}
-            {tab === 'emails' && <EmailsTab company={company} />}
+            {tab === 'info' && <InfoTab company={inView(company, sprint)} />}
+            {tab === 'emails' && <EmailsSection company={company} />}
             {tab === 'meetings' && <MeetingsBody company={company} />}
             {tab === 'applications' && <ApplicationsBody company={company} />}
           </div>
@@ -119,114 +115,26 @@ export function CompanyPage({ id, tab }: { id: string; tab: CompanyTab }) {
   );
 }
 
-/** Its stage statuses (latest, then every sprint it's in), then its fields. */
+/** Its status (latest, then in every sprint it's in), then its fields. */
 function InfoTab({ company }: { company: Company }) {
-  const { board, sprints } = useWorkspace();
-  const info = useSprintInfo();
-  const mine = sprintsOf(company, sprints).reverse();
-  const rows: {
-    key: string;
-    label: string;
-    stages: Record<string, string | null>;
-    note?: string;
-  }[] = [
-    { key: 'latest', label: 'Latest', stages: company.stages ?? {} },
-    ...mine.map((s) => {
-      const e = company.sprints![s.id]!;
-      return {
-        key: s.id,
-        label: info[s.id]?.label ?? s.name,
-        stages: e.stages,
-        note: `Added ${fmtDate(e.added)} · last change ${fmtDate(e.updated)}`,
-      };
-    }),
-  ];
-  const cell = 'border-b border-line px-3 py-2.5';
   return (
     <>
       <section className="grid gap-3">
-        <h2 className={ui.sectionTitle}>Stages</h2>
-        <div className="overflow-x-auto rounded-xl border border-line">
-          <table className="w-full border-separate border-spacing-0 text-left">
-            <thead>
-              <tr>
-                <th className={`${cell} ${ui.label}`}>Sprint</th>
-                {board.stages.map((s) => (
-                  <th key={s.id} className={`${cell} text-[13px] font-semibold`}>
-                    <StageName name={s.name} color={s.color} />
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.key}>
-                  <td className={cell}>
-                    <b className="text-[13.5px] text-strong">{r.label}</b>
-                    {r.note && <span className="block text-[11.5px] text-faint">{r.note}</span>}
-                  </td>
-                  {board.stages.map((s) => (
-                    <td key={s.id} className={cell}>
-                      <StatusTag board={board} value={r.stages[s.id]} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!mine.length && (
-          <p className="m-0 text-[13px] text-muted">
-            Not in a sprint. Add it from a sprint’s list, or the panel’s sprint menu.
-          </p>
-        )}
+        <h2 className={ui.sectionTitle}>Status by sprint</h2>
+        <SprintStatuses company={company} />
       </section>
       <section className="grid gap-3">
-        <h2 className={ui.sectionTitle}>Fields</h2>
-        <div className="grid grid-cols-[minmax(120px,180px)_minmax(0,1fr)] overflow-hidden rounded-xl border border-line">
-          {board.columns.map((col) => (
-            <div key={col.id} className="contents">
-              <div className="flex min-h-11 items-center gap-1.5 border-b border-line px-3 text-[13px] text-muted">
-                {col.name}
-                {col.onSheet === false && (
-                  <span className="text-[10.5px] text-faint">(not on the list)</span>
-                )}
-              </div>
-              <div className="flex min-h-11 items-center border-b border-line px-1">
-                <FieldInput company={company} col={col} variant="row" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <h2 className={ui.sectionTitle}>Details</h2>
+        <p className="m-0 -mt-1 text-[13px] text-muted">Star a field to show it on the sheet.</p>
+        <FieldRows company={company} />
       </section>
-    </>
-  );
-}
-
-function EmailsTab({ company }: { company: Company }) {
-  const { chains } = useWorkspace();
-  // The newest chain starts open.
-  const [open, setOpen] = useState<Record<string, boolean>>(() => {
-    const latest = chains
-      .filter((ch) => ch.companyId === company.id)
-      .sort((a, b) => (a.started < b.started ? 1 : -1))[0];
-    return latest ? { [latest.id]: true } : {};
-  });
-  const setChainOpen = (id: string, o: boolean) => setOpen((cur) => ({ ...cur, [id]: o }));
-  return (
-    <>
-      <ChainsBody company={company} open={open} setOpen={setChainOpen} />
-      <div>
-        <NewChainButton company={company} onCreated={(id) => setChainOpen(id, true)} />
-      </div>
-      <ComposeEmail company={company} />
     </>
   );
 }
 
 /** The right-hand timeline (like Kitsu's): every event, newest first, on a line. */
 function Timeline({ company }: { company: Company }) {
-  const { board, pages } = useWorkspace();
+  const { pages } = useWorkspace();
   const events = eventsOf(pages[company.id]);
   return (
     <aside
@@ -243,14 +151,7 @@ function Timeline({ company }: { company: Company }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[12px] text-muted">{when(ev)}</span>
                   <ByBadge by={ev.by} size={22} />
-                  {ev.status ? (
-                    <>
-                      <StageTag stage={ev.status.stage} />
-                      <StatusTag board={board} value={ev.status.to} />
-                    </>
-                  ) : (
-                    <KindTag kind={ev.kind} />
-                  )}
+                  <EventTag event={ev} />
                 </div>
                 <p className="m-0 line-clamp-3 text-[13.5px] text-fg">{ev.text}</p>
               </li>

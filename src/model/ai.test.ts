@@ -6,21 +6,15 @@ import { cleanCandidates, planCandidate, planQuick } from './quickPlan';
 import type { Chain, Company } from './types';
 
 const board = DEFAULT_BOARD;
-const co = (
-  id: string,
-  name: string,
-  stages: Record<string, string> = {},
-  meta: Record<string, unknown> = {},
-): Company => ({
+const co = (id: string, name: string, meta: Record<string, unknown> = {}): Company => ({
   id,
   name,
   order: 1,
   meta,
-  stages,
   due: null,
   auto: {},
 });
-const psyop = co('co-psyop', 'Psyop', { outreach: 'sent' });
+const psyop = co('co-psyop', 'Psyop', { status: 'reached' });
 const chain: Chain = {
   id: 'ch-1',
   companyId: 'co-psyop',
@@ -32,11 +26,11 @@ const chain: Chain = {
 const state = { board, companies: [psyop], pages: {}, chains: [chain] };
 
 describe('quick update: cleaning the AI answer', () => {
-  it('keeps valid actions, fills dates, maps stage and status names to ids', () => {
+  it('keeps valid actions, fills dates, maps status values to labels', () => {
     const out = cleanActions(
       board,
       [
-        { type: 'set_status', company: 'Psyop', stage: 'outreach', status: 'reply' },
+        { type: 'set_status', company: 'Psyop', column: 'status', value: 'wrote back!!' },
         { type: 'add_note', company: 'Psyop', text: 'Liked my reel' },
         {
           type: 'add_meeting',
@@ -46,8 +40,7 @@ describe('quick update: cleaning the AI answer', () => {
           end: 'noon',
           kind: 'interview',
         },
-        { type: 'set_status', company: 'Psyop', stage: 'Outreach', status: 'Hired' },
-        { type: 'set_status', company: 'Psyop', stage: 'Offer', status: 'Done' },
+        { type: 'set_status', company: 'Psyop', value: 'Hired' },
         { type: 'set_field', company: 'Psyop', column: 'Nope', value: 1 },
         { type: 'log_email', company: 'Psyop' },
         'junk',
@@ -55,7 +48,7 @@ describe('quick update: cleaning the AI answer', () => {
       '2026-10-28',
     );
     expect(out).toEqual([
-      { type: 'set_status', company: 'Psyop', stage: 'outreach', value: 'reply' },
+      { type: 'set_status', company: 'Psyop', column: 'Status', value: 'Wrote back!!' },
       { type: 'add_note', company: 'Psyop', date: '2026-10-28', text: 'Liked my reel' },
       {
         type: 'add_meeting',
@@ -86,7 +79,7 @@ describe('quick update: applying', () => {
       state,
       cleanActions(board, [
         { type: 'add_company', company: 'New York Life' },
-        { type: 'set_status', company: 'New York Life', stage: 'Interview', status: 'Scheduled' },
+        { type: 'set_status', company: 'New York Life', column: 'Status', value: 'Interview' },
         {
           type: 'add_meeting',
           company: 'New York Life',
@@ -103,7 +96,7 @@ describe('quick update: applying', () => {
           date: '2026-10-27',
           text: 'Send your reel',
         },
-        { type: 'set_status', company: 'Psyop', stage: 'Outreach', status: 'Reply' },
+        { type: 'set_status', company: 'Psyop', column: 'Status', value: 'Wrote back!!' },
         {
           type: 'set_field',
           company: 'Psyop',
@@ -114,20 +107,20 @@ describe('quick update: applying', () => {
       1000,
     );
     expect(plan.created.map((c) => c.name)).toEqual(['New York Life']);
-    expect(plan.created[0]!.stages).toEqual({ interview: 'scheduled' });
+    expect(plan.created[0]!.meta.status).toBe('interview');
     expect(plan.pages[plan.created[0]!.id]!.meetings).toHaveLength(1);
     // The email joins the existing chain (title matched loosely), not a new one.
     expect(plan.chains).toHaveLength(1);
     expect(plan.chains[0]!.id).toBe('ch-1');
     expect(plan.chains[0]!.messages).toHaveLength(2);
     const p = plan.companies.find((c) => c.id === 'co-psyop')!;
-    expect(p.stages?.outreach).toBe('reply');
+    expect(p.meta.status).toBe('wroteback');
     expect(p.meta.tags).toEqual(['Studio', 'VFX house']);
     // "VFX house" is a new choice for Company type.
     expect(plan.board?.columns.find((c) => c.id === 'tags')?.options).toContain('VFX house');
     // Undo knows what to put back.
     expect(plan.undo.created).toEqual([plan.created[0]!.id]);
-    expect(plan.undo.companies[0]!.stages?.outreach).toBe('sent');
+    expect(plan.undo.companies[0]!.meta.status).toBe('reached');
     expect(plan.undo.chains['co-psyop']![0]!.messages).toHaveLength(1);
     expect(plan.undo.board).not.toBeNull();
   });
@@ -135,7 +128,7 @@ describe('quick update: applying', () => {
 
 describe('company lookup', () => {
   it('fills only empty or looked-up fields and fixes the name', () => {
-    const c = co('co-x', 'big star', {}, { city: 'New York' });
+    const c = co('co-x', 'big star', { city: 'New York' });
     const cands = cleanCandidates({
       sure: true,
       candidates: [
@@ -166,12 +159,9 @@ describe('prompts', () => {
       '2026-10-28',
     );
     expect(p).toContain('Today is 2026-10-28');
-    expect(p).toContain(
-      'Psyop [Outreach: Sent, Meeting: none, Application: none, Interview: none; chains: Intro to Sam]',
-    );
+    expect(p).toContain('Psyop [Status: Reached out; chains: Intro to Sam]');
     expect(p).toContain('"""Interview with NY Life 11/6"""');
-    expect(p).toContain('"stage":"<stage name>","status":"<status label>"');
-    expect(p).toContain('Reply = they answered or reached out; my move');
+    expect(p).toContain('Status is "Wrote back!!"');
   });
 
   it('quick update prompt includes history for companies the note names', () => {
@@ -210,7 +200,7 @@ describe('prompts', () => {
 
 describe('quick update: no duplicates (round 2)', () => {
   it('skips a meeting, note or email the tracker already has', () => {
-    const sr = co('co-sr', 'Sibling Rivalry', { outreach: 'done', meeting: 'done' });
+    const sr = co('co-sr', 'Sibling Rivalry', { status: 'meeting' });
     const pages = {
       'co-sr': {
         notes: [{ id: 'n1', date: '2026-02-01', text: 'We talked and it was not a good fit' }],
@@ -264,7 +254,7 @@ describe('quick update: no duplicates (round 2)', () => {
           date: '2026-02-01',
           text: "We talked and it wasn't a good fit",
         },
-        { type: 'set_status', company: 'Sibling Rivalry', stage: 'Meeting', status: 'Done' },
+        { type: 'set_status', company: 'Sibling Rivalry', column: 'Status', value: 'Meeting' },
         {
           type: 'add_note',
           company: 'Sibling Rivalry',

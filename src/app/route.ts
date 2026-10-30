@@ -17,7 +17,7 @@ export const TASKS_TABS = ['list', 'board', 'calendar'] as const;
 export type TasksTab = (typeof TASKS_TABS)[number];
 export const SETTINGS_TABS = [
   'details',
-  'stages',
+  'statuses',
   'templates',
   'sprints',
   'appearance',

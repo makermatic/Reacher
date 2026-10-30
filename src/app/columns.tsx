@@ -1,7 +1,6 @@
 /**
  * Column headers and their menus (M7), Kitsu's way: click a header to sort,
- * rename, reorder, hide or delete. Stage headers also pick a color. Plus Add
- * field and Display settings.
+ * rename, reorder, hide or delete. Plus Add field and Display settings.
  */
 import * as Dialog from '@radix-ui/react-dialog';
 import {
@@ -16,21 +15,11 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useToast } from '../components/Toast';
-import {
-  deleteColumn,
-  deleteStage,
-  moveColumn,
-  moveStage,
-  nameTaken,
-  newColumn,
-  stageNameTaken,
-  updateColumn,
-  updateStage,
-} from '../model/columns';
-import { COLORS, TYPE_LABELS, type Column, type ColumnType, type Stage } from '../model/types';
+import { deleteColumn, moveColumn, nameTaken, newColumn, updateColumn } from '../model/columns';
+import { TYPE_LABELS, type Column, type ColumnType } from '../model/types';
 import { dialogIn, fade } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { colorVar, MenuItem, MenuSeparator, Pop, StageName, ui } from './ui';
+import { MenuItem, MenuSeparator, Pop, ui } from './ui';
 
 export type Sort = { key: string; dir: 1 | -1 } | null;
 
@@ -132,10 +121,10 @@ export function FieldHeader({
         onSave={(name) => actions.saveBoard(updateColumn(board, col.id, { name }))}
       />
       <MenuItem onSelect={() => (onSort({ key: col.id, dir: 1 }), setOpen(false))}>
-        <ArrowDownAZ size={15} /> Sort A → Z
+        <ArrowDownAZ size={15} /> {col.type === 'status' ? 'Sort in status order' : 'Sort A → Z'}
       </MenuItem>
       <MenuItem onSelect={() => (onSort({ key: col.id, dir: -1 }), setOpen(false))}>
-        <ArrowUpAZ size={15} /> Sort Z → A
+        <ArrowUpAZ size={15} /> {col.type === 'status' ? 'Sort in reverse order' : 'Sort Z → A'}
       </MenuItem>
       <MenuItem onSelect={() => actions.saveBoard(moveColumn(board, col.id, -1))}>
         <ChevronLeft size={15} /> Move left
@@ -143,14 +132,16 @@ export function FieldHeader({
       <MenuItem onSelect={() => actions.saveBoard(moveColumn(board, col.id, 1))}>
         <ChevronRight size={15} /> Move right
       </MenuItem>
-      <MenuItem
-        onSelect={() => {
-          actions.saveBoard(updateColumn(board, col.id, { onSheet: false }));
-          toast(`${col.name} is hidden. Show it again from Display settings.`);
-        }}
-      >
-        <EyeOff size={15} /> Hide from the list
-      </MenuItem>
+      {!col.locked && (
+        <MenuItem
+          onSelect={() => {
+            actions.saveBoard(updateColumn(board, col.id, { onSheet: false }));
+            toast(`${col.name} is off the sheet. Star it in a company's Details to bring it back.`);
+          }}
+        >
+          <EyeOff size={15} /> Hide from the sheet
+        </MenuItem>
+      )}
       {hasChoices && (
         <>
           <MenuSeparator />
@@ -193,92 +184,7 @@ export function FieldHeader({
   );
 }
 
-/** A stage's header: its color, like Kitsu's task types. */
-export function StageHeader({
-  stage,
-  sort,
-  onSort,
-}: {
-  stage: Stage;
-  sort: Sort;
-  onSort: (s: Sort) => void;
-}) {
-  const { board, actions } = useWorkspace();
-  const toast = useToast();
-  const [open, setOpen] = useState(false);
-  const key = `stage:${stage.id}`;
-  const sorted = sort?.key === key ? sort.dir : 0;
-  return (
-    <Pop
-      open={open}
-      onOpenChange={setOpen}
-      width={250}
-      label={`${stage.name} stage`}
-      trigger={
-        <button
-          type="button"
-          className={`${headButton} normal-case tracking-normal text-[13.5px] text-strong`}
-        >
-          <StageName name={stage.name} color={stage.color} />
-          {sorted !== 0 && (sorted === 1 ? <ArrowDownAZ size={13} /> : <ArrowUpAZ size={13} />)}
-        </button>
-      }
-    >
-      <RenameForm
-        value={stage.name}
-        taken={(n) => stageNameTaken(board, n, stage.id)}
-        onSave={(name) => actions.saveBoard(updateStage(board, stage.id, { name }))}
-      />
-      <div className="flex flex-wrap gap-1.5 px-2 py-1.5" role="radiogroup" aria-label="Color">
-        {COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            role="radio"
-            aria-checked={stage.color === c}
-            aria-label={c}
-            onClick={() => actions.saveBoard(updateStage(board, stage.id, { color: c }))}
-            className="size-5 rounded-full ring-offset-2 ring-offset-surface-2 aria-checked:ring-2 aria-checked:ring-fg"
-            style={{ background: colorVar(c) }}
-          />
-        ))}
-      </div>
-      <MenuSeparator />
-      <MenuItem onSelect={() => (onSort({ key, dir: 1 }), setOpen(false))}>
-        <ArrowDownAZ size={15} /> Sort by status
-      </MenuItem>
-      <MenuItem onSelect={() => (onSort({ key, dir: -1 }), setOpen(false))}>
-        <ArrowUpAZ size={15} /> Sort by status, reversed
-      </MenuItem>
-      <MenuItem onSelect={() => actions.saveBoard(moveStage(board, stage.id, -1))}>
-        <ChevronLeft size={15} /> Move left
-      </MenuItem>
-      <MenuItem onSelect={() => actions.saveBoard(moveStage(board, stage.id, 1))}>
-        <ChevronRight size={15} /> Move right
-      </MenuItem>
-      <MenuItem
-        onSelect={() => {
-          actions.saveBoard(updateStage(board, stage.id, { onSheet: false }));
-          toast(`${stage.name} is hidden. Show it again from Display settings.`);
-        }}
-      >
-        <EyeOff size={15} /> Hide from the list
-      </MenuItem>
-      <MenuSeparator />
-      <TwoClick
-        armed="Click again to delete this stage"
-        onConfirm={() => {
-          actions.saveBoard(deleteStage(board, stage.id));
-          toast(`Deleted the ${stage.name} stage`);
-        }}
-      >
-        <Trash2 size={15} /> Delete stage
-      </TwoClick>
-    </Pop>
-  );
-}
-
-/** Display settings: which stages and fields the list shows. */
+/** Display settings: which fields the sheet shows (the same as starring them). */
 export function DisplaySettings() {
   const { board, actions } = useWorkspace();
   const [open, setOpen] = useState(false);
@@ -304,25 +210,17 @@ export function DisplaySettings() {
         </button>
       }
     >
-      <div className={`${ui.label} px-2.5 pt-1 pb-1`}>Stages</div>
-      {board.stages.map((s) =>
-        row(
-          <StageName name={s.name} color={s.color} />,
-          s.onSheet !== false,
-          () => actions.saveBoard(updateStage(board, s.id, { onSheet: s.onSheet === false })),
-          s.id,
-        ),
-      )}
-      <MenuSeparator />
-      <div className={`${ui.label} px-2.5 pt-1 pb-1`}>Fields</div>
-      {board.columns.map((c) =>
-        row(
-          c.name,
-          c.onSheet !== false,
-          () => actions.saveBoard(updateColumn(board, c.id, { onSheet: c.onSheet === false })),
-          c.id,
-        ),
-      )}
+      <div className={`${ui.label} px-2.5 pt-1 pb-1`}>Fields on the sheet</div>
+      {board.columns
+        .filter((c) => !c.locked)
+        .map((c) =>
+          row(
+            c.name,
+            c.onSheet !== false,
+            () => actions.saveBoard(updateColumn(board, c.id, { onSheet: c.onSheet === false })),
+            c.id,
+          ),
+        )}
     </Pop>
   );
 }

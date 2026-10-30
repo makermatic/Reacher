@@ -1,5 +1,5 @@
 import { DEFAULT_BOARD } from './defaults';
-import { isLegacyBoard, migrateBoard } from './stages';
+import { isStagesBoard, unstageBoard } from './unstage';
 import { fmtDate } from './dates';
 import { isPlainObject, norm } from './text';
 import {
@@ -13,14 +13,13 @@ import {
   type Person,
 } from './types';
 
-/** A stored board (moved to stages if it's from before M7), or the default. */
-export function boardOrDefault(b: unknown): Board {
-  if (isLegacyBoard(b) && Array.isArray(b.columns)) return migrateBoard(b);
-  const v3 = b as Board | null | undefined;
-  return v3 && Array.isArray(v3.columns) && Array.isArray(v3.stages)
-    ? { ...v3, version: 3 }
-    : DEFAULT_BOARD;
-}
+/** A stored board, or the default when the user hasn't changed anything yet. */
+export const boardOrDefault = (b: unknown): Board =>
+  isStagesBoard(b)
+    ? unstageBoard(b)
+    : isPlainObject(b) && b.version === 2 && Array.isArray(b.columns)
+      ? (b as Board)
+      : DEFAULT_BOARD;
 
 export const colById = (board: Board, id: string) => board.columns.find((c) => c.id === id);
 export const colByName = (board: Board, name: string) =>

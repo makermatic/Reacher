@@ -1,38 +1,45 @@
-import { ArrowUpRight, Check, ChevronDown, Layers, Search, Trash2, X } from 'lucide-react';
+import { ArrowUpRight, Check, Layers, Search, Trash2, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAssistant } from '../ai/Assistant';
+import { ApplicationsBody } from '../company/EntrySections';
 import { LookupCard } from '../company/LookupCard';
+import { MeetingsBody } from '../company/MeetingsBody';
 import { NoticeCard } from '../components/QuickUpdateBar';
 import { useToast } from '../components/Toast';
-import { daysUntil, fmtDate } from '../model/dates';
+import { meta, statusCol } from '../model/board';
+import { daysUntil } from '../model/dates';
 import { eventsOf } from '../model/events';
-import { activeStage, stagesIn } from '../model/stages';
+import { inView } from '../model/sprints';
 import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { cellKey, sameCell, useAppUI, type Cell } from './AppUI';
+import { useAppUI } from './AppUI';
 import { TwoClick } from './columns';
+import { EmailsSection, FieldRows, Section } from './CompanySections';
 import { FeedCard } from './Feed';
 import { useSprintInfo } from './sprintLabels';
-import { colorVar, MenuItem, Pop, StageName, StatusTag, ui } from './ui';
+import { MenuItem, Pop, StatusPicker, ui } from './ui';
 
 export const MIN_PANEL = 380;
 export const clampPanel = (w: number) =>
   Math.round(Math.max(MIN_PANEL, Math.min(w, window.innerWidth - 360)));
 
+/** How many feed lines show before "Show all". */
+const FEED_PREVIEW = 5;
+
 /**
- * The side panel (M7), working like Kitsu's task panel. One cell selected: the
- * company in that stage, its status, a comment box (the AI reads a comment as
- * an update about this company) and its feed. Several: one status for all.
- * Drag the left edge to resize.
+ * The side panel (M7): the company's page, docked on the right, opened by
+ * clicking its name or its status. On top, Kitsu's comment box with the
+ * status next to Post; under it the feed; then its fields, emails, meetings
+ * and applications. Drag the left edge to resize.
  */
 export function SidePanel({ width, onResize }: { width: number; onResize: (w: number) => void }) {
   const { companies } = useWorkspace();
-  const { selected, clearSelection } = useAppUI();
-  const cells = selected.filter((s) => companies.some((c) => c.id === s.id));
+  const { selected, select } = useAppUI();
+  const company = companies.find((c) => c.id === selected);
 
   useEffect(() => {
-    if (selected.length && !cells.length) clearSelection();
-  }, [selected.length, cells.length, clearSelection]);
+    if (selected && !company && companies.length) select(null);
+  }, [selected, company, companies.length, select]);
 
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -49,8 +56,7 @@ export function SidePanel({ width, onResize }: { width: number; onResize: (w: nu
     el.addEventListener('pointerup', up);
   };
 
-  if (!cells.length) return null;
-  const one = cells.length === 1;
+  if (!company) return null;
   return (
     <aside
       aria-label="Company panel"
@@ -65,109 +71,39 @@ export function SidePanel({ width, onResize }: { width: number; onResize: (w: nu
       >
         <span className="absolute inset-y-0 left-0.5 w-0.5 bg-transparent transition-colors group-hover/rz:bg-selectable" />
       </div>
-      {one ? (
-        <OnePanel
-          key={cells[0]!.id}
-          company={companies.find((c) => c.id === cells[0]!.id)!}
-          cell={cells[cells.length - 1]!}
-        />
-      ) : (
-        <ManyPanel cells={cells} />
-      )}
+      <CompanyPanel key={company.id} company={company} />
     </aside>
   );
 }
 
-function Bar({ children }: { children: React.ReactNode }) {
-  const { clearSelection } = useAppUI();
-  return (
-    <div className="flex h-12 shrink-0 items-center gap-0.5 border-b border-line px-2.5">
-      {children}
-      <button
-        type="button"
-        onClick={clearSelection}
-        aria-label="Close the panel"
-        className={`${ui.ghostIcon} ml-auto`}
-      >
-        <X size={17} />
-      </button>
-    </div>
-  );
-}
-
-/** Pick a stage's status: the tag, then a list. Changes right away. */
-export function StatusPicker({
-  value,
-  onPick,
-  label,
-}: {
-  value: string | null | undefined;
-  onPick: (status: string | null) => void;
-  label: string;
-}) {
-  const { board } = useWorkspace();
-  const [open, setOpen] = useState(false);
-  return (
-    <Pop
-      open={open}
-      onOpenChange={setOpen}
-      width={220}
-      label={label}
-      trigger={
-        <button
-          type="button"
-          aria-label={label}
-          className="flex h-9 items-center gap-2 rounded-lg border border-line bg-bg px-2.5 hover:border-line-strong"
-        >
-          <StatusTag board={board} value={value} />
-          <ChevronDown size={15} className="text-faint" />
-        </button>
-      }
-    >
-      {board.statuses.map((s) => (
-        <MenuItem
-          key={s.id}
-          active={s.id === value}
-          onSelect={() => {
-            onPick(s.id);
-            setOpen(false);
-          }}
-        >
-          <StatusTag board={board} value={s.id} />
-          <span className="ml-auto max-w-32 truncate text-[11.5px] text-faint">{s.meaning}</span>
-        </MenuItem>
-      ))}
-      <MenuItem
-        muted
-        active={!value}
-        onSelect={() => {
-          onPick(null);
-          setOpen(false);
-        }}
-      >
-        No status
-      </MenuItem>
-    </Pop>
-  );
-}
-
-function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
+function CompanyPanel({ company: stored }: { company: Company }) {
   const { board, pages, sprint, actions } = useWorkspace();
-  const { openPage, select, clearSelection } = useAppUI();
+  const { openPage, select } = useAppUI();
   const assistant = useAssistant();
   const toast = useToast();
   const info = useSprintInfo();
-  const stages = stagesIn(company, sprint);
-  const stageId = cell.stage ?? activeStage(board, stages);
-  const stage = board.stages.find((s) => s.id === stageId) ?? board.stages[0];
+  const company = inView(stored, sprint);
+  const sc = statusCol(board);
+  const current = (meta(company, 'status') as string | null) ?? null;
+  // Like Kitsu: pick a status next to Post; Post applies it with the comment.
+  const [status, setStatus] = useState(current);
+  const [shown, setShown] = useState(current);
+  if (current !== shown) {
+    setShown(current);
+    setStatus(current);
+  }
   const [text, setText] = useState('');
-  const busy = assistant.noticeOrigin === company.id && assistant.notice?.kind === 'busy';
   const [deleting, setDeleting] = useState(false);
+  const [allFeed, setAllFeed] = useState(false);
+  const busy = assistant.noticeOrigin === company.id && assistant.notice?.kind === 'busy';
+  const changed = status !== current;
 
   const post = async (e?: FormEvent) => {
     e?.preventDefault();
     const note = text.trim();
-    if (!note || busy) return;
+    if (busy || (!note && !changed)) return;
+    if (changed) actions.setMeta(company.id, 'status', status);
+    if (!note) return;
     if (!assistant.available) {
       actions.comment(company.id, note);
       setText('');
@@ -177,15 +113,16 @@ function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
   };
 
   const events = eventsOf(pages[company.id]);
+  const feed = allFeed ? events : events.slice(0, FEED_PREVIEW);
   const due = company.due ? daysUntil(company.due) : null;
   return (
     <>
-      <Bar>
+      <div className="flex h-12 shrink-0 items-center gap-0.5 border-b border-line px-2.5">
         <button
           type="button"
           onClick={() => openPage(company.id)}
           aria-label="Open the company page"
-          title="Open the company page"
+          title="Open the full page"
           className={ui.ghostIcon}
         >
           <ArrowUpRight size={17} />
@@ -221,7 +158,7 @@ function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
           <TwoClick
             armed="Click again to delete"
             onConfirm={() => {
-              clearSelection();
+              select(null);
               void actions.deleteCompany(company.id);
               toast(`Deleted ${company.name}`);
             }}
@@ -229,73 +166,50 @@ function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
             Delete {company.name}
           </TwoClick>
         </Pop>
-      </Bar>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-10">
         <button
           type="button"
-          onClick={() => openPage(company.id)}
-          className="block max-w-full text-left"
+          onClick={() => select(null)}
+          aria-label="Close the panel"
+          className={`${ui.ghostIcon} ml-auto`}
         >
-          <span className="block truncate font-display text-[22px] font-bold text-strong hover:underline">
-            {company.name}
-          </span>
-          {sprint && info[sprint] && (
-            <span className="text-[12.5px] text-faint">{info[sprint]!.label}</span>
-          )}
+          <X size={17} />
         </button>
+      </div>
 
-        <div role="tablist" aria-label="Stages" className="mt-3 flex flex-wrap gap-1.5">
-          {board.stages.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              role="tab"
-              aria-selected={s.id === stage?.id}
-              onClick={() => select({ id: company.id, stage: s.id })}
-              className="flex items-center gap-1.5 rounded-lg border border-line px-2 py-1 text-[12.5px] text-muted transition-colors hover:text-fg aria-selected:border-[var(--tint)] aria-selected:text-strong"
-              style={{ '--tint': colorVar(s.color) } as React.CSSProperties}
-            >
-              <span className="size-1.5 rounded-full" style={{ background: colorVar(s.color) }} />
-              {s.name}
-              <StatusTag board={board} value={stages[s.id]} className="px-1.5 text-[11px]" />
-            </button>
-          ))}
-        </div>
-
-        {stage && (
-          <div className="mt-4 flex flex-wrap items-end gap-4">
-            <div className="grid gap-1">
-              <span className={ui.label}>
-                <StageName name={stage.name} color={stage.color} />
-              </span>
-              <StatusPicker
-                value={stages[stage.id]}
-                label={`${stage.name} status`}
-                onPick={(st) => actions.setStage(company.id, stage.id, st)}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-10">
+        <div className="flex flex-wrap items-start gap-3">
+          <button
+            type="button"
+            onClick={() => openPage(company.id)}
+            className="block min-w-0 flex-1 text-left"
+          >
+            <span className="block truncate font-display text-[22px] font-bold text-strong hover:underline">
+              {company.name}
+            </span>
+            {sprint && info[sprint] && (
+              <span className="text-[12.5px] text-faint">{info[sprint]!.label}</span>
+            )}
+          </button>
+          <label className="grid shrink-0 gap-1">
+            <span className={ui.label}>Follow up on</span>
+            <span className="flex items-center gap-2">
+              <input
+                id="follow-up"
+                type="date"
+                value={company.due ?? ''}
+                onChange={(e) => actions.setDue(company.id, e.target.value || null)}
+                className={`${ui.input} h-8`}
               />
-            </div>
-            <label className="grid gap-1">
-              <span className={ui.label}>Follow up on</span>
-              <span className="flex items-center gap-2">
-                <input
-                  id="follow-up"
-                  type="date"
-                  value={company.due ?? ''}
-                  onChange={(e) => actions.setDue(company.id, e.target.value || null)}
-                  className={ui.input}
-                />
-                {due != null && (
-                  <span
-                    className={`text-[12px] ${due < 0 ? 'text-[var(--c-red)]' : due === 0 ? 'text-[var(--c-amber)]' : 'text-faint'}`}
-                  >
-                    {due < 0 ? `${-due}d late` : due === 0 ? 'today' : `in ${due}d`}
-                  </span>
-                )}
-              </span>
-            </label>
-          </div>
-        )}
+              {due != null && (
+                <span
+                  className={`text-[12px] ${due < 0 ? 'text-[var(--c-red)]' : due === 0 ? 'text-[var(--c-amber)]' : 'text-faint'}`}
+                >
+                  {due < 0 ? `${-due}d late` : due === 0 ? 'today' : `in ${due}d`}
+                </span>
+              )}
+            </span>
+          </label>
+        </div>
 
         <div className="mt-3">
           <LookupCard company={company} />
@@ -314,7 +228,8 @@ function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              // Enter is a new line (like Kitsu); Ctrl/Cmd+Enter posts.
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 void post();
               }
@@ -327,13 +242,12 @@ function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
             className="block w-full resize-y rounded-t-xl border-0 bg-transparent px-3 py-2.5 text-[14px] text-fg outline-none placeholder:text-faint"
           />
           <div className="flex items-center gap-2 border-t border-line px-2.5 py-2">
-            <span className="text-[12px] text-faint">
-              Enter to post · Shift+Enter for a new line
-            </span>
+            <StatusPicker col={sc} value={status} onPick={setStatus} label="Status" />
+            {changed && <span className="text-[12px] text-faint">Changes on Post</span>}
             <button
               type="submit"
-              disabled={busy || !text.trim()}
-              className={`${ui.primary} ml-auto h-8`}
+              disabled={busy || (!text.trim() && !changed)}
+              className={`${ui.primary} ml-auto`}
             >
               {busy ? 'Reading…' : 'Post'}
             </button>
@@ -341,91 +255,39 @@ function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
           <NoticeCard origin={company.id} onApplied={() => setText('')} />
         </form>
 
-        <div className="mt-5 grid gap-2">
-          <span className={ui.label}>Activity</span>
-          {events.length ? (
-            events.map((ev) => <FeedCard key={ev.id} event={ev} />)
+        <div className="mt-4 grid gap-2" role="feed" aria-label="Feed">
+          {feed.length ? (
+            feed.map((ev) => <FeedCard key={ev.id} event={ev} />)
           ) : (
             <p className="m-0 text-[13px] text-muted">
               Comments, status changes and emails show up here.
             </p>
           )}
+          {events.length > FEED_PREVIEW && (
+            <button
+              type="button"
+              onClick={() => setAllFeed(!allFeed)}
+              className="justify-self-start text-[13px] text-muted hover:text-fg"
+            >
+              {allFeed ? 'Show less' : `Show all ${events.length}`}
+            </button>
+          )}
         </div>
-        {company.due && <span className="sr-only">Follow up {fmtDate(company.due)}</span>}
-      </div>
-    </>
-  );
-}
 
-/** Several cells: one status for all of them, with an optional comment. */
-function ManyPanel({ cells }: { cells: Cell[] }) {
-  const { board, companies, actions } = useWorkspace();
-  const { select } = useAppUI();
-  const toast = useToast();
-  const [status, setStatus] = useState<string | null>(board.statuses[0]?.id ?? null);
-  const [text, setText] = useState('');
-  const withStage = cells.map((c) => ({
-    id: c.id,
-    stage: c.stage ?? activeStage(board, companies.find((x) => x.id === c.id)?.stages ?? {}) ?? '',
-  }));
-
-  const apply = () => {
-    actions.setStagesMany(withStage, status, text);
-    toast(`${cells.length} updated`);
-    setText('');
-  };
-
-  return (
-    <>
-      <Bar>
-        <span className="px-1.5 text-[14px] font-semibold text-strong">
-          {cells.length} selected
-        </span>
-      </Bar>
-      <div className="grid content-start gap-3 overflow-y-auto px-4 pt-4 pb-8">
-        <div className="grid gap-1">
-          <span className={ui.label}>New status</span>
-          <StatusPicker value={status} onPick={setStatus} label="New status" />
+        <div className="mt-8 grid gap-8">
+          <Section title="Details">
+            <FieldRows company={company} />
+          </Section>
+          <Section title="Emails">
+            <EmailsSection company={company} />
+          </Section>
+          <Section title="Meetings">
+            <MeetingsBody company={company} />
+          </Section>
+          <Section title="Applications">
+            <ApplicationsBody company={company} />
+          </Section>
         </div>
-        <textarea
-          id="many-comment"
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="A comment for all of them (optional)"
-          aria-label="Comment for all"
-          className={`${ui.input} h-auto py-2`}
-        />
-        <button type="button" onClick={apply} className={ui.primary}>
-          Change status for the {cells.length} selected
-        </button>
-        <span className={`${ui.label} mt-2`}>Selected</span>
-        <ul className="m-0 grid list-none gap-1 p-0">
-          {withStage.map((c) => {
-            const company = companies.find((x) => x.id === c.id);
-            const stage = board.stages.find((s) => s.id === c.stage);
-            return (
-              <li key={cellKey(c)} className="flex items-center gap-2 text-[13.5px]">
-                <span className="min-w-0 flex-1 truncate">
-                  {company?.name}
-                  {stage && (
-                    <span className="ml-2 text-muted">
-                      <StageName name={stage.name} color={stage.color} />
-                    </span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  aria-label={`Unselect ${company?.name} ${stage?.name ?? ''}`}
-                  onClick={() => select(cells.find((x) => sameCell(x, c)) ?? c, 'toggle')}
-                  className={ui.ghostIcon}
-                >
-                  <X size={14} />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
       </div>
     </>
   );

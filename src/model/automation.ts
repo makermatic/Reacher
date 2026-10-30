@@ -1,5 +1,52 @@
+import { optionOf, statusCol } from './board';
 import { addDays } from './dates';
-import type { Meeting } from './types';
+import type { Board, Company, Meeting } from './types';
+
+/** Things that happen on a company page that can move its status (SPEC section 3). */
+export type StatusEvent =
+  | { kind: 'sent' }
+  | { kind: 'received' }
+  | { kind: 'applied' }
+  | { kind: 'meeting'; meetingKind: Meeting['kind'] };
+
+const OUTREACH = ['', 'gathering', 'reached', 'wroteback', 'replied'];
+
+/**
+ * The status an event moves a company to, or null to leave it:
+ * - Email I sent: empty or Gathering → Reached out; Wrote back!! → Replied.
+ * - Email from them: empty or anything in outreach → Wrote back!!.
+ * - Application: empty or Gathering → Applied.
+ * - Meeting or interview → Meeting; Interview when it's an interview, or the
+ *   status was Applied or Rejected. Already at Meeting or Interview: no change.
+ * Only moves to statuses this board still has.
+ */
+export function nextStatus(board: Board, c: Company, event: StatusEvent): string | null {
+  const col = statusCol(board);
+  const has = (id: string) => !!optionOf(col, id);
+  const cur = String(c.meta?.status ?? '');
+  let next: string | null = null;
+  switch (event.kind) {
+    case 'sent':
+      if (cur === '' || cur === 'gathering') next = 'reached';
+      else if (cur === 'wroteback') next = 'replied';
+      break;
+    case 'received':
+      if (OUTREACH.includes(cur)) next = 'wroteback';
+      break;
+    case 'applied':
+      if (cur === '' || cur === 'gathering') next = 'applied';
+      break;
+    case 'meeting':
+      if (cur !== 'meeting' && cur !== 'interview')
+        next =
+          (event.meetingKind === 'interview' || cur === 'applied' || cur === 'rejected') &&
+          has('interview')
+            ? 'interview'
+            : 'meeting';
+      break;
+  }
+  return next && has(next) && next !== cur ? next : null;
+}
 
 /**
  * An "Add to Google Calendar" link for a meeting (SPEC section 6). Untimed
