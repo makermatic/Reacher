@@ -4,22 +4,25 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import { useToast } from '../components/Toast';
-import { nextStatus, type StatusEvent } from '../model/automation';
-import { boardOrDefault, colById, metaPatch, optionOf, statusCol } from '../model/board';
+import { boardOrDefault, metaPatch } from '../model/board';
 import { findCompany, describeAction, type QuickAction } from '../model/aiActions';
-import { makeEvent, statusText } from '../model/events';
+import { makeEvent, stageText } from '../model/events';
 import {
-  joinPatch,
-  mirrorStatus,
-  newestSprint,
-  newSprint,
-  statusPatch,
-  targetSprint,
-} from '../model/sprints';
+  isLegacyBoard,
+  migrateCompany,
+  stageById,
+  stageMoves,
+  stagePatch,
+  stagesIn,
+  statusLabel,
+  type StageEvent,
+} from '../model/stages';
+import { joinPatch, mirrorStages, newestSprint, newSprint, targetSprint } from '../model/sprints';
 import { readPref, writePref } from '../lib/prefs';
 import { addDays, fmtDate, todayISO } from '../model/dates';
 import { DEFAULT_TEMPLATES } from '../model/defaults';
@@ -151,6 +154,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [toast],
   );
 
+  // Data from before M7 (one Status column) moves to stages once, the first time it loads.
+  const migrated = useRef(false);
+  useEffect(() => {
+    if (!store || migrated.current || !isLegacyBoard(board) || companies === undefined) return;
+    migrated.current = true;
+    const legacy = board;
+    const next = boardOrDefault(legacy);
+    void Promise.all([
+      store.setDoc('board', next as unknown as Json),
+      ...companies
+        .filter((c) => !c.stages)
+        .map((c) => store.setItem('companies', c.id, body(migrateCompany(legacy, c, pages[c.id])))),
+    ]).catch(fail);
+  }, [store, board, companies, pages, fail]);
+
   const resolvedBoard = boardOrDefault(board);
   const sprint =
     chosen === 'all'
@@ -225,21 +243,20 @@ function makeActions(
 ) {
   const company = (id: string) => companies.find((c) => c.id === id);
   const guard = (p: Promise<unknown>) => p.catch(fail);
-  const isStatusCol = (colId: string) => colById(board, colId)?.type === 'status';
   /** Where a change to this company lands: the sprint on screen, else its newest. */
   const sprintFor = (c: Company) => targetSprint(c, sprints, active);
-  /** A status change as a feed event. */
-  const statusEvent = (
+  /** A stage status change as a feed event. */
+  const stageEvent = (
     c: Company,
     sprintId: string | null,
-    colId: string,
-    to: unknown,
+    stage: string,
+    to: string | null,
     by: FeedEvent['by'],
   ) => {
-    const from = (sprintId ? c.sprints?.[sprintId]?.meta?.[colId] : c.meta?.[colId]) ?? null;
-    return makeEvent('status', statusText(board, colId, from, to), by, {
+    const from = stagesIn(c, sprintId)[stage] ?? null;
+    return makeEvent('status', stageText(board, stage, from, to), by, {
       sprintId,
-      status: { col: colId, from: from as string | null, to: (to as string | null) ?? null },
+      status: { stage, from, to },
     });
   };
 
@@ -260,7 +277,7 @@ function makeActions(
         meta: {},
         auto: {},
         due: null,
-        ...(active ? { sprints: joinPatch(board, { meta: {} } as Company, active).sprints } : {}),
+        ...(active ? joinPatch({ stages: {} } as unknown as Company, active) : {}),
       };
       void guard(store.setItem('companies', id, body(c)));
       api.logEvents(id, [makeEvent('company', 'Added to Reacher', 'you', { sprintId: active })]);
@@ -296,7 +313,7 @@ function makeActions(
     addToSprint(companyId: string, sprintId: string) {
       const c = company(companyId);
       if (!c || c.sprints?.[sprintId]) return;
-      void guard(store.updateItem('companies', c.id, joinPatch(board, c, sprintId)));
+      void guard(store.updateItem('companies', c.id, joinPatch(c, sprintId)));
       const s = sprints.find((x) => x.id === sprintId);
       api.logEvents(c.id, [
         makeEvent('sprint', `Added to ${s?.name ?? 'a sprint'}`, 'you', { sprintId }),
@@ -338,49 +355,50 @@ function makeActions(
       );
     },
 
-    /**
-     * Sets one column for one company (clearing dependent columns, like
-     * Outcome). Status columns land in the sprint on screen (or the company's
-     * newest) and in its latest status, and go in the feed.
-     */
-    setMeta(id: string, colId: string, value: unknown, by: FeedEvent['by'] = 'you') {
+    /** Sets one field for one company (clearing fields that depend on it). */
+    setMeta(id: string, colId: string, value: unknown) {
       const c = company(id);
-      if (!c) return;
-      if (!isStatusCol(colId)) {
-        void guard(store.updateItem('companies', id, metaPatch(board, c, colId, value)));
-        return;
-      }
-      const sid = sprintFor(c);
-      const ev = statusEvent(c, sid, colId, value, by);
-      void guard(store.updateItem('companies', id, statusPatch(board, c, sid, colId, value)));
-      api.logEvents(id, [ev]);
+      if (c) void guard(store.updateItem('companies', id, metaPatch(board, c, colId, value)));
     },
 
-    /** Changes the status of several companies at once (Kitsu's multi-select), with one comment for all. */
-    setStatusMany(ids: string[], colId: string, value: unknown, text = '') {
-      for (const id of ids) {
+    /**
+     * Sets a company's status in one stage: in the sprint on screen (or the
+     * company's newest) and its latest, and in the feed (M7).
+     */
+    setStage(id: string, stage: string, value: string | null, by: FeedEvent['by'] = 'you') {
+      const c = company(id);
+      if (!c || !stageById(board, stage)) return;
+      const sid = sprintFor(c);
+      if ((stagesIn(c, sid)[stage] ?? null) === value) return;
+      void guard(store.updateItem('companies', id, stagePatch(c, sid, { [stage]: value })));
+      api.logEvents(id, [stageEvent(c, sid, stage, value, by)]);
+    },
+
+    /** One status for many stage cells at once (Kitsu's multi-select), with one comment each. */
+    setStagesMany(cells: { id: string; stage: string }[], value: string | null, text = '') {
+      const byCompany = new Map<string, string[]>();
+      for (const { id, stage } of cells) byCompany.set(id, [...(byCompany.get(id) ?? []), stage]);
+      for (const [id, stages] of byCompany) {
         const c = company(id);
         if (!c) continue;
         const sid = sprintFor(c);
-        const events = [statusEvent(c, sid, colId, value, 'you')];
+        const moves = Object.fromEntries(stages.map((st) => [st, value]));
+        const events = stages.map((st) => stageEvent(c, sid, st, value, 'you'));
         if (text.trim()) events.push(makeEvent('comment', text.trim(), 'you', { sprintId: sid }));
-        void guard(store.updateItem('companies', id, statusPatch(board, c, sid, colId, value)));
+        void guard(store.updateItem('companies', id, stagePatch(c, sid, moves)));
         api.logEvents(id, events);
       }
     },
 
-    /** A Board drop: new lane (status) and position, in one write. */
-    moveCard(id: string, status: string | null, rank: number) {
+    /** A Board drop: the stage's new status and the card's position, in one write. */
+    moveCard(id: string, stage: string, status: string | null, rank: number) {
       const c = company(id);
       if (!c) return;
       const sid = sprintFor(c);
-      const current = (sid ? c.sprints?.[sid]?.meta?.status : c.meta?.status) ?? null;
-      const statusChanged = current !== status;
-      const patch = statusChanged
-        ? { ...statusPatch(board, c, sid, 'status', status), rank }
-        : { rank };
+      const changed = (stagesIn(c, sid)[stage] ?? null) !== status;
+      const patch = changed ? { ...stagePatch(c, sid, { [stage]: status }), rank } : { rank };
       void guard(store.updateItem('companies', id, patch));
-      if (statusChanged) api.logEvents(id, [statusEvent(c, sid, 'status', status, 'you')]);
+      if (changed) api.logEvents(id, [stageEvent(c, sid, stage, status, 'you')]);
     },
 
     setDue(id: string, due: string | null) {
@@ -437,7 +455,7 @@ function makeActions(
           };
       api.saveChain(chain);
       const due = addDays(today, followDays);
-      const label = api.autoStatus(c.id, { kind: 'sent' }, { due }, [
+      const label = api.autoStages(c.id, { kind: 'sent' }, { due }, [
         makeEvent('email', `Sent: ${subject || text.split('\n')[0]!.slice(0, 80)}`, 'you', {
           sprintId: sprintFor(c),
         }),
@@ -459,10 +477,10 @@ function makeActions(
     applyQuick(plan: QuickPlan, note: string) {
       const today = todayISO();
       const created = plan.created.map((c) =>
-        active ? { ...c, ...joinPatch(board, c, active, today) } : c,
+        active ? { ...c, ...joinPatch(c, active, today) } : c,
       );
       const changed = plan.companies.map((c) =>
-        mirrorStatus(board, company(c.id), c, sprintFor(company(c.id) ?? c), today),
+        mirrorStages(company(c.id), c, sprintFor(company(c.id) ?? c), today),
       );
       const all = [...changed, ...created];
       const byCompany = new Map<string, QuickAction[]>();
@@ -479,15 +497,10 @@ function makeActions(
           ...acts.map((a) => {
             if (a.type !== 'set_status')
               return makeEvent(KIND_OF[a.type], describeAction(board, a), 'ai', { sprintId: sid });
-            const colId = board.columns.find((col) => col.name === a.column)?.id ?? 'status';
-            const from = (company(id)?.meta ?? {})[colId] ?? null;
-            return makeEvent('status', statusText(board, colId, from, c.meta[colId]), 'ai', {
+            const from = company(id)?.stages?.[a.stage] ?? null;
+            return makeEvent('status', stageText(board, a.stage, from, a.value), 'ai', {
               sprintId: sid,
-              status: {
-                col: colId,
-                from: from as string | null,
-                to: (c.meta[colId] as string) ?? null,
-              },
+              status: { stage: a.stage, from, to: a.value },
             });
           }),
         ];
@@ -552,13 +565,13 @@ function makeActions(
     // ---------- company page ----------
 
     /**
-     * Applies the automatic status change for an event (SPEC section 3), plus
-     * any other company fields in the same write. Returns the new status's
-     * label for the "Status → X" toast, or null when nothing moved.
+     * Moves stages for an event (an email, an application, a meeting; see
+     * model/stages stageMoves), plus any other company fields in the same
+     * write. Returns "Outreach → Reply" for the toast, or null when nothing moved.
      */
-    autoStatus(
+    autoStages(
       id: string,
-      event: StatusEvent,
+      event: StageEvent,
       also: Record<string, unknown> = {},
       events: FeedEvent[] = [],
       by: FeedEvent['by'] = 'you',
@@ -566,13 +579,16 @@ function makeActions(
       const c = company(id);
       if (!c) return null;
       const sid = sprintFor(c);
-      const seen =
-        sid && c.sprints?.[sid] ? { ...c, meta: { ...c.meta, ...c.sprints[sid]!.meta } } : c;
-      const next = nextStatus(board, seen, event);
-      const patch = next ? { ...statusPatch(board, c, sid, 'status', next), ...also } : also;
+      const moves = stageMoves(board, stagesIn(c, sid), event);
+      const moved = Object.keys(moves);
+      const patch = moved.length ? { ...stagePatch(c, sid, moves), ...also } : also;
       if (Object.keys(patch).length) void guard(store.updateItem('companies', id, patch));
-      api.logEvents(id, next ? [...events, statusEvent(c, sid, 'status', next, by)] : events);
-      return next ? (optionOf(statusCol(board), next)?.label ?? next) : null;
+      api.logEvents(id, [...events, ...moved.map((st) => stageEvent(c, sid, st, moves[st]!, by))]);
+      return moved.length
+        ? moved
+            .map((st) => `${stageById(board, st)?.name ?? st} → ${statusLabel(board, moves[st])}`)
+            .join(', ')
+        : null;
     },
 
     pageOf(id: string): Page {
@@ -601,7 +617,7 @@ function makeActions(
       const p = api.pageOf(id);
       const c = company(id);
       api.savePage(id, { ...p, applications: [...p.applications, { id: uid('a'), ...app }] });
-      return api.autoStatus(id, { kind: 'applied' }, {}, [
+      return api.autoStages(id, { kind: 'applied' }, {}, [
         makeEvent('application', `Applied${app.role ? `: ${app.role}` : ''}`, 'you', {
           sprintId: c ? sprintFor(c) : null,
         }),
@@ -618,16 +634,21 @@ function makeActions(
         meetings: [...p.meetings, { ...meeting, id: meeting.id ?? uid('mt') }],
       });
       const what = meeting.kind === 'interview' ? 'Interview' : 'Meeting';
-      return api.autoStatus(id, { kind: 'meeting', meetingKind: meeting.kind }, {}, [
-        makeEvent(
-          'meeting',
-          `${what} on ${fmtDate(meeting.date)}${meeting.with ? ` with ${meeting.with}` : ''}`,
-          'you',
-          {
-            sprintId: c ? sprintFor(c) : null,
-          },
-        ),
-      ]);
+      return api.autoStages(
+        id,
+        { kind: 'meeting', meetingKind: meeting.kind, date: meeting.date },
+        {},
+        [
+          makeEvent(
+            'meeting',
+            `${what} on ${fmtDate(meeting.date)}${meeting.with ? ` with ${meeting.with}` : ''}`,
+            'you',
+            {
+              sprintId: c ? sprintFor(c) : null,
+            },
+          ),
+        ],
+      );
     },
 
     /** Changes fields on one meeting (e.g. its calendar link once it's on Google Calendar). */
@@ -693,8 +714,8 @@ function makeActions(
         { sprintId: c ? sprintFor(c) : null },
       );
       return msg.dir === 'in'
-        ? api.autoStatus(chain.companyId, { kind: 'received' }, c?.due ? { due: null } : {}, [ev])
-        : api.autoStatus(chain.companyId, { kind: 'sent' }, {}, [ev]);
+        ? api.autoStages(chain.companyId, { kind: 'received' }, c?.due ? { due: null } : {}, [ev])
+        : api.autoStages(chain.companyId, { kind: 'sent' }, {}, [ev]);
     },
 
     /**

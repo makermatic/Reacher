@@ -128,10 +128,8 @@ export function planQuick(state: State, actions: QuickAction[], now = Date.now()
         changed = !existed;
         break;
       case 'set_status': {
-        const col = colByName(curBoard(), a.column);
-        const v = col && coerce(col, a.value);
-        changed = !!col && !!v && meta(c, col.id) !== v;
-        if (changed) setMeta(c, col!.id, v);
+        changed = (c.stages?.[a.stage] ?? null) !== a.value;
+        if (changed) c.stages = { ...c.stages, [a.stage]: a.value };
         break;
       }
       case 'log_email': {

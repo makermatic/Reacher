@@ -7,6 +7,7 @@
  */
 import { meta, valueText } from './board';
 import { expand, matchesSearch } from './search';
+import { statusLabel } from './stages';
 import { norm } from './text';
 import type { Board, Column, Company } from './types';
 
@@ -55,16 +56,32 @@ export function columnFor(board: Board, key: string): Column | undefined {
   );
 }
 
+/**
+ * Whether a company (with its stages as seen from the sprint on screen)
+ * matches. `outreach=reply` filters one stage; `status=reply` any stage.
+ */
 export function matchesQuery(board: Board, c: Company, q: Query): boolean {
   if (!q.words.every((w) => matchesSearch(board, c, w))) return false;
   if (q.excludes.some((x) => norm(c.name).includes(norm(x)))) return false;
   for (const f of q.filters) {
-    const col = columnFor(board, f.key);
-    if (!col) continue;
-    const text = valueText(col, meta(c, col.id));
-    const hit = f.values.some((v) =>
-      v === 'none' ? !text : norm(text).includes(norm(v)) || expand(text).includes(expand(v)),
-    );
+    const k = norm(f.key);
+    const stage = board.stages.find((s) => norm(s.name) === k || norm(s.name).startsWith(k));
+    const statusTexts = (ids: (string | null | undefined)[]) =>
+      ids.map((id) => statusLabel(board, id));
+    const texts =
+      k === 'status'
+        ? statusTexts(Object.values(c.stages ?? {}))
+        : stage
+          ? statusTexts([c.stages?.[stage.id]])
+          : null;
+    const col = texts ? undefined : columnFor(board, f.key);
+    if (!texts && !col) continue;
+    const all = texts ?? [valueText(col!, meta(c, col!.id))];
+    const hitText = (text: string) =>
+      f.values.some((v) =>
+        v === 'none' ? !text : norm(text).includes(norm(v)) || expand(text).includes(expand(v)),
+      );
+    const hit = all.some(hitText) || (f.values.includes('none') && !all.some(Boolean));
     if (hit === f.not) return false;
   }
   return true;

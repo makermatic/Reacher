@@ -15,7 +15,8 @@ export const CHECK_TODAY = '2026-10-28';
 const PSYOP: Company = {
   id: 'c-psyop',
   name: 'Psyop',
-  meta: { status: 'reached', city: 'New York' },
+  meta: { city: 'New York' },
+  stages: { outreach: 'sent' },
   due: null,
   order: 1,
 };
@@ -39,8 +40,17 @@ const has = <T extends QuickAction['type']>(
   type: T,
   test: (x: Extract<QuickAction, { type: T }>) => boolean = () => true,
 ) => a.some((x) => x.type === type && test(x as Extract<QuickAction, { type: T }>));
-const status = (a: QuickAction[], column: string, value: string) =>
-  has(a, 'set_status', (x) => x.column === column && x.value.toLowerCase() === value.toLowerCase());
+/** A stage set to a status (M7). */
+const stage = (a: QuickAction[], stageId: string, statusId: string) =>
+  has(a, 'set_status', (x) => x.stage === stageId && x.value === statusId);
+/** A field set to a value. */
+const field = (a: QuickAction[], name: string, value: string) =>
+  has(
+    a,
+    'set_field',
+    (x) =>
+      x.column.toLowerCase() === name.toLowerCase() && is(String(x.value), value.toLowerCase()),
+  );
 
 export const CHECK_CASES: CheckCase[] = [
   {
@@ -59,7 +69,7 @@ export const CHECK_CASES: CheckCase[] = [
             (x) => x.kind === 'interview' && x.date === '2026-11-06' && x.start === '12:30',
           ),
       },
-      { label: 'status Interview', ok: (a) => status(a, 'Status', 'Interview') },
+      { label: 'Interview stage Scheduled', ok: (a) => stage(a, 'interview', 'scheduled') },
     ],
   },
   {
@@ -73,14 +83,14 @@ export const CHECK_CASES: CheckCase[] = [
         label: 'a meeting in February',
         ok: (a) => has(a, 'add_meeting', (x) => x.date.startsWith('2026-02')),
       },
-      { label: 'Outcome Bad fit', ok: (a) => status(a, 'Outcome', 'Bad fit') },
+      { label: 'Outcome Bad fit', ok: (a) => field(a, 'Outcome', 'bad fit') },
       { label: 'no interview', ok: (a) => !has(a, 'add_meeting', (x) => x.kind === 'interview') },
     ],
   },
   {
     note: 'Psyop wrote back asking for my reel',
     checks: [
-      { label: 'status Wrote back!!', ok: (a) => status(a, 'Status', 'Wrote back!!') },
+      { label: 'Outreach stage Reply', ok: (a) => stage(a, 'outreach', 'reply') },
       { label: "doesn't add Psyop again", ok: (a) => !has(a, 'add_company') },
       {
         label: 'logs their email in the existing chain',
@@ -96,7 +106,7 @@ export const CHECK_CASES: CheckCase[] = [
         ok: (a) =>
           has(a, 'add_application', (x) => is(x.role, 'motion designer') && x.date === CHECK_TODAY),
       },
-      { label: 'status Applied', ok: (a) => status(a, 'Status', 'Applied') },
+      { label: 'Application stage Sent', ok: (a) => stage(a, 'application', 'sent') },
     ],
   },
   {
@@ -106,7 +116,7 @@ export const CHECK_CASES: CheckCase[] = [
         label: 'a meeting last week',
         ok: (a) => has(a, 'add_meeting', (x) => x.date >= '2026-10-19' && x.date <= '2026-10-25'),
       },
-      { label: 'no made-up outcome', ok: (a) => !status(a, 'Outcome', 'Bad fit') },
+      { label: 'no made-up outcome', ok: (a) => !field(a, 'Outcome', 'bad fit') },
     ],
   },
   {

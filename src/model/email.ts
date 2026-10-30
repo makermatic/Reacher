@@ -2,7 +2,8 @@
  * Email templates and the writer (SPEC sections 7 and 8): fill-in fields,
  * placeholders for blanks, the default template and chain, and name guessing.
  */
-import { asPerson, meta, optionOf, statusCol, valueText } from './board';
+import { asPerson, meta, valueText } from './board';
+import { suggestedTemplate } from './stages';
 import { slug } from './text';
 import type { Board, Chain, Column, Company, Me, Person, Template } from './types';
 
@@ -129,23 +130,26 @@ export function missingFields(
   return [...keys].filter((k) => !m[k] && texts.some((t) => t.includes(placeholder(board, k))));
 }
 
-/** The status-suggested template; with no status, First outreach (SPEC section 7). */
+/**
+ * The template suggested for where the company is (M7: its active stage's
+ * status, see Board.suggest); nothing started yet: First outreach (SPEC section 7).
+ */
 export function defaultTemplateId(board: Board, c: Company, templates: Template[]) {
-  const cur = meta(c, 'status');
-  const o = optionOf(statusCol(board), cur) as { tpl?: string } | undefined;
-  let tpl = o?.tpl ? o.tpl : cur ? '' : 'tpl-intro';
+  const stages = c.stages ?? {};
+  const started = Object.values(stages).some((v) => v && v !== 'todo');
+  let tpl = suggestedTemplate(board, stages) || (started ? '' : 'tpl-intro');
   if (!templates.some((t) => t.id === tpl)) tpl = '';
-  if (!tpl && !cur && templates[0]) tpl = templates[0].id;
+  if (!tpl && !started && templates[0]) tpl = templates[0].id;
   return tpl;
 }
 
-/** Reply in the latest chain while the status is in the email cycle; else a new chain. */
+/** Reply in the latest chain once outreach has started; else a new chain. */
 export function defaultTarget(c: Company, chains: Chain[]) {
   const latest = [...chains]
     .filter((ch) => ch.companyId === c.id)
     .sort((a, b) => (a.started < b.started ? 1 : -1))[0];
-  const cur = String(meta(c, 'status') ?? '');
-  return latest && ['reached', 'wroteback', 'replied', 'meeting'].includes(cur) ? latest.id : 'new';
+  const outreach = c.stages?.outreach;
+  return latest && outreach && outreach !== 'todo' ? latest.id : 'new';
 }
 
 /** Shared inboxes: never guess a person's name from these. */

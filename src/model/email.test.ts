@@ -20,21 +20,25 @@ const me = {
   phone: '',
   intro: 'Hi, I animate.',
 };
-const co = (meta: Record<string, unknown> = {}): Company => ({
+const co = (stages: Record<string, string> = {}, meta: Record<string, unknown> = {}): Company => ({
   id: 'c1',
   name: 'Psyop',
   order: 1,
   meta,
+  stages,
   due: null,
 });
 const intro = DEFAULT_TEMPLATES[0]!;
 
 describe('email fields', () => {
   it('fills known fields and leaves readable placeholders for blanks', () => {
-    const c = co({
-      role: 'Motion Designer',
-      contact: { name: 'Sam Example', role: 'Recruiter', email: 'sam@psyop.com' },
-    });
+    const c = co(
+      {},
+      {
+        role: 'Motion Designer',
+        contact: { name: 'Sam Example', role: 'Recruiter', email: 'sam@psyop.com' },
+      },
+    );
     const m = tokenMap(board, c, { name: 'Sam Example', role: 'Recruiter', email: '' }, me);
     expect(m.first_name).toBe('Sam');
     expect(m.role_i_want).toBe('Motion Designer');
@@ -48,7 +52,7 @@ describe('email fields', () => {
     const edited = 'Hey [Contact first name], quick note about [Why them]!';
     const m = tokenMap(
       board,
-      co({ why: 'Your broadcast work' }),
+      co({}, { why: 'Your broadcast work' }),
       { name: 'Sam', role: '', email: '' },
       me,
     );
@@ -68,15 +72,16 @@ describe('email fields', () => {
 });
 
 describe('email defaults', () => {
-  it('suggests the status template, or First outreach with no status', () => {
+  it('suggests the template for the active stage, or First outreach when nothing has started', () => {
     expect(defaultTemplateId(board, co(), DEFAULT_TEMPLATES)).toBe('tpl-intro');
-    expect(defaultTemplateId(board, co({ status: 'reached' }), DEFAULT_TEMPLATES)).toBe(
-      'tpl-check',
-    );
-    expect(defaultTemplateId(board, co({ status: 'wroteback' }), DEFAULT_TEMPLATES)).toBe('');
+    expect(defaultTemplateId(board, co({ outreach: 'sent' }), DEFAULT_TEMPLATES)).toBe('tpl-check');
+    expect(defaultTemplateId(board, co({ outreach: 'reply' }), DEFAULT_TEMPLATES)).toBe('');
+    expect(
+      defaultTemplateId(board, co({ outreach: 'done', application: 'sent' }), DEFAULT_TEMPLATES),
+    ).toBe('tpl-app');
   });
 
-  it('replies in the latest chain while in the email cycle', () => {
+  it('replies in the latest chain once outreach has started', () => {
     const ch = (id: string, started: string): Chain => ({
       id,
       companyId: 'c1',
@@ -86,9 +91,9 @@ describe('email defaults', () => {
       summary: null,
     });
     const chains = [ch('ch-old', '2026-09-01'), ch('ch-latest', '2026-10-01')];
-    expect(defaultTarget(co({ status: 'wroteback' }), chains)).toBe('ch-latest');
-    expect(defaultTarget(co({ status: 'applied' }), chains)).toBe('new');
-    expect(defaultTarget(co({ status: 'gathering' }), chains)).toBe('new');
+    expect(defaultTarget(co({ outreach: 'reply' }), chains)).toBe('ch-latest');
+    expect(defaultTarget(co({ application: 'sent' }), chains)).toBe('new');
+    expect(defaultTarget(co({ outreach: 'todo' }), chains)).toBe('new');
   });
 });
 

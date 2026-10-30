@@ -2,7 +2,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { MotionConfig } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AssistantProvider } from './ai/Assistant';
-import { AppUIContext, nextSelection, type AppUI } from './app/AppUI';
+import { AppUIContext, nextSelection, type AppUI, type Cell } from './app/AppUI';
 import { CompaniesPage } from './app/CompaniesPage';
 import { CompanyPage } from './app/CompanyPage';
 import { MyTasksPage } from './app/MyTasksPage';
@@ -17,9 +17,6 @@ import { ToastProvider } from './components/Toast';
 import { readPref, writePref } from './lib/prefs';
 import { hoverDelay } from './motion';
 import { RuntimeProvider, useRuntime } from './runtime/RuntimeProvider';
-import { AddColumnDialog } from './sheet/AddColumnDialog';
-import { ChoicesDialog } from './sheet/ChoicesDialog';
-import { SheetUIContext, type SheetUI } from './sheet/SheetUI';
 import { CalendarProvider } from './workspace/CalendarProvider';
 import { GmailProvider } from './workspace/GmailProvider';
 import { WorkspaceProvider } from './workspace/WorkspaceProvider';
@@ -57,18 +54,16 @@ export function App() {
  */
 function Shell() {
   const [route, navigate] = useRoute();
-  const [selected, setSelected] = useState<string[]>([]);
-  const anchor = useRef<string | null>(null);
+  const [selected, setSelected] = useState<Cell[]>([]);
+  const anchor = useRef<Cell | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [choicesFor, setChoicesFor] = useState<string | null>(null);
-  const [addColumnOpen, setAddColumnOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => readPref('panel-width', 520, isNumber));
 
   const clearSelection = useCallback(() => setSelected([]), []);
-  const select = useCallback<AppUI['select']>((id, how = 'only', order = []) => {
-    setSelected((cur) => nextSelection(cur, id, how, order, anchor.current));
-    anchor.current = id;
+  const select = useCallback<AppUI['select']>((cell, how = 'only', order = []) => {
+    setSelected((cur) => nextSelection(cur, cell, how, order, anchor.current));
+    anchor.current = cell;
   }, []);
 
   // Escape clears the selection, unless a menu, picker or dialog is in front.
@@ -88,26 +83,12 @@ function Shell() {
       navigate,
       selected,
       select,
+      setSelection: setSelected,
       clearSelection,
       openSidebar: () => setSidebarOpen(true),
       openPage: (id) => navigate({ page: 'company', id, tab: 'info' }),
     }),
     [route, navigate, selected, select, clearSelection],
-  );
-
-  // What the older pieces (cells, menus, the email writer) ask of the frame.
-  const sheetUI = useMemo<SheetUI>(
-    () => ({
-      editChoices: setChoicesFor,
-      addColumn: () => setAddColumnOpen(true),
-      openCompanyId: selected.length === 1 ? selected[0]! : null,
-      toggleCompany: (id) => setSelected((cur) => (cur.length === 1 && cur[0] === id ? [] : [id])),
-      openCompany: (id) => setSelected([id]),
-      closeCompany: clearSelection,
-      openDetails: () => navigate({ page: 'settings', tab: 'details' }),
-      openTemplates: () => navigate({ page: 'settings', tab: 'templates' }),
-    }),
-    [selected, clearSelection, navigate],
   );
 
   const resize = (w: number) => {
@@ -117,28 +98,24 @@ function Shell() {
 
   return (
     <AppUIContext.Provider value={app}>
-      <SheetUIContext.Provider value={sheetUI}>
-        <div className="flex h-full flex-col bg-bg text-fg">
-          <Topbar />
-          <NoAccessNotice />
-          <div className="flex min-h-0 flex-1">
-            <main className="min-h-0 min-w-0 flex-1">
-              {route.page === 'companies' && <CompaniesPage onImport={() => setImportOpen(true)} />}
-              {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
-              {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
-              {route.page === 'news' && <NewsFeedPage />}
-              {route.page === 'settings' && (
-                <SettingsPage tab={route.tab} onImport={() => setImportOpen(true)} />
-              )}
-            </main>
-            <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
-          </div>
-          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
-          <AddColumnDialog open={addColumnOpen} onOpenChange={setAddColumnOpen} />
-          <ChoicesDialog colId={choicesFor} onClose={() => setChoicesFor(null)} />
+      <div className="flex h-full flex-col bg-bg text-fg">
+        <Topbar />
+        <NoAccessNotice />
+        <div className="flex min-h-0 flex-1">
+          <main className="min-h-0 min-w-0 flex-1">
+            {route.page === 'companies' && <CompaniesPage onImport={() => setImportOpen(true)} />}
+            {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
+            {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
+            {route.page === 'news' && <NewsFeedPage />}
+            {route.page === 'settings' && (
+              <SettingsPage tab={route.tab} onImport={() => setImportOpen(true)} />
+            )}
+          </main>
+          <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
         </div>
-      </SheetUIContext.Provider>
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      </div>
     </AppUIContext.Provider>
   );
 }

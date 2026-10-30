@@ -1,10 +1,12 @@
-import type { Board, Template } from './types';
+import { migrateBoard } from './stages';
+import type { Board, LegacyBoard, Template } from './types';
 
 /**
- * The starting board for a new user, exactly as in the prototype
- * (docs/SPEC.md sections 2 and 3). Status ids are stable; labels can be renamed.
+ * The prototype's starting board (docs/SPEC.md sections 2 and 3), with Status
+ * and Outcome as status columns. Prototype exports use this shape; M7 turns it
+ * into stages (see model/stages).
  */
-export const DEFAULT_BOARD: Board = {
+export const LEGACY_DEFAULT_BOARD: LegacyBoard = {
   version: 2,
   columns: [
     {
@@ -109,6 +111,9 @@ export const DEFAULT_BOARD: Board = {
     { id: 'prep', name: 'Prep', type: 'checklist', onSheet: false },
   ],
 };
+
+/** The starting board for a new user (M7): four stages, then the prototype's fields. */
+export const DEFAULT_BOARD: Board = migrateBoard(LEGACY_DEFAULT_BOARD);
 
 /**
  * Starting templates for a new account (SPEC section 8). Zack's own come over

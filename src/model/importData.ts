@@ -1,4 +1,6 @@
 import { boardOrDefault } from './board';
+import { LEGACY_DEFAULT_BOARD } from './defaults';
+import { isLegacyBoard, migrateCompany } from './stages';
 import { isPlainObject } from './text';
 import type {
   Board,
@@ -58,6 +60,7 @@ export function parseExport(text: string): ImportData {
     ...(typeof c.rank === 'number' ? { rank: c.rank } : {}),
     ...(c.example ? { example: true } : {}),
     ...(isPlainObject(c.sprints) ? { sprints: sprintEntries(c.sprints) } : {}),
+    ...(isPlainObject(c.stages) ? { stages: c.stages as Company['stages'] } : {}),
   }));
   const companyIds = new Set(companies.map((c) => c.id));
 
@@ -154,10 +157,20 @@ export function parseExport(text: string): ImportData {
       order: typeof x.order === 'number' ? x.order : i,
     }));
 
+  // Exports from before M7 (the prototype's included) have one Status column: move it to stages.
+  const legacy = isLegacyBoard(raw.board)
+    ? raw.board
+    : isPlainObject(raw.board)
+      ? null
+      : LEGACY_DEFAULT_BOARD;
+  const moved = legacy
+    ? companies.map((c) => (c.stages ? c : migrateCompany(legacy, c, pages[c.id])))
+    : companies;
+
   return {
     sprints,
-    board: boardOrDefault(isPlainObject(raw.board) ? (raw.board as Board) : null),
-    companies,
+    board: boardOrDefault(isPlainObject(raw.board) ? raw.board : null),
+    companies: moved,
     chains,
     pages,
     templates,
@@ -186,7 +199,7 @@ function sprintEntries(raw: Record<string, unknown>): Record<string, SprintEntry
   for (const [id, e] of Object.entries(raw))
     if (isPlainObject(e))
       out[id] = {
-        meta: isPlainObject(e.meta) ? e.meta : {},
+        stages: isPlainObject(e.stages) ? (e.stages as SprintEntry['stages']) : {},
         added: str(e.added),
         updated: str(e.updated),
       };

@@ -1,63 +1,78 @@
 /**
- * The app's building blocks, in Kitsu's look (M7): rounded 10px controls on
- * the page background, uppercase status tags, initials avatars, underlined
- * tabs. Screens use these instead of their own class strings, so a restyle
- * happens here.
+ * Reacher's building blocks (M7). Kitsu shapes how things work; this file is
+ * how they look: calm dark surfaces, soft tinted status tags with a dot,
+ * 8px corners, IBM Plex. Screens use these, so a restyle happens here.
  */
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
-import { optionLabel, optionOf } from '../model/board';
-import type { Column } from '../model/types';
+import type { Board, ColorName } from '../model/types';
+import { statusById } from '../model/stages';
 import { popIn } from '../motion';
 
 export const ui = {
-  /** Kitsu's bordered button (Display Settings, Create shots). */
   button:
-    'inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-[10px] border border-line-strong/60 bg-bg px-3 text-[14px] text-fg transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50',
-  /** Same, square with an icon. */
+    'inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-[13.5px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50',
   iconButton:
-    'inline-grid size-10 place-items-center rounded-[10px] border border-line-strong/60 bg-bg text-muted transition-colors hover:bg-hover hover:text-fg',
-  /** Borderless icon (panel header actions). */
+    'inline-grid size-9 place-items-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-line-strong hover:bg-hover hover:text-fg',
   ghostIcon:
     'inline-grid size-8 place-items-center rounded-lg text-muted transition-colors hover:bg-hover hover:text-fg',
-  /** The primary action (Post). */
   primary:
-    'inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-[10px] bg-accent px-3.5 font-bold text-accent-ink transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50',
-  /** Uppercase grey label over a block (SHOT TASKS, INFORMATION). */
-  sectionTitle: 'm-0 text-[20px] font-normal uppercase tracking-[0.08em] text-muted',
-  /** Kitsu's filter label (EPISODE, TASK STATUS). */
-  label: 'text-[11px] font-bold uppercase tracking-[0.08em] text-muted',
-  /** A raised block (Kitsu's white/grey card). */
-  block: 'rounded-[10px] bg-surface',
+    'inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3.5 text-[13.5px] font-semibold text-accent-ink transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50',
+  label: 'text-[11.5px] font-semibold uppercase tracking-[0.06em] text-faint',
+  sectionTitle: 'm-0 font-display text-[17px] font-bold text-strong',
+  block: 'rounded-xl border border-line bg-surface',
   input:
-    'h-10 rounded-[10px] border border-line-strong/60 bg-bg px-3 text-fg outline-none transition-colors placeholder:text-faint focus:border-accent',
+    'h-9 rounded-lg border border-line bg-bg px-3 text-[13.5px] text-fg outline-none transition-colors placeholder:text-faint focus:border-selectable',
+  menu: 'z-50 grid max-h-[70vh] gap-0.5 overflow-auto rounded-xl border border-line bg-surface-2 p-1.5 shadow-panel',
 };
 
-/** A status as Kitsu shows it: an uppercase colored tag. */
+export const colorVar = (c: ColorName | '' | undefined) => `var(--c-${c || 'grey'})`;
+
+/** A stage status: a soft tag in its color with a dot. Empty shows a faint dash. */
 export function StatusTag({
-  col,
+  board,
   value,
   className = '',
 }: {
-  col: Column;
-  value: unknown;
+  board: Board;
+  value: string | null | undefined;
   className?: string;
 }) {
-  const o = optionOf(col, value);
-  if (!o) return <span className={`schip empty ${className}`}>—</span>;
-  return <span className={`schip c-${o.color || 'grey'} ${className}`}>{optionLabel(o)}</span>;
+  const s = statusById(board, value);
+  if (!s) return <span className={`text-[13px] text-faint ${className}`}>—</span>;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap ${className}`}
+      style={{
+        color: colorVar(s.color),
+        background: `color-mix(in srgb, ${colorVar(s.color)} 16%, transparent)`,
+      }}
+    >
+      <span className="size-1.5 rounded-full" style={{ background: colorVar(s.color) }} />
+      {s.label}
+    </span>
+  );
 }
 
-const AVATAR_COLORS = ['#3273dc', '#00a8a8', '#22b35e', '#a74ef0', '#e8459a', '#e0a01e', '#7375bc'];
+/** A stage's name with its color dot (column headers, panel). */
+export function StageName({ name, color }: { name: string; color: ColorName }) {
+  return (
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      <span className="size-2 rounded-full" style={{ background: colorVar(color) }} />
+      {name}
+    </span>
+  );
+}
+
+const AVATAR_COLORS = ['#4c8dff', '#2cc5c5', '#3ddc84', '#a78bfa', '#ff6fb1', '#f0b03c'];
 
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
 }
 
-/** A round initials badge (people, and AI, Gmail, Calendar in the feed). */
 export function Avatar({
   name,
   size = 28,
@@ -74,14 +89,14 @@ export function Avatar({
     <span
       aria-hidden="true"
       style={{ width: size, height: size, background: hue, fontSize: size * 0.4 }}
-      className="inline-grid shrink-0 place-items-center rounded-full font-bold text-white"
+      className="inline-grid shrink-0 place-items-center rounded-full font-semibold text-[#0d0f12]"
     >
       {initials(name)}
     </span>
   );
 }
 
-/** Kitsu's tab row: plain words, the current one underlined. */
+/** Tabs: plain words, the current one underlined. */
 export function Tabs<T extends string>({
   tabs,
   current,
@@ -94,7 +109,7 @@ export function Tabs<T extends string>({
   label: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className="flex gap-6 border-b border-line-strong/40">
+    <div role="tablist" aria-label={label} className="flex gap-5 border-b border-line">
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -102,7 +117,7 @@ export function Tabs<T extends string>({
           role="tab"
           aria-selected={t.id === current}
           onClick={() => onChange(t.id)}
-          className="-mb-px border-b-2 border-transparent pb-2.5 text-[15px] text-muted transition-colors hover:text-fg aria-selected:border-selectable aria-selected:font-bold aria-selected:text-strong"
+          className="-mb-px border-b-2 border-transparent pb-2 text-[14px] text-muted transition-colors hover:text-fg aria-selected:border-accent aria-selected:font-semibold aria-selected:text-strong"
         >
           {t.label}
         </button>
@@ -111,10 +126,59 @@ export function Tabs<T extends string>({
   );
 }
 
-/**
- * A dropdown button (Kitsu's comboboxes in the top bar and toolbars): shows
- * the current value and a chevron; opens a list under it.
- */
+/** A floating panel on a trigger (menus, editors). The trigger is rendered as-is. */
+export function Pop({
+  open,
+  onOpenChange,
+  trigger,
+  children,
+  width = 240,
+  align = 'start',
+  label,
+  className = ui.menu,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  trigger: ReactNode;
+  children: ReactNode;
+  width?: number;
+  align?: 'start' | 'center' | 'end';
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
+      <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
+      <AnimatePresence>
+        {open && (
+          <RadixPopover.Portal forceMount>
+            <RadixPopover.Content
+              asChild
+              forceMount
+              align={align}
+              sideOffset={6}
+              collisionPadding={12}
+              aria-label={label}
+            >
+              <motion.div
+                variants={popIn}
+                initial="initial"
+                animate="enter"
+                exit="exit"
+                style={{ width }}
+                className={className}
+              >
+                {children}
+              </motion.div>
+            </RadixPopover.Content>
+          </RadixPopover.Portal>
+        )}
+      </AnimatePresence>
+    </RadixPopover.Root>
+  );
+}
+
+/** A dropdown button showing its current value. */
 export function Dropdown({
   open,
   onOpenChange,
@@ -135,53 +199,36 @@ export function Dropdown({
   ariaLabel: string;
 }) {
   return (
-    <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
-      <RadixPopover.Trigger asChild>
+    <Pop
+      open={open}
+      onOpenChange={onOpenChange}
+      width={width}
+      label={ariaLabel}
+      trigger={
         <button type="button" aria-label={ariaLabel} className={`${ui.button} ${className}`}>
           {icon}
           <span className="min-w-0 truncate">{label}</span>
-          <ChevronDown size={16} className="shrink-0 text-accent" aria-hidden="true" />
+          <ChevronDown size={15} className="shrink-0 text-faint" aria-hidden="true" />
         </button>
-      </RadixPopover.Trigger>
-      <AnimatePresence>
-        {open && (
-          <RadixPopover.Portal forceMount>
-            <RadixPopover.Content
-              asChild
-              forceMount
-              align="start"
-              sideOffset={6}
-              collisionPadding={12}
-            >
-              <motion.div
-                variants={popIn}
-                initial="initial"
-                animate="enter"
-                exit="exit"
-                style={{ width }}
-                className="z-50 grid max-h-[70vh] gap-0.5 overflow-auto rounded-[10px] border border-line bg-surface p-1.5 shadow-panel"
-              >
-                {children}
-              </motion.div>
-            </RadixPopover.Content>
-          </RadixPopover.Portal>
-        )}
-      </AnimatePresence>
-    </RadixPopover.Root>
+      }
+    >
+      {children}
+    </Pop>
   );
 }
 
-/** One choice in a Dropdown. */
 export function MenuItem({
   children,
   onSelect,
   active = false,
   muted = false,
+  danger = false,
 }: {
   children: ReactNode;
   onSelect: () => void;
   active?: boolean;
   muted?: boolean;
+  danger?: boolean;
 }) {
   return (
     <button
@@ -189,11 +236,13 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       onClick={onSelect}
-      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hover aria-checked:bg-selected aria-checked:text-white ${
-        muted ? 'text-muted' : 'text-fg'
+      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13.5px] transition-colors hover:bg-hover aria-checked:bg-selected ${
+        danger ? 'text-[var(--c-red)]' : muted ? 'text-muted' : 'text-fg'
       }`}
     >
       {children}
     </button>
   );
 }
+
+export const MenuSeparator = () => <div className="my-1 border-t border-line" />;

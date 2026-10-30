@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BOARD } from './defaults';
-import { eventsOf, makeEvent, statusText } from './events';
+import { eventsOf, makeEvent, stageText } from './events';
 import { matchesQuery, parseQuery } from './query';
 import {
   inView,
@@ -9,10 +9,11 @@ import {
   shortDate,
   sprintLabel,
   sprintState,
-  statusPatch,
   targetSprint,
 } from './sprints';
 import { deriveTasks } from './tasks';
+import { migrateBoard, migrateCompany, stagePatch } from './stages';
+import { LEGACY_DEFAULT_BOARD } from './defaults';
 import type { Company, Page, Sprint } from './types';
 
 const board = DEFAULT_BOARD;
@@ -23,10 +24,11 @@ const buck: Company = {
   name: 'Buck',
   order: 1,
   due: null,
-  meta: { status: 'wroteback', city: 'Los Angeles' },
+  meta: { city: 'Los Angeles' },
+  stages: { outreach: 'reply' },
   sprints: {
-    s1: { meta: { status: 'reached' }, added: '2026-10-01', updated: '2026-10-05' },
-    s2: { meta: { status: 'wroteback' }, added: '2026-10-20', updated: '2026-10-21' },
+    s1: { stages: { outreach: 'sent' }, added: '2026-10-01', updated: '2026-10-05' },
+    s2: { stages: { outreach: 'reply' }, added: '2026-10-20', updated: '2026-10-21' },
   },
 };
 
@@ -59,14 +61,16 @@ describe('sprints', () => {
     });
   });
 
-  it('each sprint keeps its own status; All companies shows the latest', () => {
-    expect(inView(buck, 's1').meta.status).toBe('reached');
-    expect(inView(buck, 's2').meta.status).toBe('wroteback');
-    expect(inView(buck, null).meta.status).toBe('wroteback');
-    expect(statusPatch(board, buck, 's1', 'status', 'meeting', '2026-10-30')).toEqual({
-      meta: { status: 'meeting' },
-      auto: { status: null },
-      sprints: { s1: { meta: { status: 'meeting' }, updated: '2026-10-30' } },
+  it('each sprint keeps its own stage statuses; All companies shows the latest', () => {
+    expect(inView(buck, 's1').stages).toEqual({ outreach: 'sent' });
+    expect(inView(buck, 's2').stages).toEqual({ outreach: 'reply' });
+    expect(inView(buck, null).stages).toEqual({ outreach: 'reply' });
+    expect(stagePatch(buck, 's1', { outreach: 'done' }, '2026-10-30')).toEqual({
+      stages: { outreach: 'done' },
+      sprints: { s1: { stages: { outreach: 'done' }, updated: '2026-10-30' } },
+    });
+    expect(stagePatch(buck, 'nope', { outreach: 'done' })).toEqual({
+      stages: { outreach: 'done' },
     });
   });
 
@@ -77,10 +81,10 @@ describe('sprints', () => {
     expect(targetSprint({ ...buck, sprints: {} }, [s1, s2], 's1')).toBeNull();
   });
 
-  it('joining a sprint starts from the current status', () => {
-    expect(joinPatch(board, buck, 's3', '2026-10-30')).toEqual({
+  it('joining a sprint starts from the current stages', () => {
+    expect(joinPatch(buck, 's3', '2026-10-30')).toEqual({
       sprints: {
-        s3: { meta: { status: 'wroteback' }, added: '2026-10-30', updated: '2026-10-30' },
+        s3: { stages: { outreach: 'reply' }, added: '2026-10-30', updated: '2026-10-30' },
       },
     });
   });
@@ -98,28 +102,29 @@ describe('events', () => {
       ['status', 'moved'],
       ['comment', 'Met at SCAD'],
     ]);
-    expect(statusText(board, 'status', 'reached', 'wroteback')).toBe(
-      'Status: Reached out → Wrote back!!',
-    );
+    expect(stageText(board, 'outreach', 'sent', 'reply')).toBe('Outreach: Sent → Reply');
   });
 });
 
 describe('search', () => {
-  it('words, field=value, either-or and leaving out', () => {
+  it('words, stage=status, status=any stage, fields, either-or and leaving out', () => {
     const q = (s: string) => matchesQuery(board, buck, parseQuery(s));
     expect(q('buck')).toBe(true);
     expect(q('LA')).toBe(true);
-    expect(q('status=wrote')).toBe(true);
-    expect(q('status=[wrote back]')).toBe(true);
-    expect(q('status=applied')).toBe(false);
-    expect(q('status=applied,wrote')).toBe(true);
-    expect(q('status=-wrote')).toBe(false);
+    expect(q('reply')).toBe(true);
+    expect(q('outreach=reply')).toBe(true);
+    expect(q('outreach=sent')).toBe(false);
+    expect(q('interview=none')).toBe(true);
+    expect(q('status=reply')).toBe(true);
+    expect(q('status=done')).toBe(false);
+    expect(q('status=done,reply')).toBe(true);
+    expect(q('status=-reply')).toBe(false);
     expect(q('city=la')).toBe(true);
     expect(q('-buck')).toBe(false);
-    expect(parseQuery('psyop status=[wrote back] -gretel')).toEqual({
+    expect(parseQuery('psyop status=[to do] -gretel')).toEqual({
       words: ['psyop'],
       excludes: ['gretel'],
-      filters: [{ key: 'status', values: ['wrote back'], not: false }],
+      filters: [{ key: 'status', values: ['to do'], not: false }],
     });
   });
 });
@@ -130,14 +135,16 @@ describe('my tasks', () => {
       id: 'psyop',
       name: 'Psyop',
       order: 2,
-      meta: { status: 'reached' },
+      meta: {},
+      stages: { outreach: 'sent' },
       due: '2026-10-29',
     };
     const nyl: Company = {
       id: 'nyl',
       name: 'New York Life',
       order: 3,
-      meta: { status: 'applied' },
+      meta: {},
+      stages: { application: 'sent' },
       due: null,
     };
     const pages: Record<string, Page> = {
@@ -171,5 +178,34 @@ describe('my tasks', () => {
         ['prep', 'Psyop', '2026-11-02'],
       ].sort((a, b) => (a[2]! < b[2]! ? -1 : 1)),
     );
+  });
+});
+
+describe('moving data from before stages', () => {
+  it('turns Status into stages and Outcome into a plain value', () => {
+    const old: Company = {
+      id: 'if',
+      name: 'Imaginary Forces',
+      order: 1,
+      due: null,
+      meta: { status: 'meeting', outcome: 'hopeful', city: 'New York' },
+    };
+    const page: Page = {
+      notes: [],
+      applications: [],
+      meetings: [
+        { id: 'm', date: '2026-11-06', start: '', end: '', kind: 'meeting', with: '', notes: '' },
+      ],
+    };
+    const moved = migrateCompany(LEGACY_DEFAULT_BOARD, old, page, '2026-10-30');
+    expect(moved.stages).toEqual({ outreach: 'done', meeting: 'scheduled' });
+    expect(moved.meta).toEqual({ outcome: 'Hopeful', city: 'New York' });
+    const b = migrateBoard(LEGACY_DEFAULT_BOARD);
+    expect(b.columns.find((c) => c.id === 'outcome')).toMatchObject({
+      type: 'values',
+      options: ['Hopeful', 'Offer!', 'Bad fit', 'Rejected'],
+    });
+    expect(b.columns.some((c) => c.type === 'status')).toBe(false);
+    expect(b.suggest).toContainEqual({ stage: 'outreach', status: 'todo', tpl: 'tpl-intro' });
   });
 });

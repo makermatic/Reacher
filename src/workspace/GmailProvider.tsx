@@ -130,14 +130,14 @@ export function GmailProvider({ children }: { children: ReactNode }) {
         if (newest?.gmailId && newest.date >= before) {
           label =
             newest.dir === 'in'
-              ? actions.autoStatus(
+              ? actions.autoStages(
                   company.id,
                   { kind: 'received' },
                   company.due ? { due: null } : {},
                   [event],
                   'gmail',
                 )
-              : actions.autoStatus(company.id, { kind: 'sent' }, {}, [event], 'gmail');
+              : actions.autoStages(company.id, { kind: 'sent' }, {}, [event], 'gmail');
         } else actions.logEvents(company.id, [event]);
         lines.push(
           `${company.name}: ${count} new ${count === 1 ? 'email' : 'emails'} from Gmail${label ? `. Status → ${label}` : ''}`,

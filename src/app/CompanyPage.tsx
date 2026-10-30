@@ -2,21 +2,20 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { ChainsBody, NewChainButton } from '../company/ChainsBody';
 import { ComposeEmail } from '../company/ComposeEmail';
-import { DetailsBody } from '../company/DetailsBody';
+import { FieldInput } from './fields';
 import { ApplicationsBody } from '../company/EntrySections';
 import { InlineText } from '../company/InlineText';
 import { MeetingsBody } from '../company/MeetingsBody';
-import { colById, statusCol } from '../model/board';
 import { fmtDate } from '../model/dates';
 import { eventsOf } from '../model/events';
 import { inSprint, sprintsOf } from '../model/sprints';
 import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
-import { ByBadge, KindTag, when } from './Feed';
+import { ByBadge, KindTag, StageTag, when } from './Feed';
 import { COMPANY_TABS, type CompanyTab } from './route';
 import { useSprintInfo } from './sprintLabels';
-import { StatusTag, Tabs, ui } from './ui';
+import { StageName, StatusTag, Tabs, ui } from './ui';
 
 const TAB_LABEL: Record<CompanyTab, string> = {
   info: 'Info',
@@ -120,64 +119,85 @@ export function CompanyPage({ id, tab }: { id: string; tab: CompanyTab }) {
   );
 }
 
-/** Its status in every sprint (Kitsu's task table), then its fields. */
+/** Its stage statuses (latest, then every sprint it's in), then its fields. */
 function InfoTab({ company }: { company: Company }) {
   const { board, sprints } = useWorkspace();
   const info = useSprintInfo();
-  const sc = statusCol(board);
-  const outcome = board.columns.find((c) => c.type === 'status' && c.showWhen);
   const mine = sprintsOf(company, sprints).reverse();
+  const rows: {
+    key: string;
+    label: string;
+    stages: Record<string, string | null>;
+    note?: string;
+  }[] = [
+    { key: 'latest', label: 'Latest', stages: company.stages ?? {} },
+    ...mine.map((s) => {
+      const e = company.sprints![s.id]!;
+      return {
+        key: s.id,
+        label: info[s.id]?.label ?? s.name,
+        stages: e.stages,
+        note: `Added ${fmtDate(e.added)} · last change ${fmtDate(e.updated)}`,
+      };
+    }),
+  ];
+  const cell = 'border-b border-line px-3 py-2.5';
   return (
     <>
       <section className="grid gap-3">
-        <h2 className={ui.sectionTitle}>Sprints</h2>
-        {mine.length ? (
-          <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-[10px] border border-line text-left">
+        <h2 className={ui.sectionTitle}>Stages</h2>
+        <div className="overflow-x-auto rounded-xl border border-line">
+          <table className="w-full border-separate border-spacing-0 text-left">
             <thead>
-              <tr className="text-muted">
-                {['Sprint', sc.name, outcome?.name ?? '', 'Added', 'Last change'].map((h) => (
-                  <th key={h} className="eyebrow border-b border-line px-3 py-2.5 font-bold">
-                    {h}
+              <tr>
+                <th className={`${cell} ${ui.label}`}>Sprint</th>
+                {board.stages.map((s) => (
+                  <th key={s.id} className={`${cell} text-[13px] font-semibold`}>
+                    <StageName name={s.name} color={s.color} />
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {mine.map((s) => {
-                const e = company.sprints![s.id]!;
-                return (
-                  <tr key={s.id}>
-                    <td className="border-b border-line px-3 py-2.5 font-bold text-strong">
-                      {info[s.id]?.label ?? s.name}
+              {rows.map((r) => (
+                <tr key={r.key}>
+                  <td className={cell}>
+                    <b className="text-[13.5px] text-strong">{r.label}</b>
+                    {r.note && <span className="block text-[11.5px] text-faint">{r.note}</span>}
+                  </td>
+                  {board.stages.map((s) => (
+                    <td key={s.id} className={cell}>
+                      <StatusTag board={board} value={r.stages[s.id]} />
                     </td>
-                    <td className="border-b border-line px-3 py-2.5">
-                      <StatusTag col={sc} value={e.meta.status} />
-                    </td>
-                    <td className="border-b border-line px-3 py-2.5">
-                      {outcome && e.meta[outcome.id] ? (
-                        <StatusTag col={outcome} value={e.meta[outcome.id]} />
-                      ) : null}
-                    </td>
-                    <td className="border-b border-line px-3 py-2.5 text-muted">
-                      {fmtDate(e.added)}
-                    </td>
-                    <td className="border-b border-line px-3 py-2.5 text-muted">
-                      {fmtDate(e.updated)}
-                    </td>
-                  </tr>
-                );
-              })}
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
-        ) : (
-          <p className="m-0 text-muted">
-            Not in a sprint. Add it from a sprint’s list, or from the side panel’s sprint menu.
+        </div>
+        {!mine.length && (
+          <p className="m-0 text-[13px] text-muted">
+            Not in a sprint. Add it from a sprint’s list, or the panel’s sprint menu.
           </p>
         )}
       </section>
       <section className="grid gap-3">
-        <h2 className={ui.sectionTitle}>Information</h2>
-        <DetailsBody company={company} />
+        <h2 className={ui.sectionTitle}>Fields</h2>
+        <div className="grid grid-cols-[minmax(120px,180px)_minmax(0,1fr)] overflow-hidden rounded-xl border border-line">
+          {board.columns.map((col) => (
+            <div key={col.id} className="contents">
+              <div className="flex min-h-11 items-center gap-1.5 border-b border-line px-3 text-[13px] text-muted">
+                {col.name}
+                {col.onSheet === false && (
+                  <span className="text-[10.5px] text-faint">(not on the list)</span>
+                )}
+              </div>
+              <div className="flex min-h-11 items-center border-b border-line px-1">
+                <FieldInput company={company} col={col} variant="row" />
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </>
   );
@@ -204,27 +224,33 @@ function EmailsTab({ company }: { company: Company }) {
   );
 }
 
-/** Kitsu's right-hand timeline: every event, newest first, on a line. */
+/** The right-hand timeline (like Kitsu's): every event, newest first, on a line. */
 function Timeline({ company }: { company: Company }) {
   const { board, pages } = useWorkspace();
   const events = eventsOf(pages[company.id]);
   return (
     <aside
       aria-label="Timeline"
-      className="hidden w-[400px] shrink-0 overflow-y-auto border-l-[3px] border-line bg-panel px-4 pt-5 pb-10 lg:block"
+      className="hidden w-[380px] shrink-0 overflow-y-auto border-l border-line bg-panel px-4 pt-5 pb-10 lg:block"
     >
       <h2 className={`${ui.sectionTitle} mb-4 text-[16px]`}>Timeline</h2>
       {events.length ? (
         <ol className="relative m-0 grid list-none gap-3.5 border-l-2 border-selectable pl-5">
           {events.map((ev) => {
-            const col = ev.status ? colById(board, ev.status.col) : undefined;
             return (
               <li key={ev.id} className="relative grid gap-1">
                 <span className="absolute top-1.5 -left-[27px] size-3 rounded-full border-2 border-panel bg-selectable" />
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[12px] text-muted">{when(ev)}</span>
                   <ByBadge by={ev.by} size={22} />
-                  {col ? <StatusTag col={col} value={ev.status!.to} /> : <KindTag kind={ev.kind} />}
+                  {ev.status ? (
+                    <>
+                      <StageTag stage={ev.status.stage} />
+                      <StatusTag board={board} value={ev.status.to} />
+                    </>
+                  ) : (
+                    <KindTag kind={ev.kind} />
+                  )}
                 </div>
                 <p className="m-0 line-clamp-3 text-[13.5px] text-fg">{ev.text}</p>
               </li>

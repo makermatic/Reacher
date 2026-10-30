@@ -15,11 +15,13 @@ import {
   tokenMap,
 } from '../model/email';
 import { norm, slug } from '../model/text';
-import type { Company } from '../model/types';
+import type { Column, Company } from '../model/types';
 import { btn, fieldInline } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { EditableValue } from '../sheet/MetaCell';
-import { useSheetUI } from '../sheet/SheetUI';
+import { useState as useLocalState } from 'react';
+import { FieldInput } from '../app/fields';
+import { useAppUI } from '../app/AppUI';
+import { Pop } from '../app/ui';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useGmail } from '../workspace/GmailProvider';
 
@@ -35,7 +37,8 @@ type Edit = { subject: string; body: string; fromAI: boolean } | null;
 export function ComposeEmail({ company }: { company: Company }) {
   const { board, chains, templates, me, actions } = useWorkspace();
   const assistant = useAssistant();
-  const { openDetails } = useSheetUI();
+  const { navigate } = useAppUI();
+  const openDetails = () => navigate({ page: 'settings', tab: 'details' });
   const toast = useToast();
 
   const myChains = chains
@@ -426,5 +429,29 @@ function FixLink({
     ? board.columns.find((c) => c.id === colId)
     : colByName(board, tokenLabel(board, fieldKey));
   if (!col) return <span className="text-muted">(not a field, check the template)</span>;
-  return <EditableValue company={company} col={col} className={link} label="set it" />;
+  return <SetIt company={company} col={col} className={link} />;
+}
+
+/** "set it": that field's editor in a small popover. */
+function SetIt({ company, col, className }: { company: Company; col: Column; className: string }) {
+  const [open, setOpen] = useLocalState(false);
+  return (
+    <Pop
+      open={open}
+      onOpenChange={setOpen}
+      width={300}
+      label={`Set ${col.name}`}
+      trigger={
+        <button
+          type="button"
+          aria-label={`Edit ${col.name} for ${company.name}`}
+          className={className}
+        >
+          set it
+        </button>
+      }
+    >
+      <FieldInput company={company} col={col} variant="row" />
+    </Pop>
+  );
 }

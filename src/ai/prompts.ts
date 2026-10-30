@@ -3,34 +3,22 @@
  * with Zack over many rounds), plus additions marked with the round they came from. Each one sends the instructions, the data and
  * the exact shape it wants back (SPEC section 9).
  */
-import { meta, optionOf, optList, statusCol, valueText } from '../model/board';
+import { meta, valueText } from '../model/board';
+import { statusLabel } from '../model/stages';
 import { todayISO } from '../model/dates';
-import type { Board, Chain, Column, Company, Message, Page } from '../model/types';
+import type { Board, Chain, Company, Message, Page } from '../model/types';
 
 export const MEDIA =
   'media companies: motion design and animation studios, advertising agencies, production companies, post houses, TV networks and broadcasters, film studios, video game studios, and in-house creative teams at brands';
 
-/** What each built-in status means, so renamed labels still mean the same thing. */
-const MEANING: Record<string, string> = {
-  gathering: 'researching them',
-  reached: 'I emailed or messaged them first',
-  wroteback: 'they replied or reached out, and I owe a response',
-  replied: 'I answered them and I am waiting on them',
-  meeting: 'we talked (call, coffee chat, video)',
-  applied: 'applied through a job posting',
-  rejected: 'turned down',
-  interview: 'formal interview after applying',
-};
-
-const label = (col: Column, id: string) => optionOf(col, id)?.label ?? id;
 const byDate = <T extends { date: string }>(a: T, b: T) =>
   a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
 
-function statusMeanings(board: Board) {
-  return optList(statusCol(board))
-    .map((o) => `${o.label} = ${MEANING[o.id] ?? "(the job seeker's own choice)"}`)
-    .join('; ');
-}
+/** M7: "Outreach: Sent, Meeting: none, ..." */
+export const stagesText = (board: Board, c: Company) =>
+  board.stages
+    .map((s) => `${s.name}: ${statusLabel(board, c.stages?.[s.id]) || 'none'}`)
+    .join(', ');
 
 /** Squashed for name matching: "Sibling Rivalry" matches "siblingrivalry". */
 const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -78,20 +66,11 @@ export function quickUpdatePrompt(
   about?: string,
 ) {
   const history = noteHistory(companies, pages, note, about);
-  const sc = statusCol(board);
-  const statusCols = board.columns
-    .filter((c) => c.type === 'status')
-    .map(
-      (c) =>
-        `"${c.name}": ${optList(c)
-          .map((o) => `${o.label}${o.group ? ` (${o.group})` : ''}`)
-          .join(', ')}${
-          c.showWhen
-            ? ` [only used once Status is ${c.showWhen.values.map((v) => label(sc, v)).join(' or ')}]`
-            : ''
-        }`,
-    )
-    .join('\n');
+  // M7: stages (Outreach, Meeting, Application, Interview), each with its own status.
+  const stageNames = board.stages.map((s) => s.name).join(', ');
+  const statusList = board.statuses.map((s) => `${s.label} = ${s.meaning}`).join('; ');
+  const label = (id: string) => statusLabel(board, id) || id;
+  const first = board.stages[0]?.name ?? 'Outreach';
   const others = board.columns
     .filter((c) => c.type !== 'status' && c.type !== 'checklist')
     .map((c) => `${c.name} (${c.type}${c.options ? `: ${c.options.map(String).join(', ')}` : ''})`)
@@ -100,7 +79,7 @@ export function quickUpdatePrompt(
     companies
       .map(
         (c) =>
-          `${c.name} [Status: ${valueText(sc, meta(c, 'status')) || 'none'}; chains: ${
+          `${c.name} [${stagesText(board, c)}; chains: ${
             chains
               .filter((x) => x.companyId === c.id)
               .map((x) => x.title)
@@ -108,13 +87,11 @@ export function quickUpdatePrompt(
           }]`,
       )
       .join('; ') || 'none';
-  const wroteBack = label(sc, 'wroteback');
 
   return `You update a job seeker's tracker from a short note they typed. They're a motion designer looking for work at ${MEDIA}. Today is ${today}.
 
-Status columns and their choices:
-${statusCols}
-Status meanings: ${statusMeanings(board)}
+Stages (each company has a status in each): ${stageNames}
+Statuses: ${statusList}
 Other fields: ${others}
 Companies already tracked: ${tracked}
 ${history ? `What the tracker already has for the companies in this note:\n${history}\n` : ''}
@@ -124,7 +101,7 @@ Reply with only JSON: {"confirm": false, "reply": "one short sentence saying wha
 Set "confirm" to true only when you're genuinely unsure (which company is meant, an ambiguous date, conflicting details), and put the question in "reply". Otherwise false: the changes are applied straight away.
 Action shapes:
 {"type":"add_company","company":"Official name"}   only if not already tracked
-{"type":"set_status","company":"Name","column":"Status","value":"<choice label>"}
+{"type":"set_status","company":"Name","stage":"<stage name>","status":"<status label>"}
 {"type":"log_email","company":"Name","chain":"short chain title, reuse an existing title if it's the same thread","dir":"out"|"in","date":"YYYY-MM-DD","text":"one line on what the email said"}
 {"type":"add_note","company":"Name","date":"YYYY-MM-DD","text":"short, past tense, in the job seeker's words"}
 {"type":"add_application","company":"Name","date":"YYYY-MM-DD","role":"...","link":"","result":""}
@@ -135,8 +112,8 @@ Rules:
 - Every separate event gets its own action with its own date. If the note says January for one thing and February for another, use two different dates.
 - Record only what the note says. Never add an email, meeting, interview, application or outcome the note doesn't describe.
 - Reaching out / emailing = log_email (dir "out"). A conversation, call, chat, coffee chat or virtual coffee = add_meeting (kind "meeting", or "interview" if they call it that). Feelings, impressions and things they learned = add_note.
-- If the company reached out to the job seeker (email, LinkedIn, anywhere) and asked for something, Status is "${wroteBack}" (their move is done, the job seeker owes a reply). If they asked for a coffee chat or call with no date yet, add a note saying so; add_meeting only once there's a date.
-- Set Status to the latest state. Set Outcome only when a meeting or interview happened and the note says how it went (e.g. not a good fit = Bad fit).
+- If the company reached out to the job seeker (email, LinkedIn, anywhere) and asked for something, set the stage it's about to "${label('reply')}" (${first} if unsure): their move is done, the job seeker owes a reply. If they asked for a coffee chat or call with no date yet, add a note saying so; add_meeting only once there's a date.
+- Set each stage the note moves to its latest status: emailing them = ${first} "${label('sent')}"; a turn-down = that stage "${label('no')}". Set the Outcome field only when a meeting or interview happened and the note says how it went (e.g. not a good fit = Bad fit).
 - Scheduled future meetings and interviews are add_meeting with their future date and 24-hour start/end times (12-12:20 pm = 12:00 to 12:20). Don't add a follow-up unless the note asks for a reminder.
 - A month with no day means the 1st. A past event with no year is the most recent past one, never in the future. "Next week" etc. are relative to today.
 - Use the tracked company's exact name when the note refers to it. Use the company's official spelling for new ones (e.g. BigStar, not Big Star).
@@ -237,7 +214,7 @@ export function draftPrompt(
   return `Write the next email a job seeker should send. Plain, warm, specific, under 140 words. Use only the facts given; don't invent projects, dates or names. Sign off with the sender's first name.
 Sender: ${me?.name || 'the sender'}. Portfolio: ${me?.portfolio || 'n/a'}. About the sender: ${me?.intro || 'n/a'}
 Recipient: ${recipient ? `${recipient.name || ''} (${recipient.role || ''})` : 'unknown, so open with "Hi there,"'}
-Status: ${valueText(statusCol(board), meta(c, 'status')) || 'none yet'}
+Stages: ${stagesText(board, c)}
 ${companyContext(board, c, page)}
 ${chain ? `This is a reply in the email chain "${chain.title}", oldest first:\n${chainText(chain.messages)}` : 'This starts a new email chain.'}
 

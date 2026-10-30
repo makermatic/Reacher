@@ -9,7 +9,7 @@ describe('AI check', () => {
     const r = grade(byNote('Interview with New York Life'), {
       actions: [
         { type: 'add_company', company: 'New York Life' },
-        { type: 'set_status', company: 'New York Life', column: 'Status', value: 'Interview' },
+        { type: 'set_status', company: 'New York Life', stage: 'Interview', status: 'Scheduled' },
         {
           type: 'add_meeting',
           company: 'New York Life',
@@ -23,7 +23,7 @@ describe('AI check', () => {
     expect(r.results).toEqual([
       { label: 'adds New York Life', ok: true },
       { label: 'interview on Nov 6 at 12:30', ok: true },
-      { label: 'status Interview', ok: true },
+      { label: 'Interview stage Scheduled', ok: true },
     ]);
   });
 
@@ -31,7 +31,7 @@ describe('AI check', () => {
     const r = grade(byNote('Reached out to Sibling'), {
       actions: [
         { type: 'add_meeting', company: 'Sibling Rivalry', date: '2026-02-01', kind: 'interview' },
-        { type: 'set_status', company: 'Sibling Rivalry', column: 'Outcome', value: 'Bad fit' },
+        { type: 'set_field', company: 'Sibling Rivalry', column: 'Outcome', value: 'Bad fit' },
       ],
     });
     expect(r.results.map((x) => x.ok)).toEqual([false, true, true, false]);
@@ -45,6 +45,6 @@ describe('AI check', () => {
   it('prompts use the fixed tracker and date', () => {
     const p = checkPrompt(byNote('Psyop wrote back'));
     expect(p).toContain('Today is 2026-10-28');
-    expect(p).toContain('Psyop [Status: Reached out; chains: Intro to Sam]');
+    expect(p).toContain('Psyop [Outreach: Sent, Meeting: none');
   });
 });

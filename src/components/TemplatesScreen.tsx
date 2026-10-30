@@ -6,7 +6,7 @@ import { peopleOf, previewParts, tokenGroups, tokenMap } from '../model/email';
 import { uid } from '../model/text';
 import type { Template } from '../model/types';
 import { dialogIn, fade } from '../motion';
-import { useSheetUI } from '../sheet/SheetUI';
+import { useAppUI } from '../app/AppUI';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { btn, field, fieldInline } from './Modal';
 import { useToast } from './Toast';
@@ -109,7 +109,7 @@ export function Templates({ onClose }: { onClose?: () => void }) {
 
 function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: () => void }) {
   const { board, companies, me, actions } = useWorkspace();
-  const { openCompanyId } = useSheetUI();
+  const openCompanyId = useAppUI().selected[0]?.id ?? null;
   const toast = useToast();
   const fields = tokenGroups(board).flatMap((g) =>
     g.items.map(([key, label]) => ({ key, label, group: g.name })),

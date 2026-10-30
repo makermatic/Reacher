@@ -1,41 +1,38 @@
-import { Check, ExternalLink, Layers, Search, Trash2, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, Layers, Search, Trash2, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAssistant } from '../ai/Assistant';
 import { LookupCard } from '../company/LookupCard';
-import { ConfirmButton, armedDanger } from '../components/ConfirmButton';
 import { NoticeCard } from '../components/QuickUpdateBar';
 import { useToast } from '../components/Toast';
-import { colShows, optList, statusCol } from '../model/board';
+import { daysUntil, fmtDate } from '../model/dates';
 import { eventsOf } from '../model/events';
-import { inView } from '../model/sprints';
+import { activeStage, stagesIn } from '../model/stages';
 import type { Company } from '../model/types';
-import { StatusChip } from '../sheet/StatusChip';
-import { When } from '../sheet/When';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
-import { useAppUI } from './AppUI';
+import { cellKey, sameCell, useAppUI, type Cell } from './AppUI';
+import { TwoClick } from './columns';
 import { FeedCard } from './Feed';
 import { useSprintInfo } from './sprintLabels';
-import { Dropdown, MenuItem, ui } from './ui';
+import { colorVar, MenuItem, Pop, StageName, StatusTag, ui } from './ui';
 
 export const MIN_PANEL = 380;
 export const clampPanel = (w: number) =>
   Math.round(Math.max(MIN_PANEL, Math.min(w, window.innerWidth - 360)));
 
 /**
- * Kitsu's task panel, for companies (M7). One company: its status (in the
- * sprint on screen), a comment box whose comments the AI reads as an update
- * about this company, and its feed. Several: change all their statuses at
- * once. Drag the left edge to resize.
+ * The side panel (M7), working like Kitsu's task panel. One cell selected: the
+ * company in that stage, its status, a comment box (the AI reads a comment as
+ * an update about this company) and its feed. Several: one status for all.
+ * Drag the left edge to resize.
  */
 export function SidePanel({ width, onResize }: { width: number; onResize: (w: number) => void }) {
   const { companies } = useWorkspace();
   const { selected, clearSelection } = useAppUI();
-  const chosen = companies.filter((c) => selected.includes(c.id));
+  const cells = selected.filter((s) => companies.some((c) => c.id === s.id));
 
-  // Deleted companies drop out; nothing left closes the panel.
   useEffect(() => {
-    if (selected.length && !chosen.length) clearSelection();
-  }, [selected.length, chosen.length, clearSelection]);
+    if (selected.length && !cells.length) clearSelection();
+  }, [selected.length, cells.length, clearSelection]);
 
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -52,30 +49,39 @@ export function SidePanel({ width, onResize }: { width: number; onResize: (w: nu
     el.addEventListener('pointerup', up);
   };
 
-  if (!chosen.length) return null;
+  if (!cells.length) return null;
+  const one = cells.length === 1 || new Set(cells.map((c) => c.id)).size === 1;
   return (
     <aside
       aria-label="Company panel"
       style={{ width }}
-      className="relative flex min-h-0 shrink-0 flex-col border-l-[3px] border-line bg-panel max-[720px]:fixed max-[720px]:inset-0 max-[720px]:z-40 max-[720px]:w-full!"
+      className="relative flex min-h-0 shrink-0 flex-col border-l border-line bg-panel max-[720px]:fixed max-[720px]:inset-0 max-[720px]:z-40 max-[720px]:w-full!"
     >
       <div
         onPointerDown={startResize}
         aria-hidden="true"
         title="Drag to resize"
-        className="group/rz absolute inset-y-0 -left-1.5 z-10 w-2.5 cursor-col-resize touch-none"
+        className="group/rz absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize touch-none"
       >
-        <span className="absolute inset-y-0 left-1 w-0.5 bg-transparent transition-colors group-hover/rz:bg-accent" />
+        <span className="absolute inset-y-0 left-0.5 w-0.5 bg-transparent transition-colors group-hover/rz:bg-selectable" />
       </div>
-      {chosen.length === 1 ? <OnePanel company={chosen[0]!} /> : <ManyPanel companies={chosen} />}
+      {one ? (
+        <OnePanel
+          key={cells[0]!.id}
+          company={companies.find((c) => c.id === cells[0]!.id)!}
+          cell={cells[cells.length - 1]!}
+        />
+      ) : (
+        <ManyPanel cells={cells} />
+      )}
     </aside>
   );
 }
 
-function PanelBar({ children }: { children: React.ReactNode }) {
+function Bar({ children }: { children: React.ReactNode }) {
   const { clearSelection } = useAppUI();
   return (
-    <div className="flex h-[54px] shrink-0 items-center gap-1 border-b border-line px-3">
+    <div className="flex h-12 shrink-0 items-center gap-0.5 border-b border-line px-2.5">
       {children}
       <button
         type="button"
@@ -83,134 +89,222 @@ function PanelBar({ children }: { children: React.ReactNode }) {
         aria-label="Close the panel"
         className={`${ui.ghostIcon} ml-auto`}
       >
-        <X size={18} />
+        <X size={17} />
       </button>
     </div>
   );
 }
 
-function OnePanel({ company: stored }: { company: Company }) {
+/** Pick a stage's status: the tag, then a list. Changes right away. */
+export function StatusPicker({
+  value,
+  onPick,
+  label,
+}: {
+  value: string | null | undefined;
+  onPick: (status: string | null) => void;
+  label: string;
+}) {
+  const { board } = useWorkspace();
+  const [open, setOpen] = useState(false);
+  return (
+    <Pop
+      open={open}
+      onOpenChange={setOpen}
+      width={220}
+      label={label}
+      trigger={
+        <button
+          type="button"
+          aria-label={label}
+          className="flex h-9 items-center gap-2 rounded-lg border border-line bg-bg px-2.5 hover:border-line-strong"
+        >
+          <StatusTag board={board} value={value} />
+          <ChevronDown size={15} className="text-faint" />
+        </button>
+      }
+    >
+      {board.statuses.map((s) => (
+        <MenuItem
+          key={s.id}
+          active={s.id === value}
+          onSelect={() => {
+            onPick(s.id);
+            setOpen(false);
+          }}
+        >
+          <StatusTag board={board} value={s.id} />
+          <span className="ml-auto max-w-32 truncate text-[11.5px] text-faint">{s.meaning}</span>
+        </MenuItem>
+      ))}
+      <MenuItem
+        muted
+        active={!value}
+        onSelect={() => {
+          onPick(null);
+          setOpen(false);
+        }}
+      >
+        No status
+      </MenuItem>
+    </Pop>
+  );
+}
+
+function OnePanel({ company, cell }: { company: Company; cell: Cell }) {
   const { board, pages, sprint, actions } = useWorkspace();
-  const { openPage, clearSelection } = useAppUI();
+  const { openPage, select, clearSelection } = useAppUI();
   const assistant = useAssistant();
   const toast = useToast();
   const info = useSprintInfo();
-  const company = inView(stored, sprint);
-  const sc = statusCol(board);
-  const dependents = board.columns.filter((c) => c.type === 'status' && c.showWhen);
+  const stages = stagesIn(company, sprint);
+  const stageId = cell.stage ?? activeStage(board, stages);
+  const stage = board.stages.find((s) => s.id === stageId) ?? board.stages[0];
   const [text, setText] = useState('');
-  const busy = assistant.noticeOrigin === stored.id && assistant.notice?.kind === 'busy';
+  const busy = assistant.noticeOrigin === company.id && assistant.notice?.kind === 'busy';
+  const [deleting, setDeleting] = useState(false);
 
   const post = async (e?: FormEvent) => {
     e?.preventDefault();
     const note = text.trim();
     if (!note || busy) return;
     if (!assistant.available) {
-      actions.comment(stored.id, note);
+      actions.comment(company.id, note);
       setText('');
       return;
     }
-    // The AI reads it as an update about this company; the note goes in the feed either way.
-    if (await assistant.quickUpdate(note, stored)) setText('');
+    if (await assistant.quickUpdate(note, company)) setText('');
   };
 
-  const events = eventsOf(pages[stored.id]);
+  const events = eventsOf(pages[company.id]);
+  const due = company.due ? daysUntil(company.due) : null;
   return (
     <>
-      <PanelBar>
+      <Bar>
         <button
           type="button"
-          onClick={() => openPage(stored.id)}
+          onClick={() => openPage(company.id)}
           aria-label="Open the company page"
           title="Open the company page"
           className={ui.ghostIcon}
         >
-          <ExternalLink size={18} />
+          <ArrowUpRight size={17} />
         </button>
         {assistant.available && (
           <button
             type="button"
-            onClick={() => void assistant.lookup(stored)}
+            onClick={() => void assistant.lookup(company)}
             aria-label="Look up company details"
             title="Look up company details"
             className={ui.ghostIcon}
           >
-            <Search size={18} />
+            <Search size={16} />
           </button>
         )}
-        <SprintsMenu company={stored} />
-        <ConfirmButton
-          label={`Delete ${stored.name}`}
-          onConfirm={() => {
-            clearSelection();
-            void actions.deleteCompany(stored.id);
-            toast(`Deleted ${stored.name}`);
-          }}
-          confirm="Delete company?"
-          className={ui.ghostIcon}
-          armedClassName={armedDanger}
+        <SprintsMenu company={company} />
+        <Pop
+          open={deleting}
+          onOpenChange={setDeleting}
+          width={230}
+          label={`Delete ${company.name}`}
+          trigger={
+            <button
+              type="button"
+              aria-label={`Delete ${company.name}`}
+              title="Delete"
+              className={ui.ghostIcon}
+            >
+              <Trash2 size={16} />
+            </button>
+          }
         >
-          <Trash2 size={18} />
-        </ConfirmButton>
-      </PanelBar>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-8">
-        <div className="mb-3 flex items-center gap-3">
-          <span
-            className="rounded-sm border-l-[3px] bg-surface-2 px-2 py-0.5 text-[13px] font-bold"
-            style={{ borderLeftColor: 'var(--accent)' }}
+          <TwoClick
+            armed="Click again to delete"
+            onConfirm={() => {
+              clearSelection();
+              void actions.deleteCompany(company.id);
+              toast(`Deleted ${company.name}`);
+            }}
           >
-            Company
+            Delete {company.name}
+          </TwoClick>
+        </Pop>
+      </Bar>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-10">
+        <button
+          type="button"
+          onClick={() => openPage(company.id)}
+          className="block max-w-full text-left"
+        >
+          <span className="block truncate font-display text-[22px] font-bold text-strong hover:underline">
+            {company.name}
           </span>
-          <button
-            type="button"
-            onClick={() => openPage(stored.id)}
-            className="min-w-0 truncate text-left text-[20px] text-muted hover:text-fg"
-          >
-            {sprint && info[sprint] ? `${info[sprint]!.label} / ` : ''}
-            <span className="text-strong">{stored.name}</span>
-          </button>
+          {sprint && info[sprint] && (
+            <span className="text-[12.5px] text-faint">{info[sprint]!.label}</span>
+          )}
+        </button>
+
+        <div role="tablist" aria-label="Stages" className="mt-3 flex flex-wrap gap-1.5">
+          {board.stages.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={s.id === stage?.id}
+              onClick={() => select({ id: company.id, stage: s.id })}
+              className="flex items-center gap-1.5 rounded-lg border border-line px-2 py-1 text-[12.5px] text-muted transition-colors hover:text-fg aria-selected:border-[var(--tint)] aria-selected:text-strong"
+              style={{ '--tint': colorVar(s.color) } as React.CSSProperties}
+            >
+              <span className="size-1.5 rounded-full" style={{ background: colorVar(s.color) }} />
+              {s.name}
+              <StatusTag board={board} value={stages[s.id]} className="px-1.5 text-[11px]" />
+            </button>
+          ))}
         </div>
 
-        <div className="mb-4 flex flex-wrap items-end gap-4">
-          <div className="grid gap-1">
-            <span className={ui.label}>{sc.name}</span>
-            <StatusChip company={company} col={sc} />
-          </div>
-          {dependents
-            .filter((col) => colShows(col, company))
-            .map((col) => (
-              <div key={col.id} className="grid gap-1">
-                <span className={ui.label}>{col.name}</span>
-                <StatusChip company={company} col={col} />
-              </div>
-            ))}
-          <div className="grid gap-1">
-            <label htmlFor="follow-up" className={ui.label}>
-              Follow up on
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id="follow-up"
-                type="date"
-                value={stored.due ?? ''}
-                onChange={(e) => actions.setDue(stored.id, e.target.value || null)}
-                className={`${ui.input} h-9`}
+        {stage && (
+          <div className="mt-4 flex flex-wrap items-end gap-4">
+            <div className="grid gap-1">
+              <span className={ui.label}>
+                <StageName name={stage.name} color={stage.color} />
+              </span>
+              <StatusPicker
+                value={stages[stage.id]}
+                label={`${stage.name} status`}
+                onPick={(st) => actions.setStage(company.id, stage.id, st)}
               />
-              {stored.due && <When company={stored} page={undefined} />}
             </div>
+            <label className="grid gap-1">
+              <span className={ui.label}>Follow up on</span>
+              <span className="flex items-center gap-2">
+                <input
+                  id="follow-up"
+                  type="date"
+                  value={company.due ?? ''}
+                  onChange={(e) => actions.setDue(company.id, e.target.value || null)}
+                  className={ui.input}
+                />
+                {due != null && (
+                  <span
+                    className={`text-[12px] ${due < 0 ? 'text-[var(--c-red)]' : due === 0 ? 'text-[var(--c-amber)]' : 'text-faint'}`}
+                  >
+                    {due < 0 ? `${-due}d late` : due === 0 ? 'today' : `in ${due}d`}
+                  </span>
+                )}
+              </span>
+            </label>
           </div>
-        </div>
+        )}
 
-        <LookupCard company={stored} />
+        <div className="mt-3">
+          <LookupCard company={company} />
+        </div>
 
         <form
           onSubmit={post}
-          className={`relative mt-3 rounded-[10px] border border-line-strong/50 bg-surface ${busy ? 'ai-working' : ''}`}
+          className={`relative mt-4 rounded-xl border border-line bg-surface ${busy ? 'ai-working' : ''}`}
         >
-          <div className="border-b border-line px-3 py-2 text-center text-[12px] font-bold uppercase tracking-[0.08em] text-strong">
-            {assistant.available ? 'Comment or update' : 'Post comment'}
-          </div>
           <label htmlFor="comment-text" className="sr-only">
             Comment
           </label>
@@ -227,10 +321,10 @@ function OnePanel({ company: stored }: { company: Company }) {
             }}
             placeholder={
               assistant.available
-                ? `Leave a comment… like “they’re not hiring”. The AI updates ${stored.name} from it.`
+                ? `Comment or update, like “they’re not hiring”. Reacher updates ${company.name} from it.`
                 : 'Leave a comment…'
             }
-            className="block w-full resize-y border-0 bg-transparent px-3 py-2.5 text-[14px] text-fg outline-none placeholder:text-faint"
+            className="block w-full resize-y rounded-t-xl border-0 bg-transparent px-3 py-2.5 text-[14px] text-fg outline-none placeholder:text-faint"
           />
           <div className="flex items-center gap-2 border-t border-line px-2.5 py-2">
             <span className="text-[12px] text-faint">
@@ -239,113 +333,98 @@ function OnePanel({ company: stored }: { company: Company }) {
             <button
               type="submit"
               disabled={busy || !text.trim()}
-              className={`${ui.primary} ml-auto`}
+              className={`${ui.primary} ml-auto h-8`}
             >
               {busy ? 'Reading…' : 'Post'}
             </button>
           </div>
-          <NoticeCard origin={stored.id} onApplied={() => setText('')} />
+          <NoticeCard origin={company.id} onApplied={() => setText('')} />
         </form>
 
-        <div className="mt-4 grid gap-2.5">
+        <div className="mt-5 grid gap-2">
+          <span className={ui.label}>Activity</span>
           {events.length ? (
             events.map((ev) => <FeedCard key={ev.id} event={ev} />)
           ) : (
-            <p className="m-0 text-center text-[13px] text-muted">
-              Nothing here yet. Comments, status changes and emails show up here.
+            <p className="m-0 text-[13px] text-muted">
+              Comments, status changes and emails show up here.
             </p>
           )}
         </div>
+        {company.due && <span className="sr-only">Follow up {fmtDate(company.due)}</span>}
       </div>
     </>
   );
 }
 
-/** Kitsu's multi-selection: one status (and comment) for all of them. */
-function ManyPanel({ companies }: { companies: Company[] }) {
-  const { board, actions } = useWorkspace();
+/** Several cells: one status for all of them, with an optional comment. */
+function ManyPanel({ cells }: { cells: Cell[] }) {
+  const { board, companies, actions } = useWorkspace();
   const { select } = useAppUI();
   const toast = useToast();
-  const sc = statusCol(board);
-  const [status, setStatus] = useState<string>(optList(sc)[0]?.id ?? '');
+  const [status, setStatus] = useState<string | null>(board.statuses[0]?.id ?? null);
   const [text, setText] = useState('');
-  const [open, setOpen] = useState(false);
-  const label = optList(sc).find((o) => o.id === status)?.label ?? 'Status';
+  const withStage = cells.map((c) => ({
+    id: c.id,
+    stage: c.stage ?? activeStage(board, companies.find((x) => x.id === c.id)?.stages ?? {}) ?? '',
+  }));
 
   const apply = () => {
-    actions.setStatusMany(
-      companies.map((c) => c.id),
-      'status',
-      status,
-      text,
-    );
-    toast(`${companies.length} companies → ${label}`);
+    actions.setStagesMany(withStage, status, text);
+    toast(`${cells.length} updated`);
     setText('');
   };
 
   return (
     <>
-      <PanelBar>
-        <span className="text-[14px] font-bold text-strong">{companies.length} selected</span>
-      </PanelBar>
+      <Bar>
+        <span className="px-1.5 text-[14px] font-semibold text-strong">
+          {cells.length} selected
+        </span>
+      </Bar>
       <div className="grid content-start gap-3 overflow-y-auto px-4 pt-4 pb-8">
-        <div className="flex items-center gap-2">
-          <Dropdown
-            open={open}
-            onOpenChange={setOpen}
-            ariaLabel="New status"
-            label={label}
-            width={240}
-          >
-            {optList(sc).map((o) => (
-              <MenuItem
-                key={o.id}
-                active={o.id === status}
-                onSelect={() => {
-                  setStatus(o.id);
-                  setOpen(false);
-                }}
-              >
-                <span className={`schip c-${o.color || 'grey'}`}>{o.label}</span>
-              </MenuItem>
-            ))}
-          </Dropdown>
+        <div className="grid gap-1">
+          <span className={ui.label}>New status</span>
+          <StatusPicker value={status} onPick={setStatus} label="New status" />
         </div>
         <textarea
           id="many-comment"
           rows={2}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Leave a comment for all of them (optional)"
+          placeholder="A comment for all of them (optional)"
           aria-label="Comment for all"
           className={`${ui.input} h-auto py-2`}
         />
         <button type="button" onClick={apply} className={ui.primary}>
-          Change status for the {companies.length} selected companies
+          Change status for the {cells.length} selected
         </button>
-        <h2 className="mt-3 mb-0 text-[16px] font-normal uppercase tracking-[0.08em] text-muted">
-          Selected ({companies.length})
-        </h2>
+        <span className={`${ui.label} mt-2`}>Selected</span>
         <ul className="m-0 grid list-none gap-1 p-0">
-          {companies.map((c) => (
-            <li key={c.id} className="flex items-center gap-2 text-[14px]">
-              <span
-                className="rounded-sm border-l-[3px] bg-surface-2 px-2 py-0.5 text-[12px] font-bold"
-                style={{ borderLeftColor: 'var(--accent)' }}
-              >
-                Company
-              </span>
-              <span className="min-w-0 flex-1 truncate">{c.name}</span>
-              <button
-                type="button"
-                aria-label={`Unselect ${c.name}`}
-                onClick={() => select(c.id, 'toggle')}
-                className={ui.ghostIcon}
-              >
-                <X size={14} />
-              </button>
-            </li>
-          ))}
+          {withStage.map((c) => {
+            const company = companies.find((x) => x.id === c.id);
+            const stage = board.stages.find((s) => s.id === c.stage);
+            return (
+              <li key={cellKey(c)} className="flex items-center gap-2 text-[13.5px]">
+                <span className="min-w-0 flex-1 truncate">
+                  {company?.name}
+                  {stage && (
+                    <span className="ml-2 text-muted">
+                      <StageName name={stage.name} color={stage.color} />
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Unselect ${company?.name} ${stage?.name ?? ''}`}
+                  onClick={() => select(cells.find((x) => sameCell(x, c)) ?? c, 'toggle')}
+                  className={ui.ghostIcon}
+                >
+                  <X size={14} />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </>
@@ -359,16 +438,18 @@ function SprintsMenu({ company }: { company: Company }) {
   const [open, setOpen] = useState(false);
   if (!sprints.length) return null;
   return (
-    <Dropdown
+    <Pop
       open={open}
       onOpenChange={setOpen}
-      ariaLabel="Sprints"
-      label=""
-      icon={<Layers size={18} />}
-      width={300}
-      className="h-8 border-0 bg-transparent px-1.5"
+      width={290}
+      label="Sprints"
+      trigger={
+        <button type="button" aria-label="Sprints" title="Sprints" className={ui.ghostIcon}>
+          <Layers size={16} />
+        </button>
+      }
     >
-      <div className={`${ui.label} px-2.5 py-1.5`}>In sprints</div>
+      <div className={`${ui.label} px-2.5 py-1`}>In sprints</div>
       {[...sprints].reverse().map((s) => {
         const on = !!company.sprints?.[s.id];
         return (
@@ -387,6 +468,6 @@ function SprintsMenu({ company }: { company: Company }) {
           </MenuItem>
         );
       })}
-    </Dropdown>
+    </Pop>
   );
 }

@@ -13,10 +13,22 @@ import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { SETTINGS_TABS, type SettingsTab } from './route';
 import { useSprintInfo } from './sprintLabels';
-import { ui } from './ui';
+import { colorVar, ui } from './ui';
+import { TwoClick } from './columns';
+import {
+  deleteStage,
+  moveStage,
+  newStage,
+  newStatus,
+  stageNameTaken,
+  updateStage,
+  updateStatus,
+} from '../model/columns';
+import { COLORS, type ColorName } from '../model/types';
 
 const TAB_LABEL: Record<SettingsTab, string> = {
   details: 'Your details',
+  stages: 'Stages & statuses',
   templates: 'Email templates',
   sprints: 'Sprints',
   appearance: 'Appearance',
@@ -63,6 +75,7 @@ export function SettingsPage({ tab, onImport }: { tab: SettingsTab; onImport: ()
             <Templates />
           </div>
         )}
+        {tab === 'stages' && <StagesTab />}
         {tab === 'sprints' && <SprintsTab />}
         {tab === 'appearance' && <AppearanceTab />}
         {tab === 'connections' && <ConnectionsTab />}
@@ -253,6 +266,176 @@ function DataTab({ onImport }: { onImport: () => void }) {
           Import data
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Stages (the colored columns) and the statuses they share, like Kitsu's task types and statuses. */
+function StagesTab() {
+  const { board, actions } = useWorkspace();
+  const toast = useToast();
+  const [stageName, setStageName] = useState('');
+  const [statusName, setStatusName] = useState('');
+  const swatches = (value: ColorName | '', pick: (c: ColorName) => void, label: string) => (
+    <div className="flex gap-1" role="radiogroup" aria-label={label}>
+      {COLORS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          role="radio"
+          aria-checked={value === c}
+          aria-label={c}
+          onClick={() => pick(c)}
+          className="size-4 rounded-full ring-offset-2 ring-offset-surface aria-checked:ring-2 aria-checked:ring-fg"
+          style={{ background: colorVar(c) }}
+        />
+      ))}
+    </div>
+  );
+  return (
+    <div className="grid max-w-3xl gap-8">
+      <section className="grid gap-3">
+        <h2 className={ui.sectionTitle}>Stages</h2>
+        <p className="m-0 text-[13.5px] text-muted">
+          Each stage is a colored column on the list, and every company has a status in each one.
+        </p>
+        <div className={`${ui.block} divide-y divide-line`}>
+          {board.stages.map((st, i) => (
+            <div key={st.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+              <input
+                defaultValue={st.name}
+                aria-label={`Name of ${st.name}`}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v && v !== st.name && !stageNameTaken(board, v, st.id))
+                    actions.saveBoard(updateStage(board, st.id, { name: v }));
+                }}
+                className={`${ui.input} w-48`}
+              />
+              {swatches(
+                st.color,
+                (c) => actions.saveBoard(updateStage(board, st.id, { color: c })),
+                `${st.name} color`,
+              )}
+              <span className="ml-auto flex gap-1">
+                <button
+                  type="button"
+                  disabled={i === 0}
+                  onClick={() => actions.saveBoard(moveStage(board, st.id, -1))}
+                  aria-label={`Move ${st.name} left`}
+                  className={`${ui.ghostIcon} disabled:opacity-30`}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  disabled={i === board.stages.length - 1}
+                  onClick={() => actions.saveBoard(moveStage(board, st.id, 1))}
+                  aria-label={`Move ${st.name} right`}
+                  className={`${ui.ghostIcon} disabled:opacity-30`}
+                >
+                  ↓
+                </button>
+                <span className="w-44">
+                  <TwoClick
+                    armed="Click again to delete"
+                    onConfirm={() => actions.saveBoard(deleteStage(board, st.id))}
+                  >
+                    Delete stage
+                  </TwoClick>
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!stageName.trim() || stageNameTaken(board, stageName)) return;
+            actions.saveBoard({ ...board, stages: [...board.stages, newStage(board, stageName)] });
+            toast(`Added the ${stageName.trim()} stage`);
+            setStageName('');
+          }}
+          className="flex gap-2"
+        >
+          <input
+            id="new-stage"
+            value={stageName}
+            onChange={(e) => setStageName(e.target.value)}
+            placeholder="New stage, like Offer"
+            aria-label="New stage"
+            className={`${ui.input} w-64`}
+          />
+          <button type="submit" className={ui.primary}>
+            Add stage
+          </button>
+        </form>
+      </section>
+
+      <section className="grid gap-3">
+        <h2 className={ui.sectionTitle}>Statuses</h2>
+        <p className="m-0 text-[13.5px] text-muted">
+          Shared by every stage. The meaning helps the AI pick the right one, so keep it plain.
+        </p>
+        <div className={`${ui.block} divide-y divide-line`}>
+          {board.statuses.map((st) => (
+            <div
+              key={st.id}
+              className="grid gap-2 px-3 py-2.5 sm:grid-cols-[150px_auto_minmax(0,1fr)] sm:items-center"
+            >
+              <input
+                defaultValue={st.label}
+                aria-label={`Name of ${st.label}`}
+                onBlur={(e) =>
+                  e.target.value.trim() &&
+                  e.target.value.trim() !== st.label &&
+                  actions.saveBoard(updateStatus(board, st.id, { label: e.target.value.trim() }))
+                }
+                className={ui.input}
+              />
+              {swatches(
+                st.color,
+                (c) => actions.saveBoard(updateStatus(board, st.id, { color: c })),
+                `${st.label} color`,
+              )}
+              <input
+                defaultValue={st.meaning}
+                aria-label={`Meaning of ${st.label}`}
+                placeholder="What it means"
+                onBlur={(e) =>
+                  e.target.value !== st.meaning &&
+                  actions.saveBoard(updateStatus(board, st.id, { meaning: e.target.value }))
+                }
+                className={ui.input}
+              />
+            </div>
+          ))}
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!statusName.trim()) return;
+            actions.saveBoard({
+              ...board,
+              statuses: [...board.statuses, newStatus(board, statusName)],
+            });
+            setStatusName('');
+          }}
+          className="flex gap-2"
+        >
+          <input
+            id="new-status"
+            value={statusName}
+            onChange={(e) => setStatusName(e.target.value)}
+            placeholder="New status, like Ghosted"
+            aria-label="New status"
+            className={`${ui.input} w-64`}
+          />
+          <button type="submit" className={ui.primary}>
+            Add status
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

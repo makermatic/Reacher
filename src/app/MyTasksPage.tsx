@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { statusCol } from '../model/board';
 import { addDays, daysUntil, fmtDate, todayISO } from '../model/dates';
 import { eventsOf } from '../model/events';
 import { inSprint } from '../model/sprints';
@@ -172,7 +171,6 @@ function TaskTable({ tasks }: { tasks: Task[] }) {
   const { board, pages } = useWorkspace();
   const { select, selected } = useAppUI();
   const info = useSprintInfo();
-  const sc = statusCol(board);
   if (!tasks.length)
     return (
       <div
@@ -202,8 +200,8 @@ function TaskTable({ tasks }: { tasks: Task[] }) {
             return (
               <tr
                 key={t.id}
-                onClick={() => select(t.company.id, 'only')}
-                aria-selected={selected.includes(t.company.id)}
+                onClick={() => select({ id: t.company.id, stage: t.stage })}
+                aria-selected={selected.some((x) => x.id === t.company.id)}
                 className="cursor-pointer transition-colors hover:bg-hover aria-selected:bg-selected/40"
               >
                 <td className="border-b border-line px-3 py-3 text-[13px] text-muted">
@@ -217,7 +215,7 @@ function TaskTable({ tasks }: { tasks: Task[] }) {
                   <DueText due={t.due} />
                 </td>
                 <td className="border-b border-line px-3 py-3">
-                  <StatusTag col={sc} value={t.status} />
+                  <StatusTag board={board} value={t.status} />
                 </td>
                 <td className="max-w-72 truncate border-b border-line px-3 py-3 text-[13px] text-muted">
                   {last?.text ?? ''}
@@ -237,13 +235,13 @@ function TaskCard({ task }: { task: Task }) {
   return (
     <button
       type="button"
-      onClick={() => select(task.company.id, 'only')}
+      onClick={() => select({ id: task.company.id, stage: task.stage })}
       className="grid gap-2 rounded-[10px] bg-surface p-3 text-left transition-colors hover:bg-hover"
     >
       <b className="text-[14px] text-strong">{task.title}</b>
       <span className="flex items-center justify-between gap-2 text-[12.5px]">
         <DueText due={task.due} />
-        <StatusTag col={statusCol(board)} value={task.status} />
+        <StatusTag board={board} value={task.status} />
       </span>
     </button>
   );
@@ -338,7 +336,7 @@ function TaskCalendar({ tasks }: { tasks: Task[] }) {
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => select(t.company.id, 'only')}
+                    onClick={() => select({ id: t.company.id, stage: t.stage })}
                     className="mb-1 block w-full truncate rounded border-l-[3px] bg-surface-2 px-1.5 py-0.5 text-left text-[12px] text-fg hover:bg-hover"
                     style={{ borderLeftColor: KIND_COLOR[t.kind] }}
                     title={t.title}
