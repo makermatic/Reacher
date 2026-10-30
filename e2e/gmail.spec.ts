@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { companyPage, expectToast, openCompany, openDemo, type FakeGmail } from './support';
+import { main, openTab, expectToast, openDemo, type FakeGmail } from './support';
 
 const THREADS: FakeGmail['threads'] = [
   {
@@ -41,11 +41,10 @@ const calls = (page: Page) =>
 
 test('before the OK: the page offers Check Gmail, and replies come in', async ({ page }) => {
   await openDemo(page, [], undefined, { threads: THREADS });
-  await openCompany(page, 'Psyop');
-  const panel = companyPage(page);
+  await openTab(page, 'Psyop', 'Emails');
+  const panel = main(page);
   await panel.getByRole('button', { name: 'Check Gmail' }).click();
-  await expectToast(page, 'Psyop: 2 new emails from Gmail. Status → Wrote back!!');
-  await expect(panel.locator('button.schip').first()).toHaveText(/Wrote back/);
+  await expectToast(page, 'Psyop: 2 new emails from Gmail. Outreach → Reply');
   await expect(panel.getByText('Thanks Zack! Can you send your rates?')).toBeVisible();
   // The quoted older email is cut off.
   await expect(panel.getByText('> Hi Sam')).toHaveCount(0);
@@ -68,15 +67,15 @@ test('once allowed, opening Reacher checks every company', async ({ page }) => {
   await expectToast(page, 'Buck: 1 new email from Gmail');
   const search = (await calls(page)).find((c) => c.tool === 'search_threads')!;
   expect(search.input.query).toContain('from:psyop.com');
-  await openCompany(page, 'Buck');
-  await expect(companyPage(page).getByLabel('Rename chain')).toHaveValue('Motion designer role');
+  await openTab(page, 'Buck', 'Emails');
+  await expect(main(page).getByLabel('Rename chain')).toHaveValue('Motion designer role');
   await expect(page.getByText('On its way.')).toHaveCount(0);
 });
 
 test('a deleted Gmail email or chain stays deleted', async ({ page }) => {
   await openDemo(page, [], undefined, { threads: THREADS, allowed: true });
-  await openCompany(page, 'Buck');
-  const panel = companyPage(page);
+  await openTab(page, 'Buck', 'Emails');
+  const panel = main(page);
   // Allowed already: opening the page checks by itself.
   await expect(panel.getByLabel('Rename chain')).toHaveValue('Motion designer role');
   await panel.getByRole('button', { name: 'Chain options' }).click();
@@ -90,15 +89,15 @@ test('a deleted Gmail email or chain stays deleted', async ({ page }) => {
 
 test('a company with no website or contact email says what to add', async ({ page }) => {
   await openDemo(page, [], undefined, { threads: THREADS });
-  await openCompany(page, 'MSG Networks');
-  await companyPage(page).getByRole('button', { name: 'Check Gmail' }).click();
-  await expect(companyPage(page).getByText(/Add a website or a contact’s email/)).toBeVisible();
+  await openTab(page, 'MSG Networks', 'Emails');
+  await main(page).getByRole('button', { name: 'Check Gmail' }).click();
+  await expect(main(page).getByText(/Add a website or a contact’s email/)).toBeVisible();
 });
 
 test('Save to Gmail drafts replies in the thread, and never sends', async ({ page }) => {
   await openDemo(page, [], undefined, { threads: THREADS });
-  await openCompany(page, 'Psyop');
-  const panel = companyPage(page);
+  await openTab(page, 'Psyop', 'Emails');
+  const panel = main(page);
   await panel.getByRole('button', { name: 'Check Gmail' }).click();
   await expect(panel.getByText(/Checked just now/)).toBeVisible();
   await panel.getByRole('button', { name: 'Save to Gmail drafts' }).click();
@@ -110,9 +109,7 @@ test('Save to Gmail drafts replies in the thread, and never sends', async ({ pag
 
 test('outside Claude there is no Gmail', async ({ page }) => {
   await openDemo(page);
-  await openCompany(page, 'Psyop');
-  await expect(companyPage(page).getByRole('button', { name: 'Check Gmail' })).toHaveCount(0);
-  await expect(companyPage(page).getByRole('button', { name: 'Save to Gmail drafts' })).toHaveCount(
-    0,
-  );
+  await openTab(page, 'Psyop', 'Emails');
+  await expect(main(page).getByRole('button', { name: 'Check Gmail' })).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: 'Save to Gmail drafts' })).toHaveCount(0);
 });

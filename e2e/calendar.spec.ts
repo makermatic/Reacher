@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { companyPage, expectToast, openCompany, openDemo } from './support';
+import { main, openTab, expectToast, openDemo } from './support';
 
 type Call = { tool: string; input: Record<string, unknown> };
 const calls = (page: Page) =>
@@ -14,8 +14,8 @@ const inDays = (n: number) => {
 
 test('a new upcoming interview goes on the calendar as it is added', async ({ page }) => {
   await openDemo(page, [], {});
-  await openCompany(page, 'loyalkaspar');
-  const panel = companyPage(page);
+  await openTab(page, 'loyalkaspar', 'Meetings');
+  const panel = main(page);
   await expect(panel.locator('#meet-calendar')).toBeChecked();
   await panel.getByRole('button', { name: 'Interview', exact: true }).click();
   await panel.locator('#meet-date').fill(inDays(5));
@@ -36,8 +36,8 @@ test('a new upcoming interview goes on the calendar as it is added', async ({ pa
 
 test('switched off, it adds only when asked, from the entry', async ({ page }) => {
   await openDemo(page, [], {});
-  await openCompany(page, 'Buck');
-  const panel = companyPage(page);
+  await openTab(page, 'Buck', 'Meetings');
+  const panel = main(page);
   await panel.locator('#meet-calendar').uncheck();
   await panel.locator('#meet-date').fill(inDays(2));
   await panel.locator('#meet-with').press('Enter');
@@ -47,7 +47,7 @@ test('switched off, it adds only when asked, from the entry', async ({ page }) =
   await expect(panel.getByRole('link', { name: 'On your Google Calendar ↗' })).toBeVisible();
   expect(await created(page)).toHaveLength(1);
   await page.reload();
-  await openCompany(page, 'Buck');
+  await openTab(page, 'Buck', 'Meetings');
   await expect(panel.locator('#meet-calendar')).not.toBeChecked();
 });
 
@@ -58,15 +58,15 @@ test('calendar events about the company can be added to Meetings', async ({ page
       { title: 'Dentist', inDays: 4 },
     ],
   });
-  await openCompany(page, 'Buck');
-  const panel = companyPage(page);
+  await openTab(page, 'Buck', 'Meetings');
+  const panel = main(page);
   await expect(panel.getByText('Coffee chat with Buck')).toBeVisible();
   await expect(panel.getByText('Dentist')).toHaveCount(0);
   await panel.getByRole('button', { name: 'Add to Meetings' }).click();
   await expectToast(page, 'Added to Meetings');
   await expect(panel.getByRole('button', { name: 'Add to Meetings' })).toHaveCount(0);
   await expect(panel.getByRole('link', { name: 'On your Google Calendar ↗' })).toBeVisible();
-  await openCompany(page, 'Psyop');
+  await openTab(page, 'Psyop', 'Meetings');
   await expect(panel.getByText('Coffee chat with Buck')).toHaveCount(0);
 });
 
@@ -75,8 +75,8 @@ test('before the OK, the page offers to allow Google Calendar', async ({ page })
     askFirst: true,
     events: [{ title: 'Interview with Buck', inDays: 6, start: '15:00' }],
   });
-  await openCompany(page, 'Buck');
-  const panel = companyPage(page);
+  await openTab(page, 'Buck', 'Meetings');
+  const panel = main(page);
   await panel.getByRole('button', { name: 'Allow Google Calendar' }).click();
   await expect(panel.getByText('Interview with Buck')).toBeVisible();
 });
@@ -115,8 +115,8 @@ test('a quick update with an upcoming interview adds it to the calendar', async 
 
 test('outside Claude, the template link stays', async ({ page }) => {
   await openDemo(page);
-  await openCompany(page, 'Imaginary Forces');
-  const panel = companyPage(page);
+  await openTab(page, 'Imaginary Forces', 'Meetings');
+  const panel = main(page);
   await expect(panel.locator('#meet-calendar')).toHaveCount(0);
   await expect(panel.getByRole('link', { name: 'Add to Google Calendar' }).first()).toHaveAttribute(
     'href',

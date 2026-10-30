@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { armedDanger, ConfirmButton } from './ConfirmButton';
 import { useRef, useState } from 'react';
-import { optList } from '../model/board';
+import { stageById, statusLabel } from '../model/stages';
 import { peopleOf, previewParts, tokenGroups, tokenMap } from '../model/email';
 import { uid } from '../model/text';
 import type { Template } from '../model/types';
@@ -146,13 +146,10 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
 
   const preview = companies.find((c) => c.id === previewId);
   const m = tokenMap(board, preview, preview ? peopleOf(board, preview)[0]?.p : null, me);
-  const usedBy = board.columns
-    .filter((c) => c.type === 'status')
-    .flatMap((c) =>
-      optList(c)
-        .filter((o) => (o as { tpl?: string }).tpl === draft.id)
-        .map((o) => o.label),
-    );
+  // M7: suggested for a stage at a status (Board.suggest).
+  const usedBy = board.suggest
+    .filter((x) => x.tpl === draft.id)
+    .map((x) => `${stageById(board, x.stage)?.name ?? x.stage}: ${statusLabel(board, x.status)}`);
 
   /** Insert #field at the cursor of whichever box was last focused. */
   const insert = (key: string) => {
@@ -286,9 +283,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
       </div>
 
       <p className="m-0 text-[13px] text-muted">
-        {usedBy.length
-          ? `Suggested at: ${usedBy.join(', ')}`
-          : 'Not suggested at any status yet. Set that in Status → Edit choices.'}
+        {usedBy.length ? `Suggested at: ${usedBy.join(', ')}` : 'Not suggested at any stage yet.'}
       </p>
       <div className="flex gap-2">
         <button

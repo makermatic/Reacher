@@ -42,7 +42,7 @@ export function ApplicationsBody({ company }: { company: Company }) {
     setRole('');
     setLink('');
     setResult('');
-    toast(label ? `Application added. Status → ${label}` : 'Application added');
+    toast(label ? `Application added. ${label}` : 'Application added');
   };
   const enter = submitOnEnter(add);
 

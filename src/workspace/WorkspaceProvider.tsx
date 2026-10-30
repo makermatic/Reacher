@@ -406,7 +406,7 @@ function makeActions(
     },
 
     saveBoard(next: Board) {
-      void guard(store.setDoc('board', { ...next, version: 2 }));
+      void guard(store.setDoc('board', { ...next, version: 3 }));
     },
 
     // ---------- email ----------
@@ -462,7 +462,7 @@ function makeActions(
       ]);
       return {
         chainId: chain.id,
-        toast: `Logged${label ? `. Status → ${label}` : ''}. Follow up ${fmtDate(due, true)}`,
+        toast: `Logged${label ? `. ${label}` : ''}. Follow up ${fmtDate(due, true)}`,
       };
     },
 
@@ -474,7 +474,7 @@ function makeActions(
      * companies join the sprint on screen. Each company's feed gets the note
      * and what the AI changed.
      */
-    applyQuick(plan: QuickPlan, note: string) {
+    applyQuick(plan: QuickPlan, note: string, about?: string) {
       const today = todayISO();
       const created = plan.created.map((c) =>
         active ? { ...c, ...joinPatch(c, active, today) } : c,
@@ -489,11 +489,21 @@ function makeActions(
         if (c) byCompany.set(c.id, [...(byCompany.get(c.id) ?? []), a]);
       }
       const pagesOut: Record<string, Page> = { ...plan.pages };
+      // The plan's pages were read before the AI answered; keep feed lines written since (the panel's comment).
+      const mergedEvents = (id: string, p: Page) => {
+        const known = new Set((p.events ?? []).map((e) => e.id));
+        return [
+          ...(p.events ?? []),
+          ...(api.pageOf(id).events ?? []).filter((e) => !known.has(e.id)),
+        ];
+      };
+      for (const id of Object.keys(pagesOut))
+        pagesOut[id] = { ...pagesOut[id]!, events: mergedEvents(id, pagesOut[id]!) };
       for (const [id, acts] of byCompany) {
         const c = all.find((x) => x.id === id)!;
         const sid = sprintFor(company(id) ?? c) ?? (active && c.sprints?.[active] ? active : null);
         const events = [
-          makeEvent('comment', note, 'you', { sprintId: sid }),
+          ...(id === about ? [] : [makeEvent('comment', note, 'you', { sprintId: sid })]),
           ...acts.map((a) => {
             if (a.type !== 'set_status')
               return makeEvent(KIND_OF[a.type], describeAction(board, a), 'ai', { sprintId: sid });
@@ -505,7 +515,7 @@ function makeActions(
           }),
         ];
         const p = pagesOut[id] ?? api.pageOf(id);
-        pagesOut[id] = { ...p, events: [...(p.events ?? []), ...events] };
+        pagesOut[id] = { ...p, events: [...mergedEvents(id, p), ...events] };
       }
       const writes: Promise<unknown>[] = [
         ...created.map((c) => store.setItem('companies', c.id, body(c))),

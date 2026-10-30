@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { companyPage, openCompany, openDemo, expectToast } from './support';
+import { main, openTab, openDemo, expectToast, settings } from './support';
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page, [
@@ -11,19 +11,19 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the writer picks the template and chain from the status', async ({ page }) => {
-  await openCompany(page, 'Psyop');
-  const panel = companyPage(page);
+  await openTab(page, 'Psyop', 'Emails');
+  const panel = main(page);
   await expect(panel.locator('#compose-target option:checked')).toHaveText(/^Reply in:/);
   await expect(panel.locator('#compose-template option:checked')).toHaveText(
     'Check-in (no reply yet)',
   );
-  await openCompany(page, 'Gretel');
+  await openTab(page, 'Gretel', 'Emails');
   await expect(panel.locator('#compose-template option:checked')).toHaveText('First outreach');
 });
 
 test('To saves the contact and fills their name; Log as sent moves status', async ({ page }) => {
-  await openCompany(page, 'Gretel');
-  const panel = companyPage(page);
+  await openTab(page, 'Gretel', 'Emails');
+  const panel = main(page);
   await panel.locator('#compose-to').fill('fred.smith@gretel.ny');
   await panel.locator('#compose-to').press('Enter');
   await expectToast(page, 'Saved to Main contact: Fred Smith');
@@ -31,12 +31,11 @@ test('To saves the contact and fills their name; Log as sent moves status', asyn
   await panel.getByRole('button', { name: 'Draft with AI' }).click();
   await expect(panel.locator('#compose-subject')).toHaveValue('Hello from Zack');
   await panel.getByRole('button', { name: 'Log as sent' }).click();
-  await expectToast(page, 'Status → Reached out');
-  await expect(panel.locator('button.schip').first()).toHaveText(/Reached out/);
+  await expectToast(page, 'Outreach → Sent');
 });
 
 test('templates: # opens the field menu, typing narrows it, Enter fills in', async ({ page }) => {
-  await page.getByRole('button', { name: 'Email templates' }).click();
+  await settings(page, 'Email templates');
   const body = page.locator('#tpl-body');
   const menu = page.getByRole('listbox', { name: 'Fill-in fields' });
   await body.click();
@@ -54,7 +53,7 @@ test('templates: # opens the field menu, typing narrows it, Enter fills in', asy
   await page.keyboard.type(' #x');
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
-  await expect(page.getByRole('dialog', { name: 'Email templates' })).toBeVisible();
+  await expect(page.locator('#tpl-body')).toBeVisible();
   // The preview fills it in, and it's saved in the stored {{}} form.
   await expect(page.getByText('zackzand.com').last()).toBeVisible();
   await page.getByRole('button', { name: 'Save template' }).click();
@@ -62,7 +61,8 @@ test('templates: # opens the field menu, typing narrows it, Enter fills in', asy
 });
 
 test('Export data saves a file', async ({ page }) => {
-  await page.getByRole('button', { name: 'Your details' }).click();
+  await settings(page, 'Settings');
+  await page.getByRole('button', { name: 'Import & export' }).click();
   await page.getByRole('button', { name: 'Export data' }).click();
   await expect
     .poll(() =>

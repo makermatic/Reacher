@@ -50,7 +50,7 @@ export function SidePanel({ width, onResize }: { width: number; onResize: (w: nu
   };
 
   if (!cells.length) return null;
-  const one = cells.length === 1 || new Set(cells.map((c) => c.id)).size === 1;
+  const one = cells.length === 1;
   return (
     <aside
       aria-label="Company panel"

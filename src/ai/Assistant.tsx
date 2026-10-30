@@ -37,7 +37,15 @@ export type Notice =
   | { kind: 'busy'; text: string }
   | { kind: 'error'; text: string }
   | { kind: 'message'; text: string }
-  | { kind: 'confirm'; reply: string; actions: QuickAction[]; lines: string[]; note: string }
+  | {
+      kind: 'confirm';
+      reply: string;
+      actions: QuickAction[];
+      lines: string[];
+      note: string;
+      /** Posted from this company's panel (its comment is already in the feed). */
+      about?: string;
+    }
   /** `skipped`: things the note mentioned that the tracker already had. */
   | { kind: 'done'; lines: string[]; skipped: string[]; undo: QuickUndo };
 
@@ -220,14 +228,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   );
 
   const apply = useCallback(
-    (actions: QuickAction[], note: string) => {
+    (actions: QuickAction[], note: string, about?: string) => {
       const { board, companies, pages, chains, actions: write } = wsRef.current;
       const plan = planQuick({ board, companies, pages, chains }, actions);
       if (!plan.applied.length) {
         setNotice({ kind: 'message', text: 'Nothing new: your tracker already has all of that.' });
         return;
       }
-      write.applyQuick(plan, note);
+      write.applyQuick(plan, note, about);
       setNotice({
         kind: 'done',
         lines: plan.applied.map((a) => describeAction(board, a)),
@@ -259,6 +267,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         return false;
       }
       setNoticeOrigin(about?.id ?? 'bar');
+      // A comment from a company's panel is kept whatever the AI makes of it.
+      if (about) wsRef.current.actions.comment(about.id, note);
       setNotice({ kind: 'busy', text: `Reading “${note}”` });
       try {
         const { board, companies, chains, pages } = wsRef.current;
@@ -268,12 +278,19 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const actions = cleanActions(wsRef.current.board, reply?.actions);
         const lines = actions.map((a) => describeAction(wsRef.current.board, a));
         if (actions.length && reply?.confirm !== true) {
-          apply(actions, note);
+          apply(actions, note, about?.id);
           return true;
         }
         setNotice(
           actions.length
-            ? { kind: 'confirm', reply: String(reply?.reply ?? ''), actions, lines, note }
+            ? {
+                kind: 'confirm',
+                reply: String(reply?.reply ?? ''),
+                actions,
+                lines,
+                note,
+                about: about?.id,
+              }
             : { kind: 'message', text: String(reply?.reply ?? '') || 'Nothing to change.' },
         );
         return false;
@@ -296,7 +313,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       dismiss: () => setNotice(null),
       quickUpdate,
       applyConfirmed: () => {
-        if (notice?.kind === 'confirm') apply(notice.actions, notice.note);
+        if (notice?.kind === 'confirm') apply(notice.actions, notice.note, notice.about);
       },
       undo: () => {
         if (notice?.kind !== 'done') return;

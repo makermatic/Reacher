@@ -14,6 +14,7 @@ import {
 import { deriveTasks } from './tasks';
 import { migrateBoard, migrateCompany, stagePatch } from './stages';
 import { LEGACY_DEFAULT_BOARD } from './defaults';
+import { boardOrDefault } from './board';
 import type { Company, Page, Sprint } from './types';
 
 const board = DEFAULT_BOARD;
@@ -182,6 +183,15 @@ describe('my tasks', () => {
 });
 
 describe('moving data from before stages', () => {
+  it('keeps one Outcome column, and never re-migrates a stages board', () => {
+    const b = migrateBoard(LEGACY_DEFAULT_BOARD);
+    expect(b.columns.filter((c) => c.id === 'outcome')).toHaveLength(1);
+    const offer = { id: 'offer', name: 'Offer', color: 'green' as const, onSheet: true };
+    // A board saved with the old version number but with stages stays as it is.
+    const saved = { ...b, version: 2, stages: [...b.stages, offer] };
+    expect(boardOrDefault(saved).stages.at(-1)).toEqual(offer);
+  });
+
   it('turns Status into stages and Outcome into a plain value', () => {
     const old: Company = {
       id: 'if',

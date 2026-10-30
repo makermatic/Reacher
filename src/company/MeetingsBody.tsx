@@ -57,7 +57,7 @@ export function MeetingsBody({ company }: { company: Company }) {
     setEnd('');
     setWithWhom('');
     setNotes('');
-    toast(label ? `Added. Status → ${label}` : 'Added');
+    toast(label ? `Added. ${label}` : 'Added');
     if (calendar.available && alsoCalendar && meeting.date >= today) {
       const problem = await calendar.addToCalendar(company, meeting);
       toast(problem ?? 'Added to Google Calendar');
@@ -281,7 +281,7 @@ function FromCalendar({ company, meetings }: { company: Company; meetings: Meeti
             type="button"
             onClick={() => {
               const label = actions.addMeeting(company.id, meetingFromEvent(ev));
-              toast(label ? `Added to Meetings. Status → ${label}` : 'Added to Meetings');
+              toast(label ? `Added to Meetings. ${label}` : 'Added to Meetings');
             }}
             className={`${btn.base} ${btn.small}`}
           >

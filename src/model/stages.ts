@@ -166,16 +166,20 @@ const OLD_TO_STAGES: Record<string, Record<string, string>> = {
  * four), Outcome becomes a plain list field, other fields stay as they were.
  */
 export function migrateBoard(old: LegacyBoard): Board {
-  const outcome = old.columns.find((c) => c.id === 'outcome');
-  const columns: Column[] = old.columns.filter((c) => c.type !== 'status').map((c) => ({ ...c }));
-  if (outcome)
-    columns.unshift({
-      id: 'outcome',
-      name: outcome.name,
-      type: 'values',
-      onSheet: outcome.onSheet,
-      options: (outcome.options ?? []).map((o) => (typeof o === 'string' ? o : o.label)),
-    });
+  // Outcome turns into a plain values column, in its place.
+  const columns: Column[] = old.columns
+    .filter((c) => c.type !== 'status' || c.id === 'outcome')
+    .map((c) =>
+      c.id === 'outcome'
+        ? {
+            id: 'outcome',
+            name: c.name,
+            type: 'values',
+            onSheet: c.onSheet,
+            options: (c.options ?? []).map((o) => (typeof o === 'string' ? o : o.label)),
+          }
+        : { ...c },
+    );
   const status = old.columns.find((c) => c.id === 'status');
   const tplOf = (id: string) =>
     (status?.options ?? []).find((o): o is StatusOption => typeof o !== 'string' && o.id === id)
@@ -223,7 +227,11 @@ export function migrateCompany(old: LegacyBoard, c: Company, page?: Page, today 
 
 /** Whether a stored board is from before M7. */
 export const isLegacyBoard = (b: unknown): b is LegacyBoard =>
-  !!b && typeof b === 'object' && (b as { version?: unknown }).version === 2;
+  !!b &&
+  typeof b === 'object' &&
+  (b as { version?: unknown }).version === 2 &&
+  // A stages board once saved with the old number isn't legacy.
+  !Array.isArray((b as { stages?: unknown }).stages);
 
 /** A quiet application: Sent for this long gets a check-in task. */
 export const CHECK_IN_DAYS = 14;

@@ -140,7 +140,7 @@ export function GmailProvider({ children }: { children: ReactNode }) {
               : actions.autoStages(company.id, { kind: 'sent' }, {}, [event], 'gmail');
         } else actions.logEvents(company.id, [event]);
         lines.push(
-          `${company.name}: ${count} new ${count === 1 ? 'email' : 'emails'} from Gmail${label ? `. Status → ${label}` : ''}`,
+          `${company.name}: ${count} new ${count === 1 ? 'email' : 'emails'} from Gmail${label ? `. ${label}` : ''}`,
         );
       }
       return lines;

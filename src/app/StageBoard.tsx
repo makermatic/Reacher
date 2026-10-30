@@ -209,6 +209,8 @@ function Lane({
   return (
     <div
       ref={setNodeRef}
+      role="group"
+      aria-label={label}
       className={`flex w-64 shrink-0 flex-col rounded-xl border bg-surface transition-colors ${isOver ? 'border-selectable' : 'border-line'}`}
     >
       <div className="flex items-center justify-between px-3 py-2.5">

@@ -202,10 +202,33 @@ export async function openDemo(
 /** Waits for a toast containing this text. */
 export const expectToast = (page: Page, text: string) =>
   expect(page.locator('[aria-live]').getByText(text).first()).toBeVisible();
-export const companyPage = (page: Page) => page.locator('aside[aria-label="Company page"]');
+/** The side panel (M7). */
+export const panel = (page: Page) => page.locator('aside[aria-label="Company panel"]');
 export const row = (page: Page, name: string) => page.locator('tr', { hasText: name });
-export const openCompany = (page: Page, name: string) =>
-  page.locator(`button[title="Open ${name}"]`).click();
+/** A stage cell on the list: click it to select. */
+export const stageCell = (page: Page, company: string, stage: string) =>
+  page.getByRole('cell', { name: `${stage} for ${company}`, exact: true });
+/** A field's editor (list cell or company page row). */
+export const field = (page: Page, company: string, col: string) =>
+  page.getByLabel(`${col} for ${company}`, { exact: true });
+/** The company page. */
+export const openPage = async (page: Page, name: string) => {
+  // From a company page, go back to the list first.
+  const back = page.getByRole('button', { name: 'Back to companies' });
+  if (await back.isVisible()) await back.click();
+  await page.locator(`button[title="Open ${name}"]`).click();
+};
+/** A tab on the company page. */
+export const tab = (page: Page, name: string) =>
+  page.getByRole('tab', { name, exact: true }).click();
+/** Settings, at a tab (routes live in the address). */
+export const settings = async (page: Page, tabName: string) => {
+  await page.getByRole('button', { name: 'Open the menu' }).click();
+  await page
+    .getByRole('navigation', { name: 'Menu' })
+    .getByRole('button', { name: tabName })
+    .click();
+};
 
 /** Drags with the mouse in small steps, so drag libraries see a real drag. */
 export async function drag(page: Page, from: Locator, to: Locator, offsetY = 2) {
@@ -217,4 +240,12 @@ export async function drag(page: Page, from: Locator, to: Locator, offsetY = 2) 
   await page.mouse.move(b.x + 40, b.y + offsetY, { steps: 15 });
   await page.waitForTimeout(150);
   await page.mouse.up();
+}
+
+/** The page area (company page and the rest), for older tests' "companyPage". */
+export const main = (page: Page) => page.locator('main');
+/** Opens a company's page at a tab. */
+export async function openTab(page: Page, name: string, tabName: string) {
+  await openPage(page, name);
+  await tab(page, tabName);
 }

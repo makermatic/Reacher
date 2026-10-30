@@ -17,8 +17,8 @@ import {
 export function boardOrDefault(b: unknown): Board {
   if (isLegacyBoard(b) && Array.isArray(b.columns)) return migrateBoard(b);
   const v3 = b as Board | null | undefined;
-  return v3 && v3.version === 3 && Array.isArray(v3.columns) && Array.isArray(v3.stages)
-    ? v3
+  return v3 && Array.isArray(v3.columns) && Array.isArray(v3.stages)
+    ? { ...v3, version: 3 }
     : DEFAULT_BOARD;
 }
 
