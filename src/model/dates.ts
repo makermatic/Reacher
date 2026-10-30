@@ -1,7 +1,7 @@
 /** Dates are stored as local "YYYY-MM-DD" strings, times as 24-hour "HH:MM". */
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parse = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
   return new Date(y, m - 1, d);

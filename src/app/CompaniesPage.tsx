@@ -23,6 +23,7 @@ import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { AddFieldDialog, DisplaySettings, FieldHeader, TwoClick, type Sort } from './columns';
 import { FieldInput } from './fields';
+import { CsvImportButton } from './CsvImport';
 import { StatusBoard } from './StatusBoard';
 import { useSprintInfo } from './sprintLabels';
 import { MenuItem, Pop, StatusTag, ui } from './ui';
@@ -157,6 +158,7 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
               </button>
             ))}
           </div>
+          <CsvImportButton />
           <DisplaySettings />
         </div>
       </div>
@@ -384,11 +386,14 @@ function CompanyTable({
       </table>
       {!loading && !companies.length ? (
         <Message>
-          No companies yet. Type a name in the last row, or bring over everything from the
-          prototype.{' '}
-          <button type="button" className={`${ui.primary} ml-2`} onClick={onImport}>
-            Import from the prototype
-          </button>
+          No companies yet. Type a name in the last row, import a list from a CSV, or bring over
+          everything from the prototype.
+          <span className="mt-2 flex gap-2">
+            <CsvImportButton className={ui.primary} />
+            <button type="button" className={ui.button} onClick={onImport}>
+              Import from the prototype
+            </button>
+          </span>
         </Message>
       ) : !loading && !total ? (
         <Message>

@@ -14,6 +14,7 @@ import { GMAIL_ALL, useGmail } from '../workspace/GmailProvider';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { SETTINGS_TABS, type SettingsTab } from './route';
+import { CsvImportButton } from './CsvImport';
 import { useSprintInfo } from './sprintLabels';
 import { colorVar, ui } from './ui';
 import { TwoClick } from './columns';
@@ -305,14 +306,15 @@ function DataTab({ onImport }: { onImport: () => void }) {
   return (
     <div className={`${ui.block} grid max-w-2xl gap-3 p-5 text-[14px]`}>
       <p className="m-0">
-        Your data is yours. Export everything as one file (a backup you can import back), or bring
-        in an export from the prototype.
+        Your data is yours. Export everything as one file (a backup you can import back), bring in
+        an export from the prototype, or add companies and contacts from a CSV.
       </p>
       <div className="flex gap-2">
         <ExportButton />
         <button type="button" className={ui.button} onClick={onImport}>
           Import data
         </button>
+        <CsvImportButton />
       </div>
     </div>
   );

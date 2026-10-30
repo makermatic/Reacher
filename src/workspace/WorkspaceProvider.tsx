@@ -33,6 +33,7 @@ import { addDays, fmtDate, todayISO } from '../model/dates';
 import { DEFAULT_TEMPLATES } from '../model/defaults';
 import { fillableColumns } from '../ai/prompts';
 import type { ImportData } from '../model/importData';
+import type { ImportPlan } from '../model/csvImport';
 import { planCandidate, type Candidate, type QuickPlan, type QuickUndo } from '../model/quickPlan';
 import { norm, uid } from '../model/text';
 import type {
@@ -287,6 +288,55 @@ function makeActions(
       void guard(store.setItem('companies', id, body(c)));
       api.logEvents(id, [makeEvent('company', 'Added to Reacher', 'you', { sprintId: active })]);
       return c;
+    },
+
+    /**
+     * Applies a CSV import (see model/csvImport): new companies join the
+     * sprint on screen; companies you have get the file's values (Status goes
+     * through setMeta, so the sprint and the feed see it). Returns the counts.
+     */
+    importRows(plan: ImportPlan, nextBoard: Board = board) {
+      if (nextBoard !== board || Object.keys(plan.newOptions).length)
+        api.saveBoard({
+          ...nextBoard,
+          columns: nextBoard.columns.map((col) =>
+            plan.newOptions[col.id]
+              ? { ...col, options: [...(col.options ?? []), ...plan.newOptions[col.id]!] }
+              : col,
+          ),
+        });
+      let created = 0;
+      let updated = 0;
+      const base = Date.now();
+      for (const r of plan.rows) {
+        if (r.state === 'new') {
+          const id = uid('co');
+          const c: Company = {
+            id,
+            name: r.name,
+            order: base + created,
+            meta: r.meta,
+            auto: {},
+            due: null,
+          };
+          const joined = active ? { ...c, ...joinPatch(nextBoard, c, active) } : c;
+          void guard(store.setItem('companies', id, body(joined)));
+          api.logEvents(id, [
+            makeEvent('company', 'Imported from a CSV', 'you', { sprintId: active }),
+            ...(r.comment ? [makeEvent('comment', r.comment, 'you', { sprintId: active })] : []),
+          ]);
+          created++;
+        } else if (r.state === 'update' && r.existing) {
+          const { status, ...rest } = r.meta;
+          if (Object.keys(rest).length)
+            void guard(store.updateItem('companies', r.existing.id, { meta: rest }));
+          if (status !== undefined && status !== r.existing.meta?.status)
+            api.setMeta(r.existing.id, 'status', status);
+          if (r.comment) api.comment(r.existing.id, r.comment);
+          updated++;
+        }
+      }
+      return { created, updated };
     },
 
     // ---------- sprints (M7) ----------

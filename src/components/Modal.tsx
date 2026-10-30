@@ -16,7 +16,8 @@ export function Modal({
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: ReactNode;
-  wide?: boolean;
+  /** true: a wider dialog; 'xl': as wide as the window allows (tables). */
+  wide?: boolean | 'xl';
   children: ReactNode;
 }) {
   return (
@@ -39,7 +40,7 @@ export function Modal({
                 initial="initial"
                 animate="enter"
                 exit="exit"
-                className={`fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-panel ${wide ? 'max-w-3xl' : 'max-w-lg'}`}
+                className={`fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-panel ${wide === 'xl' ? 'max-w-6xl' : wide ? 'max-w-3xl' : 'max-w-lg'}`}
               >
                 <Dialog.Title className="m-0 font-display text-xl font-bold">{title}</Dialog.Title>
                 {description && <div className="mt-1 text-muted">{description}</div>}
