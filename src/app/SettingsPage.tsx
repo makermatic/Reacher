@@ -1,4 +1,4 @@
-import { Moon, Sun } from 'lucide-react';
+import { CalendarDays, Mail, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { AiCheck } from '../components/AiCheck';
 import { Templates } from '../components/TemplatesScreen';
@@ -8,7 +8,9 @@ import { DetailsForm, ExportButton } from '../components/YourDetailsDialog';
 import { readPref, writePref } from '../lib/prefs';
 import { shortDate } from '../model/sprints';
 import type { Me } from '../model/types';
-import { useRuntime } from '../runtime/RuntimeProvider';
+import { gmailErrorMessage } from '../runtime/gmail';
+import { calendarAuto, useCalendar } from '../workspace/CalendarProvider';
+import { GMAIL_ALL, useGmail } from '../workspace/GmailProvider';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { SETTINGS_TABS, type SettingsTab } from './route';
@@ -217,20 +219,83 @@ function AppearanceTab() {
 }
 
 function ConnectionsTab() {
-  const runtime = useRuntime();
-  const on = runtime.status === 'ready' && !!runtime.gmail;
+  const gmail = useGmail();
+  const calendar = useCalendar();
+  const [auto, setAuto] = useState(calendarAuto.get);
+  const all = gmail.status[GMAIL_ALL];
+  const state = (on: boolean) => (
+    <span
+      className={`rounded-md px-2 py-0.5 text-[12px] font-semibold ${
+        on ? 'bg-accent-soft text-accent' : 'bg-hover text-muted'
+      }`}
+    >
+      {on ? 'Connected' : 'Only inside Claude'}
+    </span>
+  );
   return (
-    <div className={`${ui.block} grid max-w-2xl gap-3 p-5 text-[14px]`}>
-      <p className="m-0">
-        Reacher uses your own Gmail and Google Calendar through your claude.ai connectors. It reads
-        your email with companies, saves drafts (it never sends), and adds meetings to your
-        calendar.
-      </p>
-      <p className="m-0 text-muted">
-        {on
-          ? 'Connectors are available here. Claude asks for your OK the first time Reacher uses each one.'
-          : 'Connectors work when Reacher is open in Claude.'}{' '}
-        To add or reconnect one, open claude.ai Settings → Connectors.
+    <div className="grid max-w-2xl gap-4 text-[14px]">
+      <section className={`${ui.block} grid gap-3 p-5`}>
+        <div className="flex items-center gap-3">
+          <Mail size={18} className="text-muted" aria-hidden="true" />
+          <h2 className={`${ui.sectionTitle} text-[16px]`}>Gmail</h2>
+          <span className="ml-auto">{state(gmail.available)}</span>
+        </div>
+        <p className="m-0 text-muted">
+          Reacher checks your email with your companies when it opens and every 10 minutes while
+          it’s open. New emails go into each company’s chains, and a reply sets Wrote back!! on its
+          own. It saves drafts in Gmail; it never sends.
+        </p>
+        {gmail.available && (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={all?.checking}
+              onClick={() => void gmail.checkAll(true)}
+              className={ui.button}
+            >
+              {all?.checking ? 'Checking…' : 'Check Gmail now'}
+            </button>
+            <span className="text-[13px] text-muted">
+              {all?.error
+                ? all.error.code === 'no_address'
+                  ? all.error.message
+                  : gmailErrorMessage(all.error)
+                : all?.at
+                  ? `Last checked ${new Date(all.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                  : 'Claude asks for your OK the first time.'}
+            </span>
+          </div>
+        )}
+      </section>
+      <section className={`${ui.block} grid gap-3 p-5`}>
+        <div className="flex items-center gap-3">
+          <CalendarDays size={18} className="text-muted" aria-hidden="true" />
+          <h2 className={`${ui.sectionTitle} text-[16px]`}>Google Calendar</h2>
+          <span className="ml-auto">{state(calendar.available)}</span>
+        </div>
+        <p className="m-0 text-muted">
+          Upcoming meetings and interviews can go on your calendar in one click, and calendar events
+          that look like they’re about a company show up in its Meetings. Reacher never changes or
+          deletes your events.
+        </p>
+        {calendar.available && (
+          <label className="flex items-center gap-2 text-[13.5px]">
+            <input
+              type="checkbox"
+              checked={auto}
+              onChange={(e) => {
+                setAuto(e.target.checked);
+                calendarAuto.set(e.target.checked);
+              }}
+              className="accent-[var(--accent)]"
+            />
+            Add upcoming meetings to Google Calendar as I add them
+          </label>
+        )}
+      </section>
+      <p className="m-0 text-[13px] text-muted">
+        Both use your own claude.ai connectors. To add or reconnect one, open claude.ai Settings →
+        Connectors.
       </p>
     </div>
   );

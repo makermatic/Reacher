@@ -132,7 +132,9 @@ export function ComposeEmail({
   return (
     <div className="mt-1.5 grid gap-2">
       <div className="flex items-center justify-between">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">Write an email</span>
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+          Write an email
+        </span>
         {assistant.available && (
           <button
             type="button"
@@ -198,7 +200,7 @@ export function ComposeEmail({
       </div>
 
       <div
-        className={`${drafting ? 'ai-working ' : ''}overflow-hidden rounded-xl border border-line-strong`}
+        className={`${drafting ? 'ai-working ' : ''}overflow-hidden rounded-xl border border-line`}
       >
         <Row label="To" onCopy={to ? () => copy('address', to) : undefined}>
           <RecipientField
@@ -231,7 +233,7 @@ export function ComposeEmail({
               ? 'They wrote back. Draft with AI for a reply, pick a template, or just start typing.'
               : 'Pick a template, draft with AI, or just start typing.'
           }
-          className="block w-full resize-y bg-surface px-3 py-2.5 text-[13.5px] leading-relaxed outline-none"
+          className="block w-full resize-y bg-bg px-3 py-2.5 text-[13.5px] leading-relaxed outline-none"
         />
         {edit && (
           <div className="flex items-center gap-2 border-t border-line bg-surface-2 px-3 py-1.5 text-xs text-muted">
@@ -265,37 +267,42 @@ export function ComposeEmail({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => copy('email', body)} className={btn.primary}>
-          Copy email
-        </button>
-        {gmail.available && (
-          <button type="button" onClick={saveDraft} disabled={saving} className={btn.base}>
-            {saving ? 'Saving…' : 'Save to Gmail drafts'}
+      <div className="grid gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => copy('email', body)} className={btn.primary}>
+            Copy email
           </button>
-        )}
-        {mailto && (
-          <a href={mailto} className={btn.base}>
-            Open in mail app
-          </a>
-        )}
-        <button type="button" onClick={logSent} className={btn.base}>
-          Log as sent
-        </button>
-        <span className="text-[12.5px] text-muted">follow up in</span>
-        <select
-          id="compose-follow"
-          value={followDays}
-          onChange={(e) => setFollowDays(Number(e.target.value))}
-          aria-label="Follow up in"
-          className={`${fieldInline} py-1`}
-        >
-          {FOLLOW_DAYS.map((n) => (
-            <option key={n} value={n}>
-              {n} days
-            </option>
-          ))}
-        </select>
+          {gmail.available && (
+            <button type="button" onClick={saveDraft} disabled={saving} className={btn.base}>
+              {saving ? 'Saving…' : 'Save to Gmail drafts'}
+            </button>
+          )}
+          {mailto && (
+            <a href={mailto} className={btn.base}>
+              Open in mail app
+            </a>
+          )}
+        </div>
+        {/* Logging it sets the follow-up date: kept together on one line. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={logSent} className={btn.base}>
+            Log as sent
+          </button>
+          <span className="text-[12.5px] text-muted">and follow up in</span>
+          <select
+            id="compose-follow"
+            value={followDays}
+            onChange={(e) => setFollowDays(Number(e.target.value))}
+            aria-label="Follow up in"
+            className={`${fieldInline} py-1`}
+          >
+            {FOLLOW_DAYS.map((n) => (
+              <option key={n} value={n}>
+                {n} days
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       {saved !== null && (
         <p className="m-0 text-[12.5px] text-muted">

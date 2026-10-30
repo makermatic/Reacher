@@ -37,6 +37,12 @@ type GmailState = {
    * they've allowed Gmail, and not more than every few minutes.
    */
   checkCompany: (company: Company, ask: boolean) => Promise<void>;
+  /**
+   * Checks recent email with every company (status under GMAIL_ALL). `ask`:
+   * a click (Settings → Gmail & Calendar), so it may ask for the OK and says
+   * when nothing's new.
+   */
+  checkAll: (ask: boolean) => Promise<void>;
   /** Saves a draft in Gmail. Resolves its link, or an error message. */
   saveDraft: (
     chain: Chain | null,
@@ -45,6 +51,9 @@ type GmailState = {
 };
 
 const GmailContext = createContext<GmailState | null>(null);
+
+/** The status key of the all-companies check. */
+export const GMAIL_ALL = '_all';
 
 export function useGmail() {
   const g = useContext(GmailContext);
@@ -180,29 +189,47 @@ export function GmailProvider({ children }: { children: ReactNode }) {
     [gmail, pull, patch, toast],
   );
 
+  const checkAll = useCallback(
+    async (ask: boolean) => {
+      if (!gmail) return;
+      if (!ask && !(await gmail.allowed())) return;
+      const query = mailQuery(wsRef.current.board, wsRef.current.companies, ALL_DAYS);
+      if (!query) {
+        patch(GMAIL_ALL, {
+          checking: false,
+          error: {
+            code: 'no_address',
+            message:
+              'Add websites or contact emails so Reacher knows which emails are your companies’.',
+          },
+        });
+        return;
+      }
+      patch(GMAIL_ALL, { checking: true });
+      try {
+        const lines = await pull(await gmail.search(query, 50), null);
+        patch(GMAIL_ALL, { checking: false, at: Date.now() });
+        if (lines.length) toast(lines.join(' · '));
+        else if (ask) toast('No new emails from your companies');
+      } catch (e) {
+        // Quiet on the automatic check; the settings page shows it.
+        patch(GMAIL_ALL, { checking: false, error: e as ConnectorError });
+      }
+    },
+    [gmail, pull, patch, toast],
+  );
+
   // Every company's recent email, once Gmail is allowed: on open, then every 10 minutes.
   const loading = ws.loading;
   useEffect(() => {
     if (!gmail || loading) return;
-    let stopped = false;
-    const run = async () => {
-      if (stopped || !(await gmail.allowed())) return;
-      const query = mailQuery(wsRef.current.board, wsRef.current.companies, ALL_DAYS);
-      if (!query) return;
-      try {
-        const lines = await pull(await gmail.search(query, 50), null);
-        if (!stopped && lines.length) toast(lines.join(' · '));
-      } catch {
-        // Quiet: a company page shows Gmail problems when you look.
-      }
-    };
-    void run();
-    const timer = setInterval(() => void run(), ALL_EVERY_MS);
+    const first = setTimeout(() => void checkAll(false), 0);
+    const timer = setInterval(() => void checkAll(false), ALL_EVERY_MS);
     return () => {
-      stopped = true;
+      clearTimeout(first);
       clearInterval(timer);
     };
-  }, [gmail, loading, pull, toast]);
+  }, [gmail, loading, checkAll]);
 
   const saveDraft = useCallback<GmailState['saveDraft']>(
     async (chain, draft) => {
@@ -225,8 +252,8 @@ export function GmailProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<GmailState>(
-    () => ({ available: !!gmail, status, checkCompany, saveDraft }),
-    [gmail, status, checkCompany, saveDraft],
+    () => ({ available: !!gmail, status, checkCompany, checkAll, saveDraft }),
+    [gmail, status, checkCompany, checkAll, saveDraft],
   );
   return <GmailContext.Provider value={value}>{children}</GmailContext.Provider>;
 }

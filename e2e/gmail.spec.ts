@@ -48,7 +48,7 @@ test('before the OK: the page offers Check Gmail, and replies come in', async ({
   await expect(panel.getByText('Thanks Zack! Can you send your rates?')).toBeVisible();
   // The quoted older email is cut off.
   await expect(panel.getByText('> Hi Sam')).toHaveCount(0);
-  await expect(panel.getByRole('link', { name: 'Gmail ↗' })).toHaveAttribute(
+  await expect(panel.getByRole('link', { name: 'Gmail', exact: true })).toHaveAttribute(
     'href',
     /mail\.google\.com/,
   );

@@ -60,7 +60,7 @@ export function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => vo
         <label key={f.key} htmlFor={`me-${f.key}`} className="grid gap-1.5">
           <span className="flex items-baseline justify-between gap-2">
             <span className="font-medium">{f.label}</span>
-            <span className="font-mono text-[11px] text-faint">{`#my_${f.key}`}</span>
+            <span className="text-[11.5px] text-faint">{`#my_${f.key}`}</span>
           </span>
           <input
             id={`me-${f.key}`}
@@ -81,7 +81,7 @@ export function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => vo
       <label htmlFor="me-intro" className="grid gap-1.5">
         <span className="flex items-baseline justify-between gap-2">
           <span className="font-medium">Intro paragraph</span>
-          <span className="font-mono text-[11px] text-faint">#my_intro</span>
+          <span className="text-[11.5px] text-faint">#my_intro</span>
         </span>
         <textarea
           id="me-intro"

@@ -1,3 +1,4 @@
+import { ChevronDown, ExternalLink, MoreHorizontal, Pencil } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
 import { useEffect, useState } from 'react';
@@ -120,7 +121,9 @@ function GmailBar({ company }: { company: Company }) {
   );
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">
-      <span className="eyebrow text-[10.5px] font-semibold">Gmail</span>
+      <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+        Gmail
+      </span>
       {s?.checking ? (
         <span>Checking your email with {company.name}…</span>
       ) : s?.error ? (
@@ -167,8 +170,8 @@ function ChainCard({
         : `${fmtDate(first.date)} – ${fmtDate(last.date)}`;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line">
-      <div className="flex items-center gap-2 border-b border-line bg-surface-2 px-2.5 py-2">
+    <div className="overflow-hidden rounded-xl border border-line bg-bg">
+      <div className="flex items-center gap-2 border-b border-line bg-surface px-2.5 py-2">
         <button
           type="button"
           onClick={onToggle}
@@ -178,8 +181,9 @@ function ChainCard({
           <motion.span
             animate={{ rotate: open ? 0 : -90 }}
             transition={{ duration: duration.base, ease: ease.out }}
+            className="grid place-items-center"
           >
-            ▾
+            <ChevronDown size={16} aria-hidden="true" />
           </motion.span>
         </button>
         <InlineText
@@ -188,7 +192,7 @@ function ChainCard({
           onSave={(title) => actions.saveChain({ ...chain, title })}
           className="flex-1 font-semibold"
         />
-        <span className="font-mono text-[11px] whitespace-nowrap text-muted">
+        <span className="text-[12px] whitespace-nowrap text-muted tabular-nums">
           {msgs.length} · {range}
         </span>
         {chain.gmailLink && (
@@ -197,9 +201,9 @@ function ChainCard({
             target="_blank"
             rel="noopener noreferrer"
             title="Open this thread in Gmail"
-            className="text-xs whitespace-nowrap text-accent underline underline-offset-2"
+            className="inline-flex items-center gap-1 text-[12px] whitespace-nowrap text-selectable hover:underline"
           >
-            Gmail ↗
+            Gmail <ExternalLink size={12} aria-hidden="true" />
           </a>
         )}
         <ChainMenu chain={chain} />
@@ -245,7 +249,7 @@ function ChainMenu({ chain }: { chain: Chain }) {
       label="Chain options"
       trigger={
         <button type="button" aria-label="Chain options" className={btn.icon}>
-          ⋯
+          <MoreHorizontal size={16} aria-hidden="true" />
         </button>
       }
     >
@@ -266,20 +270,56 @@ function ChainMenu({ chain }: { chain: Chain }) {
 
 function MessageCard({ chain, message: m }: { chain: Chain; message: Message }) {
   const { actions } = useWorkspace();
+  const toast = useToast();
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ text: m.text, date: m.date });
   const long = m.text.length > 320;
+  const save = () => {
+    if (!draft.text.trim()) return toast('An email needs some text');
+    actions.saveChain({
+      ...chain,
+      messages: chain.messages.map((x) =>
+        x.id === m.id ? { ...x, text: draft.text.trim(), date: draft.date || x.date } : x,
+      ),
+    });
+    setEditing(false);
+    toast('Email saved');
+  };
   return (
     <div
-      className={`grid gap-1 rounded-lg border border-line border-l-[3px] px-2.5 py-2 ${
+      className={`group/msg grid gap-1 rounded-lg border border-line border-l-[3px] bg-surface px-3 py-2 ${
         m.dir === 'in' ? 'border-l-[var(--c-pink)]' : 'border-l-[var(--c-blue)]'
       }`}
     >
-      <div className="flex items-center gap-2 text-xs text-muted">
-        <span className="eyebrow text-[10.5px] font-semibold text-fg">
-          {m.dir === 'in' ? 'Them' : 'You'}
-        </span>
-        <span>{fmtDate(m.date, true)}</span>
-        <span className="ml-auto">
+      <div className="flex items-center gap-2 text-[12px] text-muted">
+        <span className="font-semibold text-fg">{m.dir === 'in' ? 'Them' : 'You'}</span>
+        {editing ? (
+          <input
+            type="date"
+            value={draft.date}
+            onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+            aria-label="Date"
+            className={`${fieldInline} py-0.5 text-[12px]`}
+          />
+        ) : (
+          <span>{fmtDate(m.date, true)}</span>
+        )}
+        <span className="ml-auto flex items-center opacity-60 transition-opacity group-hover/msg:opacity-100 focus-within:opacity-100">
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => {
+                setDraft({ text: m.text, date: m.date });
+                setEditing(true);
+              }}
+              aria-label="Edit email"
+              title="Edit"
+              className={btn.icon}
+            >
+              <Pencil size={13} aria-hidden="true" />
+            </button>
+          )}
           <DeleteButton
             label="Delete email"
             onDelete={() =>
@@ -293,19 +333,45 @@ function MessageCard({ chain, message: m }: { chain: Chain; message: Message }) 
           />
         </span>
       </div>
-      <div
-        className={`text-[13px] whitespace-pre-wrap ${long && !expanded ? 'max-h-[9.5em] overflow-hidden' : ''}`}
-      >
-        {m.text}
-      </div>
-      {long && (
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="justify-self-start text-xs text-accent"
-        >
-          {expanded ? 'Show less' : 'Show all'}
-        </button>
+      {editing ? (
+        <>
+          <textarea
+            rows={5}
+            value={draft.text}
+            onChange={(e) => setDraft({ ...draft, text: e.target.value })}
+            aria-label="Edit email text"
+            className={`${field} resize-y`}
+          />
+          <div className="flex gap-2">
+            <button type="button" onClick={save} className={`${btn.base} ${btn.small}`}>
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className={`${btn.ghost} ${btn.small}`}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div
+            className={`text-[13.5px] whitespace-pre-wrap ${long && !expanded ? 'max-h-[9.5em] overflow-hidden' : ''}`}
+          >
+            {m.text}
+          </div>
+          {long && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="justify-self-start text-[12px] text-selectable"
+            >
+              {expanded ? 'Show less' : 'Show all'}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
@@ -329,7 +395,7 @@ function AddEmailForm({ chain }: { chain: Chain }) {
         <div
           role="group"
           aria-label="Who sent it"
-          className="flex rounded-lg border border-line-strong bg-surface p-0.5"
+          className="flex rounded-lg border border-line bg-bg p-0.5"
         >
           {(
             [
@@ -342,7 +408,7 @@ function AddEmailForm({ chain }: { chain: Chain }) {
               type="button"
               aria-pressed={dir === k}
               onClick={() => setDir(k)}
-              className="rounded-md px-2.5 py-1 text-muted transition-colors aria-pressed:bg-accent-soft aria-pressed:text-fg"
+              className="rounded-md px-2.5 py-1 text-[13px] text-muted transition-colors aria-pressed:bg-hover aria-pressed:text-strong"
             >
               {l}
             </button>
@@ -390,7 +456,9 @@ function ChainSummary({ chain }: { chain: Chain }) {
   return (
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">AI summary</span>
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+          AI summary
+        </span>
         {available && (
           <button
             type="button"

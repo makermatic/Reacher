@@ -670,6 +670,15 @@ function makeActions(
       });
     },
 
+    /** Edits an application after it's added (M7g). */
+    patchApplication(id: string, appId: string, patch: Partial<Omit<Application, 'id'>>) {
+      const p = api.pageOf(id);
+      api.savePage(id, {
+        ...p,
+        applications: p.applications.map((a) => (a.id === appId ? { ...a, ...patch } : a)),
+      });
+    },
+
     deleteEntry(id: string, kind: keyof Page, entryId: string) {
       const p = api.pageOf(id);
       api.savePage(id, {

@@ -53,21 +53,21 @@ export function Modal({
   );
 }
 
-/** Shared button looks. */
+/** Shared button looks, matching the app's kit (src/app/ui.tsx, M7g). */
 export const btn = {
-  base: 'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-line-strong bg-surface px-3 py-1.5 font-medium transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50',
+  base: 'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-1.5 text-[13.5px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50',
   primary:
-    'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-accent bg-accent px-3.5 py-1.5 font-medium text-accent-ink transition-[filter] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-accent bg-accent px-3.5 py-1.5 text-[13.5px] font-semibold text-accent-ink transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50',
   ghost:
-    'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-muted transition-colors hover:bg-hover hover:text-fg disabled:opacity-50',
-  small: 'px-2 py-1 text-[12.5px]',
+    'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-[13.5px] font-medium text-muted transition-colors hover:bg-hover hover:text-fg disabled:opacity-50',
+  small: 'px-2.5 py-1 text-[12.5px]',
   danger: 'text-[var(--c-red)]',
-  icon: 'inline-grid h-7 w-7 place-items-center rounded-md text-faint transition-colors hover:bg-line hover:text-fg disabled:opacity-40',
+  icon: 'inline-grid h-7 w-7 place-items-center rounded-md text-faint transition-colors hover:bg-hover hover:text-fg disabled:opacity-40',
 };
 
 /** Shared text-field look (full width). */
 export const field =
-  'w-full rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 outline-none transition-[border-color] duration-200 focus:border-accent';
+  'w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-[13.5px] text-fg outline-none transition-colors placeholder:text-faint focus:border-selectable';
 
 /** The same look, sized to its content: selects, dates and times inside a row. */
 export const fieldInline = field.replace('w-full ', 'w-auto max-w-full ');

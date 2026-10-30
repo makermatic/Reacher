@@ -60,3 +60,28 @@ test('the timeline shows what happened', async ({ page }) => {
     page.getByRole('complementary', { name: 'Timeline' }).getByText('Status: none → Reached out'),
   ).toBeVisible();
 });
+
+test('meetings, applications and emails can be edited after adding (M7g)', async ({ page }) => {
+  await statusCell(page, 'Imaginary Forces').click();
+  const p = page.locator('aside[aria-label="Company panel"]');
+  await p.getByRole('button', { name: 'Edit meeting' }).first().click();
+  await p.getByLabel('With whom').first().fill('Jo, design director');
+  await p.getByRole('button', { name: 'Save', exact: true }).click();
+  await expectToast(page, 'Saved');
+  await expect(p.getByText('with Jo, design director')).toBeVisible();
+  // An application.
+  await p.locator('#app-role').fill('Animator');
+  await p.locator('#app-role').press('Enter');
+  await p.getByRole('button', { name: 'Edit application' }).click();
+  await p.getByLabel('Result').first().fill('Phone screen');
+  await p.getByRole('button', { name: 'Save', exact: true }).click();
+  await expectToast(page, 'Application saved');
+  await expect(p.getByText('Phone screen')).toBeVisible();
+  // An email in a chain.
+  await statusCell(page, 'Psyop').click();
+  await p.getByRole('button', { name: 'Edit email' }).first().click();
+  await p.getByLabel('Edit email text').fill('Hi Sam, edited.');
+  await p.getByRole('button', { name: 'Save', exact: true }).click();
+  await expectToast(page, 'Email saved');
+  await expect(p.getByText('Hi Sam, edited.')).toBeVisible();
+});

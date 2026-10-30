@@ -52,14 +52,15 @@ export function Templates({ onClose }: { onClose?: () => void }) {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-line px-5 py-3">
-        <h2 className="m-0 font-display text-xl font-bold">Email templates</h2>
-        {onClose && (
+      {/* On its own page the page title says it; the dialog needs its own header. */}
+      {onClose && (
+        <div className="flex items-center justify-between border-b border-line px-5 py-3">
+          <h2 className="m-0 font-display text-xl font-bold">Email templates</h2>
           <button type="button" onClick={onClose} className={btn.base} autoFocus>
             Done
           </button>
-        )}
-      </div>
+        </div>
+      )}
       <div className="grid min-h-0 flex-1 md:grid-cols-[240px_minmax(0,1fr)]">
         <nav className="grid content-start gap-1 overflow-y-auto border-line p-3 max-md:border-b md:border-r">
           {sorted.map((t) => (
@@ -68,7 +69,7 @@ export function Templates({ onClose }: { onClose?: () => void }) {
               type="button"
               aria-current={selected?.id === t.id}
               onClick={() => setSelected(t)}
-              className="grid gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hover aria-[current=true]:bg-accent-soft"
+              className="grid gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hover aria-[current=true]:bg-selected"
             >
               <span className="font-medium">{t.name}</span>
               <small className="truncate text-xs text-muted">
@@ -193,7 +194,9 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
   return (
     <div className="grid max-w-3xl gap-4">
       <label htmlFor="tpl-name" className="grid gap-1">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">Template name</span>
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+          Template name
+        </span>
         <input
           id="tpl-name"
           value={draft.name}
@@ -202,7 +205,9 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         />
       </label>
       <label htmlFor="tpl-subject" className="grid gap-1">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">Subject</span>
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+          Subject
+        </span>
         <input
           id="tpl-subject"
           {...subjectPicker.fieldProps}
@@ -214,7 +219,9 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         {subjectPicker.menu}
       </label>
       <label htmlFor="tpl-body" className="grid gap-1">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">Body</span>
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+          Body
+        </span>
         <textarea
           id="tpl-body"
           {...bodyPicker.fieldProps}
@@ -227,7 +234,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
       </label>
 
       <div className="grid gap-2">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
           Fill-in fields · type # in the subject or body, or click one
         </span>
         {tokenGroups(board).map((g) => (
@@ -241,7 +248,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
                   title={`Inserts #${k}`}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => insert(k)}
-                  className="rounded-full border border-line-strong px-2.5 py-0.5 text-[12.5px] transition-colors hover:border-accent hover:bg-accent-soft"
+                  className="rounded-full border border-line-strong px-2.5 py-0.5 text-[12.5px] transition-colors hover:border-selectable hover:bg-selected"
                 >
                   {l}
                 </button>
@@ -253,7 +260,9 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
       </div>
 
       <div className="grid gap-2">
-        <span className="eyebrow text-[10.5px] font-semibold text-muted">Preview</span>
+        <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+          Preview
+        </span>
         <select
           id="tpl-preview-company"
           value={previewId}
@@ -275,7 +284,9 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
         </select>
         <div className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13.5px]">
           <div className="mb-2 border-b border-line pb-2">
-            <span className="eyebrow mr-2 text-[10.5px] text-muted">Subject</span>
+            <span className="mr-2 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+              Subject
+            </span>
             {renderPreview(stored.subject)}
           </div>
           <div className="whitespace-pre-wrap">{renderPreview(stored.body)}</div>

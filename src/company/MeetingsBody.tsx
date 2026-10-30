@@ -13,7 +13,7 @@ import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { hint, newest, submitOnEnter } from './EntrySections';
 import { addForm, Entry } from './parts';
 
-const link = 'text-xs text-accent underline underline-offset-2';
+const link = 'text-xs text-selectable underline underline-offset-2';
 
 let tz: string | undefined;
 try {
@@ -31,32 +31,11 @@ export function MeetingsBody({ company }: { company: Company }) {
   const { actions } = useWorkspace();
   const calendar = useCalendar();
   const toast = useToast();
-  const [kind, setKind] = useState<Meeting['kind']>('meeting');
-  const [date, setDate] = useState(todayISO());
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const [withWhom, setWithWhom] = useState('');
-  const [notes, setNotes] = useState('');
-  const [alsoCalendar, setAlsoCalendar] = useState(calendarAuto.get);
   const meetings = actions.pageOf(company.id).meetings;
   const today = todayISO();
 
-  const add = async (e?: FormEvent) => {
-    e?.preventDefault();
-    const meeting: Meeting = {
-      id: uid('mt'),
-      date: date || today,
-      start,
-      end,
-      kind,
-      with: withWhom.trim(),
-      notes: notes.trim(),
-    };
+  const add = async (meeting: Meeting, alsoCalendar: boolean) => {
     const label = actions.addMeeting(company.id, meeting);
-    setStart('');
-    setEnd('');
-    setWithWhom('');
-    setNotes('');
     toast(label ? `Added. Status → ${label}` : 'Added');
     if (calendar.available && alsoCalendar && meeting.date >= today) {
       const problem = await calendar.addToCalendar(company, meeting);
@@ -66,121 +45,214 @@ export function MeetingsBody({ company }: { company: Company }) {
 
   return (
     <>
-      {newest(meetings).map((m) => (
-        <Entry
-          key={m.id}
-          date={
-            <>
-              {fmtDate(m.date)}
-              {m.start && (
-                <span className="block">
-                  {fmtTime(m.start)}
-                  {m.end && `–${fmtTime(m.end)}`}
+      {meetings.length > 0 && (
+        <div className="grid">
+          {newest(meetings).map((m) => (
+            <Entry
+              key={m.id}
+              date={
+                <>
+                  {fmtDate(m.date)}
+                  {m.start && (
+                    <span className="block">
+                      {fmtTime(m.start)}
+                      {m.end && `–${fmtTime(m.end)}`}
+                    </span>
+                  )}
+                </>
+              }
+              label={`Delete ${m.kind}`}
+              editLabel={`Edit ${m.kind}`}
+              onDelete={() => actions.deleteEntry(company.id, 'meetings', m.id)}
+              editor={(done) => (
+                <MeetingForm
+                  initial={m}
+                  submitLabel="Save"
+                  onCancel={done}
+                  onSubmit={(e) => {
+                    actions.patchMeeting(company.id, m.id, {
+                      kind: e.kind,
+                      date: e.date,
+                      start: e.start,
+                      end: e.end,
+                      with: e.with,
+                      notes: e.notes,
+                    });
+                    toast(
+                      m.calendarEventId
+                        ? 'Saved. Your Google Calendar event stays as it was.'
+                        : 'Saved',
+                    );
+                    done();
+                  }}
+                />
+              )}
+            >
+              <b className="font-semibold text-strong">
+                {m.kind === 'interview' ? 'Interview' : 'Meeting'}
+              </b>
+              {m.with && ` with ${m.with}`}
+              {m.date >= today && (
+                <span className="ml-1.5 rounded-md bg-accent-soft px-1.5 py-px text-[11px] font-semibold text-accent">
+                  Upcoming
                 </span>
               )}
-            </>
-          }
-          label={`Delete ${m.kind}`}
-          onDelete={() => actions.deleteEntry(company.id, 'meetings', m.id)}
-        >
-          <b className="font-semibold">{m.kind === 'interview' ? 'Interview' : 'Meeting'}</b>
-          {m.with && ` with ${m.with}`}
-          {m.date >= today && (
-            <span className="eyebrow ml-1.5 rounded border border-accent/45 px-1 text-[10px] text-accent">
-              Upcoming
-            </span>
-          )}
-          {m.notes && <span className="block text-[12.5px] text-muted">{m.notes}</span>}
-          <CalendarLink company={company} meeting={m} />
-        </Entry>
-      ))}
+              {m.notes && <span className="block text-[12.5px] text-muted">{m.notes}</span>}
+              <CalendarLink company={company} meeting={m} />
+            </Entry>
+          ))}
+        </div>
+      )}
       {calendar.available && <FromCalendar company={company} meetings={meetings} />}
-      <form onSubmit={add} className={addForm}>
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            role="group"
-            aria-label="Kind"
-            className="flex rounded-lg border border-line-strong bg-surface p-0.5"
-          >
-            {(['meeting', 'interview'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                aria-pressed={kind === k}
-                onClick={() => setKind(k)}
-                className="rounded-md px-2.5 py-1 text-muted transition-colors aria-pressed:bg-accent-soft aria-pressed:text-fg"
-              >
-                {k === 'meeting' ? 'Meeting' : 'Interview'}
-              </button>
-            ))}
-          </div>
-          <input
-            id="meet-date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label="Date"
-            className={fieldInline}
-          />
-          <input
-            id="meet-start"
-            type="time"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            aria-label="Start time"
-            className={fieldInline}
-          />
-          <span className="text-[12.5px] text-muted">to</span>
-          <input
-            id="meet-end"
-            type="time"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            aria-label="End time"
-            className={fieldInline}
-          />
+      <div className={addForm}>
+        <MeetingForm submitLabel="Add" onSubmit={(m, also) => void add(m, also)} />
+      </div>
+    </>
+  );
+}
+
+/** Kind, date, times, who and notes: the add form, and the edit form in place. */
+function MeetingForm({
+  initial,
+  submitLabel,
+  onSubmit,
+  onCancel,
+}: {
+  initial?: Meeting;
+  submitLabel: string;
+  onSubmit: (meeting: Meeting, alsoCalendar: boolean) => void;
+  onCancel?: () => void;
+}) {
+  const calendar = useCalendar();
+  const [kind, setKind] = useState<Meeting['kind']>(initial?.kind ?? 'meeting');
+  const [date, setDate] = useState(initial?.date ?? todayISO());
+  const [start, setStart] = useState(initial?.start ?? '');
+  const [end, setEnd] = useState(initial?.end ?? '');
+  const [withWhom, setWithWhom] = useState(initial?.with ?? '');
+  const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [alsoCalendar, setAlsoCalendar] = useState(calendarAuto.get);
+  // Edit forms get their own ids; the add form keeps the ones tests and labels use.
+  const id = (k: string) => (initial ? undefined : `meet-${k}`);
+
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
+    onSubmit(
+      {
+        ...initial,
+        id: initial?.id ?? uid('mt'),
+        date: date || todayISO(),
+        start,
+        end,
+        kind,
+        with: withWhom.trim(),
+        notes: notes.trim(),
+      },
+      alsoCalendar,
+    );
+    if (!initial) {
+      setStart('');
+      setEnd('');
+      setWithWhom('');
+      setNotes('');
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label="Kind"
+          className="flex rounded-lg border border-line bg-bg p-0.5"
+        >
+          {(['meeting', 'interview'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={kind === k}
+              onClick={() => setKind(k)}
+              className="rounded-md px-2.5 py-1 text-[13px] text-muted transition-colors aria-pressed:bg-hover aria-pressed:text-strong"
+            >
+              {k === 'meeting' ? 'Meeting' : 'Interview'}
+            </button>
+          ))}
         </div>
         <input
-          id="meet-with"
-          value={withWhom}
-          onChange={(e) => setWithWhom(e.target.value)}
-          onKeyDown={submitOnEnter(() => void add())}
-          placeholder="With whom"
-          aria-label="With whom"
-          className={field}
+          id={id('date')}
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          aria-label="Date"
+          className={fieldInline}
         />
-        <textarea
-          id="meet-notes"
-          rows={2}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onKeyDown={submitOnEnter(() => void add())}
-          placeholder="How did it go? Or what to prepare."
-          aria-label="Notes"
-          className={`${field} resize-y`}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          id={id('start')}
+          type="time"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          aria-label="Start time"
+          className={`${fieldInline} min-w-0 flex-1`}
         />
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <button type="submit" className={`${btn.base} ${btn.small}`}>
-            Add
+        <span className="text-[12.5px] text-muted">to</span>
+        <input
+          id={id('end')}
+          type="time"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          aria-label="End time"
+          className={`${fieldInline} min-w-0 flex-1`}
+        />
+      </div>
+      <input
+        id={id('with')}
+        value={withWhom}
+        onChange={(e) => setWithWhom(e.target.value)}
+        onKeyDown={submitOnEnter(() => submit())}
+        placeholder="With whom"
+        aria-label="With whom"
+        className={field}
+      />
+      <textarea
+        id={id('notes')}
+        rows={2}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        onKeyDown={submitOnEnter(() => submit())}
+        placeholder="How did it go? Or what to prepare."
+        aria-label="Notes"
+        className={`${field} resize-y`}
+      />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <button type="submit" className={`${btn.base} ${btn.small}`}>
+          {submitLabel}
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className={`${btn.ghost} ${btn.small}`}>
+            Cancel
           </button>
-          {calendar.available && (
-            <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
-              <input
-                id="meet-calendar"
-                type="checkbox"
-                checked={alsoCalendar}
-                onChange={(e) => {
-                  setAlsoCalendar(e.target.checked);
-                  calendarAuto.set(e.target.checked);
-                }}
-              />
-              Also add upcoming ones to Google Calendar
-            </label>
-          )}
-          <span className={hint}>Enter to add · Shift+Enter for a new line</span>
-        </div>
-      </form>
-    </>
+        )}
+        {calendar.available && !initial && (
+          <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
+            <input
+              id="meet-calendar"
+              type="checkbox"
+              checked={alsoCalendar}
+              onChange={(e) => {
+                setAlsoCalendar(e.target.checked);
+                calendarAuto.set(e.target.checked);
+              }}
+              className="accent-[var(--accent)]"
+            />
+            Also add upcoming ones to Google Calendar
+          </label>
+        )}
+        <span className={hint}>
+          Enter to {initial ? 'save' : 'add'} · Shift+Enter for a new line
+        </span>
+      </div>
+    </form>
   );
 }
 
@@ -266,13 +338,13 @@ function FromCalendar({ company, meetings }: { company: Company; meetings: Meeti
   if (!found.length) return null;
 
   return (
-    <div className="grid gap-1.5 rounded-lg bg-surface-2 px-3 py-2.5">
-      <span className="eyebrow text-[10.5px] font-semibold text-muted">
+    <div className="grid gap-1.5 rounded-xl border border-dashed border-line-strong px-3 py-2.5">
+      <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
         On your Google Calendar
       </span>
       {found.map((ev) => (
         <div key={ev.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="font-mono text-[12px] text-muted">
+          <span className="text-[12.5px] text-muted tabular-nums">
             {fmtDate(ev.date)}
             {ev.start && ` ${fmtTime(ev.start)}`}
           </span>
