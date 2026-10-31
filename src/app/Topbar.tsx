@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, ChevronRight, Layers, Plus, Users } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building2, ChevronRight, Layers, Plus, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { QuickUpdateBar } from '../components/QuickUpdateBar';
 import { useToast } from '../components/Toast';
@@ -31,6 +31,7 @@ export function Topbar() {
   const sprintPages =
     route.page === 'companies' ||
     route.page === 'people' ||
+    route.page === 'applications' ||
     route.page === 'news' ||
     route.page === 'company';
   const title =
@@ -55,15 +56,15 @@ export function Topbar() {
       </button>
       {sprintPages ? (
         <nav aria-label="Where you are" className="flex min-w-0 items-center gap-2">
-          {route.page === 'companies' || route.page === 'people' ? (
-            // "All" (or the sprint) with the two lists as icon toggles (Zack's sketch, M11).
-            <div className="flex items-center">
-              {/* Squared on the right so the list icons join it; a long name shortens. */}
-              <SprintPicker className="max-w-[280px] !rounded-r-none" />
-              <ListToggle />
-            </div>
-          ) : (
-            <SprintPicker />
+          {/* A long sprint name shortens with "…". */}
+          <SprintPicker className="max-w-[280px]" />
+          {(route.page === 'companies' ||
+            route.page === 'people' ||
+            route.page === 'applications') && (
+            <>
+              <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
+              <ListPicker />
+            </>
           )}
           {route.page === 'news' && (
             <>
@@ -198,52 +199,43 @@ function SprintPicker({ className = '' }: { className?: string }) {
   );
 }
 
+const LISTS = [
+  { page: 'companies', label: 'Companies', Icon: Building2 },
+  { page: 'people', label: 'People', Icon: Users },
+  { page: 'applications', label: 'Applications', Icon: Briefcase },
+] as const;
+
 /**
- * The list filter (M11 round 2, Zack's sketch): Companies and People as two
- * icons next to the sprint, both on by default (companies with their people
- * under them). Click one to turn it off or on; at least one stays on.
+ * Which list, next to the sprint (Zack, round 5; like Kitsu's Shots / Assets
+ * dropdown): Companies, People or Applications.
  */
-function ListToggle() {
-  const { route, navigate, select, showPeople, setShowPeople } = useAppUI();
-  const companiesOn = route.page === 'companies';
-  const peopleOn = route.page === 'people' || showPeople;
-  const toggleCompanies = () => {
-    if (companiesOn && !peopleOn) return;
-    select(null);
-    if (companiesOn) navigate({ page: 'people' });
-    else {
-      setShowPeople(true);
-      navigate({ page: 'companies' });
-    }
-  };
-  const togglePeople = () => {
-    if (peopleOn && !companiesOn) return;
-    setShowPeople(!peopleOn);
-  };
-  const item = (on: boolean, label: string, Icon: typeof Users, onClick: () => void) => (
-    <button
-      type="button"
-      aria-pressed={on}
-      aria-label={label}
-      title={on ? `${label}: on` : `${label}: off`}
-      onClick={onClick}
-      className={`grid size-7 place-items-center rounded-md transition-colors ${
-        on
-          ? 'bg-[color-mix(in_srgb,var(--selectable)_22%,transparent)] text-selectable'
-          : 'text-faint hover:bg-hover hover:text-muted'
-      }`}
-    >
-      <Icon size={16} aria-hidden="true" />
-    </button>
-  );
+function ListPicker() {
+  const { route, navigate, select } = useAppUI();
+  const [open, setOpen] = useState(false);
+  const current = LISTS.find((l) => l.page === route.page) ?? LISTS[0];
   return (
-    <div
-      role="group"
-      aria-label="Show"
-      className="flex h-9 items-center gap-0.5 rounded-r-lg border border-l-0 border-line bg-surface px-1"
+    <Dropdown
+      open={open}
+      onOpenChange={setOpen}
+      ariaLabel="List"
+      icon={<current.Icon size={16} className="text-muted" aria-hidden="true" />}
+      label={current.label}
+      width={220}
     >
-      {item(companiesOn, 'Companies', Building2, toggleCompanies)}
-      {item(peopleOn, 'People', Users, togglePeople)}
-    </div>
+      {LISTS.map((l) => (
+        <MenuItem
+          key={l.page}
+          active={l.page === route.page}
+          onSelect={() => {
+            setOpen(false);
+            if (l.page === route.page) return;
+            select(null);
+            navigate({ page: l.page });
+          }}
+        >
+          <l.Icon size={16} className="text-muted" aria-hidden="true" /> {l.label}
+        </MenuItem>
+      ))}
+    </Dropdown>
   );
 }

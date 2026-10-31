@@ -3,8 +3,12 @@ import { expectToast, field, openDemo, settings } from './support';
 
 const person = (page: Page) => page.locator('aside[aria-label="Person panel"]');
 /** Companies off: just People (the list filter, M11 round 2). */
-const toPeople = (page: Page) =>
-  page.getByRole('group', { name: 'Show' }).getByRole('button', { name: 'Companies' }).click();
+/** The list dropdown next to the sprint (Zack, round 5). */
+const toList = async (page: Page, name: string) => {
+  await page.getByRole('button', { name: 'List', exact: true }).click();
+  await page.getByRole('menuitemradio', { name }).click();
+};
+const toPeople = (page: Page) => toList(page, 'People');
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page);
@@ -71,28 +75,21 @@ test('People statuses are editable in Status types', async ({ page }) => {
   await expect(page.getByRole('menuitemradio', { name: /Warm/ })).toBeVisible();
 });
 
-test('the list filter: both on by default; People shows the contact columns', async ({ page }) => {
-  const show = page.getByRole('group', { name: 'Show' });
-  const companies = show.getByRole('button', { name: 'Companies' });
-  const people = show.getByRole('button', { name: 'People' });
-  await expect(companies).toHaveAttribute('aria-pressed', 'true');
-  await expect(people).toHaveAttribute('aria-pressed', 'true');
-  // No people listed under companies (Zack, round 4): Main contact is a column.
+test('the list dropdown: Companies, People, Applications; Main contact is a column', async ({
+  page,
+}) => {
+  const list = page.getByRole('button', { name: 'List', exact: true });
+  await expect(list).toHaveText(/Companies/);
   await expect(page.getByRole('columnheader', { name: /Main contact/ })).toBeVisible();
   await expect(field(page, 'Psyop', 'Main contact')).toContainText('Sam Example');
-  // People off: the contact columns go.
-  await people.click();
-  await expect(people).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByRole('columnheader', { name: /Main contact/ })).toHaveCount(0);
-  await expect(page.locator('main').getByText('sam@example.com')).toHaveCount(0);
-  // The last one on can't be turned off.
-  await companies.click();
-  await expect(companies).toHaveAttribute('aria-pressed', 'true');
-  // Companies off (people on): the People list.
-  await people.click();
-  await companies.click();
+  await toPeople(page);
   await expect(page.getByRole('region', { name: 'People' })).toBeVisible();
+  await expect(list).toHaveText(/People/);
+  await toList(page, 'Applications');
+  await expect(page.getByRole('region', { name: 'Applications' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sprint', exact: true })).toHaveText(/All/);
+  await toList(page, 'Companies');
+  await expect(page.locator('#new-company')).toBeVisible();
 });
 
 test('People sheet: a company click opens it; right-click changes it', async ({ page }) => {

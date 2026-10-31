@@ -8,6 +8,8 @@ export type Route =
   | { page: 'companies' }
   /** People (M11): the second list, like Kitsu's assets next to shots. */
   | { page: 'people' }
+  /** Every job application, across companies (Zack, round 5). */
+  | { page: 'applications' }
   | { page: 'company'; id: string; tab: CompanyTab }
   | { page: 'tasks'; tab: TasksTab }
   | { page: 'news' }
@@ -38,6 +40,7 @@ export function parseRoute(hash: string): Route {
       return { page: 'tasks', tab: oneOf(TASKS_TABS, a, 'list') };
     case 'news':
     case 'people':
+    case 'applications':
     case 'statuses':
     case 'templates':
     case 'sprints':
@@ -59,6 +62,7 @@ export function formatRoute(r: Route): string {
       return `#/tasks/${r.tab}`;
     case 'news':
     case 'people':
+    case 'applications':
     case 'statuses':
     case 'templates':
     case 'sprints':

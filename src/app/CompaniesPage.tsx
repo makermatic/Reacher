@@ -301,7 +301,7 @@ function CompanyTable({
   onImport: () => void;
 }) {
   const { board, companies, loading, actions } = useWorkspace();
-  const { selected, select, openPage, showPeople } = useAppUI();
+  const { selected, select, openPage } = useAppUI();
   // Several companies at once (Zack, round 4): Shift-click a range,
   // Cmd/Ctrl-click to add or remove one. A plain click goes back to one.
   const [picked, setPicked] = useState<string[]>([]);
@@ -342,9 +342,7 @@ function CompanyTable({
   const toast = useToast();
   const [addingField, setAddingField] = useState(false);
   const sc = statusCol(board);
-  // The People filter on the Companies sheet (Zack, round 4): on shows the
-  // contact columns (Main contact...), off hides them.
-  const fields = sheetColumns(board, list).filter((col) => showPeople || col.type !== 'person');
+  const fields = sheetColumns(board, list);
 
   return (
     <div className="h-full overflow-auto rounded-xl border border-line bg-surface">

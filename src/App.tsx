@@ -8,6 +8,7 @@ import { CompanyPage } from './app/CompanyPage';
 import { MyTasksPage } from './app/MyTasksPage';
 import { NewsFeedPage } from './app/NewsFeedPage';
 import { PeoplePage } from './app/PeoplePage';
+import { ApplicationsPage } from './app/ApplicationsPage';
 import { useRoute } from './app/route';
 import { applyTheme, ManagePage, readTheme, SettingsPage } from './app/SettingsPage';
 import { clampPanel, SidePanel } from './app/SidePanel';
@@ -59,10 +60,6 @@ function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => readPref('panel-width', 520, isNumber));
-  // People listed under their companies (M11 round 2): on by default.
-  const [showPeople, setShowPeopleState] = useState(() =>
-    readPref('show-people', true, (v): v is boolean => typeof v === 'boolean'),
-  );
 
   // Escape closes the side panel, unless a menu, picker or dialog is in front,
   // or you're halfway through typing something.
@@ -94,13 +91,8 @@ function Shell() {
         navigate({ page: 'companies' });
         select(id);
       },
-      showPeople,
-      setShowPeople: (on) => {
-        setShowPeopleState(on);
-        writePref('show-people', on);
-      },
     }),
-    [route, navigate, selected, showPeople],
+    [route, navigate, selected],
   );
 
   const resize = (w: number) => {
@@ -135,6 +127,7 @@ function Shell() {
               {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
               {route.page === 'news' && <NewsFeedPage />}
               {route.page === 'people' && <PeoplePage />}
+              {route.page === 'applications' && <ApplicationsPage />}
               {(route.page === 'statuses' ||
                 route.page === 'templates' ||
                 route.page === 'sprints') && <ManagePage page={route.page} />}
@@ -144,7 +137,9 @@ function Shell() {
             </motion.div>
           </main>
           {/* Only with the sheet and the board (Zack, M7 round 2). */}
-          {(route.page === 'companies' || route.page === 'people') && (
+          {(route.page === 'companies' ||
+            route.page === 'people' ||
+            route.page === 'applications') && (
             <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
           )}
         </div>

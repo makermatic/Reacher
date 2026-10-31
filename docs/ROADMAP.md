@@ -15,7 +15,7 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Now
 
-Reacher Test v23: round 4 (no people under companies; Main contact column back; Shift or Cmd-click to pick several companies, then set their status or look up details). Before that, v22: round 3 (side panel fits its width, Sort menu); v21: People round 2 (list filter with both on, person Gmail over the last year, Fill in missing details, chains named by subject, writer above chains, person suggestions in a sprint). Zack is tracking his real list in Reacher Test. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
+Reacher Test v24: round 5 (a list dropdown next to the sprint: Companies, People, Applications; the People toggle is gone; new Applications list). Before that, v23: round 4 (Main contact column back; Shift or Cmd-click to pick several companies, then set their status or look up details); v22: round 3 (side panel fits its width, Sort menu); v21: People round 2 (list filter with both on, person Gmail over the last year, Fill in missing details, chains named by subject, writer above chains, person suggestions in a sprint). Zack is tracking his real list in Reacher Test. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
 
 ## Links
 
@@ -286,6 +286,10 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
   - Today's "Main contact" fields become links to people, moved over once; CSV import can fill People too.
   - Zack's answers: thumbs down = don't contact again; a person can move companies (rare).
 
+**Round 5 (v24, Zack's note 2026-10-31)**
+- The People toggle confused things; gone. Next to the sprint there's now a dropdown: Companies, People, Applications (like Kitsu's Shots / Assets). Main contact is always a column on Companies (star it off like any field).
+- **Applications** (new list): every job application across companies, newest first. Company (click for its panel), Role, Applied date, Job posting, Result, all edited in place; the company's status alongside. The last row adds one: type a company (yours come up; a new name adds it), then the role. Adding moves the status like the panel does. In a sprint it shows the applications at that sprint's companies. Also in the sidebar.
+
 **Round 4 (v23, Zack's notes 2026-10-31)**
 - People are no longer listed under companies. Main contact (and any person field) is a column again. The People icon on the Companies sheet shows or hides those contact columns.
 - Bug: taking fields off the sheet still showed an email. It was the nested person row spanning the columns; gone with them.
@@ -487,6 +491,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-31 | Round 5: list dropdown (Companies, People, Applications) replaces the icon filter; Applications is a third list built on each company's applications (no new data). |
 | 2026-10-31 | Round 4: no people under companies; contact columns follow the People filter; Shift/Cmd multi-select with a bulk bar (status, AI lookup). Replaces round 1's "no multi-select". |
 | 2026-10-31 | Round 3: person columns hide when people are listed under companies; panel content wraps; Sort menu with Recently active, A → Z, Date added. |
 | 2026-10-31 | People round 2: the list icons filter (both on by default, people under companies); person Gmail covers the last year; AI fill for missing details (only when sure, names kept); writer above chains; chains named by subject. |

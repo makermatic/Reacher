@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   Building2,
   CheckSquare,
   Layers,
@@ -93,6 +94,12 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               route.page === 'companies' || route.page === 'company',
             )}
             {item({ page: 'people' }, <Users size={20} />, 'People', route.page === 'people')}
+            {item(
+              { page: 'applications' },
+              <Briefcase size={20} />,
+              'Applications',
+              route.page === 'applications',
+            )}
             <div className={group}>Customize</div>
             {item(
               { page: 'statuses' },
