@@ -15,7 +15,7 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Now
 
-Reacher Test v22: round 3 (no duplicate contacts, side panel fits its width, Sort menu). Before that, v21: People round 2 (list filter with both on, person Gmail over the last year, Fill in missing details, chains named by subject, writer above chains, person suggestions in a sprint). Zack is tracking his real list in Reacher Test. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
+Reacher Test v23: round 4 (no people under companies; Main contact column back; Shift or Cmd-click to pick several companies, then set their status or look up details). Before that, v22: round 3 (side panel fits its width, Sort menu); v21: People round 2 (list filter with both on, person Gmail over the last year, Fill in missing details, chains named by subject, writer above chains, person suggestions in a sprint). Zack is tracking his real list in Reacher Test. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
 
 ## Links
 
@@ -286,6 +286,11 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
   - Today's "Main contact" fields become links to people, moved over once; CSV import can fill People too.
   - Zack's answers: thumbs down = don't contact again; a person can move companies (rare).
 
+**Round 4 (v23, Zack's notes 2026-10-31)**
+- People are no longer listed under companies. Main contact (and any person field) is a column again. The People icon on the Companies sheet shows or hides those contact columns.
+- Bug: taking fields off the sheet still showed an email. It was the nested person row spanning the columns; gone with them.
+- Multi-select (Zack asked for it now): Shift-click a name or status picks a range, Cmd/Ctrl-click adds or removes one. A bar at the bottom sets the status for all of them or looks up their missing details with AI. Escape or × clears it. A plain click still opens the side panel.
+
 **Round 3 (v22, Zack's notes 2026-10-31)**
 - People under companies: Zack likes it as long as the contact isn't shown twice. With People on, person columns (Main contact) step aside on the Companies sheet. People named by an email (an import's leftovers, like "lstern@ssk.com") take the name from the company's contact field.
 - The side panel cut off on the right: a long link in an email stretched it. Now everything in the panel wraps to its width.
@@ -482,6 +487,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-31 | Round 4: no people under companies; contact columns follow the People filter; Shift/Cmd multi-select with a bulk bar (status, AI lookup). Replaces round 1's "no multi-select". |
 | 2026-10-31 | Round 3: person columns hide when people are listed under companies; panel content wraps; Sort menu with Recently active, A → Z, Date added. |
 | 2026-10-31 | People round 2: the list icons filter (both on by default, people under companies); person Gmail covers the last year; AI fill for missing details (only when sure, names kept); writer above chains; chains named by subject. |
 | 2026-10-31 | People round 1: All + icon toggles (Zack's sketch) instead of a second dropdown; CSV import only in Settings; person emails; company notes filed under the people they name; Zack's violet palette. Test people cleared. |

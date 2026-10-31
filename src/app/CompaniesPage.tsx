@@ -5,22 +5,29 @@ import {
   ListFilter,
   Plus,
   Search,
+  Sparkles,
   Table2,
-  UserRound,
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useAssistant } from '../ai/Assistant';
 import { useToast } from '../components/Toast';
 import { readPref, writePref } from '../lib/prefs';
-import { colShows, meta, optList, sheetColumns, statusCol, valueText } from '../model/board';
+import {
+  colShows,
+  meta,
+  optionOf,
+  optList,
+  sheetColumns,
+  statusCol,
+  valueText,
+} from '../model/board';
 import { companyActivity } from '../model/activity';
 import { matchesQuery, parseQuery } from '../model/query';
 import { inSprint, inView } from '../model/sprints';
 import { norm } from '../model/text';
-import { contactsAt } from '../model/people';
-import type { Company, Contact } from '../model/types';
+import type { Company } from '../model/types';
 import { arrive, chipPop, glide, rowInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
@@ -35,7 +42,7 @@ import {
 import { FieldInput } from './fields';
 import { StatusBoard } from './StatusBoard';
 import { useSprintInfo } from './sprintLabels';
-import { MenuItem, Pop, StatusTag, ui } from './ui';
+import { MenuItem, Pop, StatusPicker, StatusTag, ui } from './ui';
 
 type View = 'sheet' | 'board';
 const isView = (v: unknown): v is View => v === 'sheet' || v === 'board';
@@ -293,13 +300,51 @@ function CompanyTable({
   onSort: (s: Sort) => void;
   onImport: () => void;
 }) {
-  const { board, companies, people, loading, actions } = useWorkspace();
+  const { board, companies, loading, actions } = useWorkspace();
   const { selected, select, openPage, showPeople } = useAppUI();
+  // Several companies at once (Zack, round 4): Shift-click a range,
+  // Cmd/Ctrl-click to add or remove one. A plain click goes back to one.
+  const [picked, setPicked] = useState<string[]>([]);
+  const anchor = useRef<string | null>(null);
+  const pick = (e: React.MouseEvent, id: string) => {
+    if (!(e.shiftKey || e.metaKey || e.ctrlKey)) {
+      setPicked([]);
+      anchor.current = id;
+      select(id);
+      return;
+    }
+    e.preventDefault();
+    const base = picked.length ? picked : selected ? [selected] : [];
+    const ids = list.map((x) => x.id);
+    const a = anchor.current ? ids.indexOf(anchor.current) : -1;
+    const b = ids.indexOf(id);
+    if (e.shiftKey && a >= 0 && b >= 0) {
+      const range = ids.slice(Math.min(a, b), Math.max(a, b) + 1);
+      setPicked([...new Set([...base, ...range])]);
+    } else {
+      setPicked(base.includes(id) ? base.filter((x) => x !== id) : [...base, id]);
+      anchor.current = id;
+    }
+    select(null);
+  };
+  // Shift-click shouldn't select the text in between.
+  const noTextSelect = (e: React.MouseEvent) => {
+    if (e.shiftKey) e.preventDefault();
+  };
+  useEffect(() => {
+    if (!picked.length) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setPicked([]);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [picked.length]);
   const toast = useToast();
   const [addingField, setAddingField] = useState(false);
   const sc = statusCol(board);
-  // With people under their companies, the Main contact column would say it twice (Zack).
-  const fields = sheetColumns(board, list).filter((col) => !(showPeople && col.type === 'person'));
+  // The People filter on the Companies sheet (Zack, round 4): on shows the
+  // contact columns (Main contact...), off hides them.
+  const fields = sheetColumns(board, list).filter((col) => showPeople || col.type !== 'person');
 
   return (
     <div className="h-full overflow-auto rounded-xl border border-line bg-surface">
@@ -346,7 +391,7 @@ function CompanyTable({
         <tbody>
           <AnimatePresence initial={false}>
             {list.flatMap((c) => {
-              const open = selected === c.id;
+              const open = selected === c.id || picked.includes(c.id);
               return [
                 <motion.tr
                   key={c.id}
@@ -361,7 +406,8 @@ function CompanyTable({
                     <div className="flex items-center pr-1">
                       <button
                         type="button"
-                        onClick={() => select(c.id)}
+                        onClick={(e) => pick(e, c.id)}
+                        onMouseDown={noTextSelect}
                         data-opens-panel
                         title={`Open ${c.name}`}
                         className="min-w-0 flex-1 truncate px-3 py-2.5 text-left text-[14px] font-semibold text-strong hover:underline"
@@ -389,7 +435,8 @@ function CompanyTable({
                     </div>
                   </td>
                   <td
-                    onClick={() => select(c.id)}
+                    onClick={(e) => pick(e, c.id)}
+                    onMouseDown={noTextSelect}
                     data-opens-panel
                     aria-selected={open}
                     aria-label={`${sc.name} for ${c.name}`}
@@ -415,12 +462,6 @@ function CompanyTable({
                   ))}
                   <td />
                 </motion.tr>,
-                // Both lists on (M11 round 2): their people, under them.
-                ...(showPeople
-                  ? contactsAt(people, c.id).map((p) => (
-                      <PersonRow key={p.id} person={p} span={fields.length + 1} />
-                    ))
-                  : []),
               ];
             })}
           </AnimatePresence>
@@ -446,6 +487,12 @@ function CompanyTable({
         <Message>Nothing matches.</Message>
       ) : null}
       <AddFieldDialog open={addingField} onOpenChange={setAddingField} />
+      {picked.length > 0 && (
+        <BulkBar
+          companies={list.filter((c) => picked.includes(c.id))}
+          onClear={() => setPicked([])}
+        />
+      )}
     </div>
   );
 }
@@ -622,47 +669,53 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
 }
 
 /**
- * A person under their company on the Companies sheet (M11 round 2): name,
- * their status, then role and email. Click for their panel.
+ * What to do with several companies at once (Zack, round 4): one status for
+ * all, or have the AI fill in their missing details.
  */
-function PersonRow({ person: p, span }: { person: Contact; span: number }) {
-  const { peopleBoard } = useWorkspace();
-  const { selected, select } = useAppUI();
-  const sc = statusCol(peopleBoard);
-  const open = selected === p.id;
-  const details = [meta(p, 'role'), meta(p, 'email')].filter(Boolean).join(' · ');
+function BulkBar({ companies, onClear }: { companies: Company[]; onClear: () => void }) {
+  const { board, actions } = useWorkspace();
+  const assistant = useAssistant();
+  const toast = useToast();
+  const sc = statusCol(board);
+  const n = companies.length;
   return (
-    <motion.tr
-      variants={rowInOut}
-      initial="initial"
-      animate="enter"
-      exit="exit"
-      className="person-row group"
-      aria-selected={open}
+    <motion.div
+      {...arrive}
+      role="toolbar"
+      aria-label="Selected companies"
+      className="fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-line-strong bg-surface-2 px-3 py-2 shadow-panel"
     >
-      <td className="sticky-a">
+      <span className="px-1 text-[13.5px] font-semibold text-strong">
+        {n} {n === 1 ? 'company' : 'companies'} selected
+      </span>
+      <StatusPicker
+        col={sc}
+        value={null}
+        label="Set status for the selected"
+        onPick={(v) => {
+          for (const c of companies) actions.setMeta(c.id, 'status', v);
+          toast(
+            `${n} ${n === 1 ? 'company' : 'companies'} → ${optionOf(sc, v)?.label ?? 'No status'}`,
+          );
+        }}
+      />
+      {assistant.available && (
         <button
           type="button"
-          onClick={() => select(p.id)}
-          data-opens-panel
-          title={`Open ${p.name}`}
-          className="flex w-full min-w-0 items-center gap-2 py-2 pr-3 pl-7 text-left text-[13px] text-fg hover:underline"
+          className={ui.button}
+          onClick={() => assistant.fillMissing(companies)}
         >
-          <UserRound size={13} className="shrink-0 text-faint" aria-hidden="true" />
-          <span className="truncate">{p.name}</span>
+          <Sparkles size={15} aria-hidden="true" /> Look up details
         </button>
-      </td>
-      <td
-        onClick={() => select(p.id)}
-        data-opens-panel
-        aria-label={`Status for ${p.name}`}
-        className="cursor-pointer px-3"
+      )}
+      <button
+        type="button"
+        onClick={onClear}
+        className={ui.ghostIcon}
+        aria-label="Clear the selection"
       >
-        <StatusTag col={sc} value={meta(p, 'status')} className="text-[11.5px]" />
-      </td>
-      <td colSpan={span} className="px-3 text-[12.5px] text-muted">
-        <span className="block max-w-[520px] truncate">{details}</span>
-      </td>
-    </motion.tr>
+        <X size={15} />
+      </button>
+    </motion.div>
   );
 }

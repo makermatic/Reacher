@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { expectToast, openDemo, settings, statusCell } from './support';
+import { expectToast, field, openDemo, settings, statusCell } from './support';
 
 /** Import CSV lives in Settings → Import & export (Zack, M11 round 1). */
 const openImporter = async (page: Page) => {
@@ -51,11 +51,11 @@ test('CSV import: columns matched, existing companies found, then imported', asy
   await dialog.getByRole('button', { name: 'Import', exact: true }).click();
   await expectToast(page, 'Added 1 company and 2 people, updated 1');
   await backToList(page);
-  await expect(page.locator('main tr:not(.person-row)', { hasText: 'Oddfellows' })).toBeVisible();
+  await expect(page.locator('main tr', { hasText: 'Oddfellows' })).toBeVisible();
   await expect(statusCell(page, 'Oddfellows')).toHaveText('Reached out');
   await expect(statusCell(page, 'Psyop')).toHaveText(/Wrote back/);
-  // Their contacts are people, listed under them.
-  await expect(page.locator('main tr.person-row', { hasText: 'Ana Ruiz' })).toBeVisible();
+  // Their contact is the Main contact (and a person).
+  await expect(field(page, 'Oddfellows', 'Main contact')).toContainText('Ana Ruiz');
 });
 
 test('CSV import from a file, with no company column picked', async ({ page }) => {
@@ -73,7 +73,7 @@ test('CSV import from a file, with no company column picked', async ({ page }) =
   await dialog.getByRole('button', { name: 'Import', exact: true }).click();
   await expectToast(page, 'Added 1 company');
   await backToList(page);
-  await expect(page.locator('main tr:not(.person-row)', { hasText: 'Ana' })).toBeVisible();
+  await expect(page.locator('main tr', { hasText: 'Ana' })).toBeVisible();
   // The new field is there, with the value (in Details; star it to show it on the sheet).
   await page.locator('button[title="Open Ana"]').click();
   await expect(

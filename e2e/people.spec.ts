@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectToast, openDemo, settings } from './support';
+import { expectToast, field, openDemo, settings } from './support';
 
 const person = (page: Page) => page.locator('aside[aria-label="Person panel"]');
 /** Companies off: just People (the list filter, M11 round 2). */
@@ -71,21 +71,20 @@ test('People statuses are editable in Status types', async ({ page }) => {
   await expect(page.getByRole('menuitemradio', { name: /Warm/ })).toBeVisible();
 });
 
-test('the list filter: both on by default, people under their companies', async ({ page }) => {
+test('the list filter: both on by default; People shows the contact columns', async ({ page }) => {
   const show = page.getByRole('group', { name: 'Show' });
   const companies = show.getByRole('button', { name: 'Companies' });
   const people = show.getByRole('button', { name: 'People' });
   await expect(companies).toHaveAttribute('aria-pressed', 'true');
   await expect(people).toHaveAttribute('aria-pressed', 'true');
-  // Sam is listed under Psyop on the Companies sheet; click opens Sam.
-  const sam = page.locator('main tr.person-row', { hasText: 'Sam Example' });
-  await expect(sam).toBeVisible();
-  await sam.getByRole('button', { name: 'Sam Example' }).click();
-  await expect(person(page)).toBeVisible();
-  // People off: just companies.
+  // No people listed under companies (Zack, round 4): Main contact is a column.
+  await expect(page.getByRole('columnheader', { name: /Main contact/ })).toBeVisible();
+  await expect(field(page, 'Psyop', 'Main contact')).toContainText('Sam Example');
+  // People off: the contact columns go.
   await people.click();
   await expect(people).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('main tr.person-row')).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: /Main contact/ })).toHaveCount(0);
+  await expect(page.locator('main').getByText('sam@example.com')).toHaveCount(0);
   // The last one on can't be turned off.
   await companies.click();
   await expect(companies).toHaveAttribute('aria-pressed', 'true');
