@@ -10,13 +10,21 @@ import { useMemo, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { readPref, writePref } from '../lib/prefs';
 import { colShows, meta, optList, sheetColumns, statusCol, valueText } from '../model/board';
+import { personActivity } from '../model/activity';
 import { matchesQuery, parseQuery } from '../model/query';
 import { inSprint } from '../model/sprints';
 import type { Company, Contact } from '../model/types';
 import { arrive, chipPop, glide, rowInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
-import { AddFieldDialog, DisplaySettings, FieldHeader, TwoClick, type Sort } from './columns';
+import {
+  AddFieldDialog,
+  DisplaySettings,
+  FieldHeader,
+  SortMenu,
+  TwoClick,
+  type Sort,
+} from './columns';
 import { FieldInput } from './fields';
 import { PeopleList, useList } from './listContext';
 import { StatusBoard } from './StatusBoard';
@@ -25,6 +33,8 @@ import { MenuItem, MenuSeparator, Pop, StatusTag, ui } from './ui';
 
 type View = 'sheet' | 'board';
 const isView = (v: unknown): v is View => v === 'sheet' || v === 'board';
+const isSort = (v: unknown): v is Sort =>
+  v === null || (!!v && typeof v === 'object' && typeof (v as { key?: unknown }).key === 'string');
 
 export function PeoplePage() {
   return (
@@ -35,12 +45,16 @@ export function PeoplePage() {
 }
 
 function People() {
-  const { people, companies, sprint, loading } = useWorkspace();
+  const { people, companies, pages, chains, sprint, loading } = useWorkspace();
   const { board } = useList();
   const info = useSprintInfo();
   const [query, setQuery] = useState('');
   const [view, setView] = useState<View>(() => readPref('people-view', 'sheet', isView));
-  const [sort, setSort] = useState<Sort>(null);
+  const [sort, setSortState] = useState<Sort>(() => readPref<Sort>('people-sort', null, isSort));
+  const setSort = (s: Sort) => {
+    setSortState(s);
+    writePref('people-sort', s);
+  };
   const companyOf = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
   const companyName = (p: Contact) => (p.companyId ? companyOf.get(p.companyId)?.name : '') ?? '';
 
@@ -64,6 +78,7 @@ function People() {
     const key = (p: Contact): string | number => {
       if (sort.key === 'name') return p.name.toLowerCase();
       if (sort.key === 'company') return companyName(p).toLowerCase();
+      if (sort.key === 'recent') return personActivity(p, pages, chains);
       const col = board.columns.find((x) => x.id === sort.key);
       if (col?.type === 'status') {
         const i = optList(col).findIndex((o) => o.id === meta(p, col.id));
@@ -80,7 +95,7 @@ function People() {
     });
     // companyName reads companyOf, which is listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [board, inScope, query, sort, companyOf]);
+  }, [board, inScope, query, sort, companyOf, pages, chains]);
 
   const changeView = (v: View) => {
     setView(v);
@@ -143,6 +158,7 @@ function People() {
               </button>
             ))}
           </div>
+          <SortMenu sort={sort} onSort={setSort} />
           <DisplaySettings />
         </div>
       </div>

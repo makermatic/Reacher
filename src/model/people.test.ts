@@ -139,3 +139,34 @@ describe('chain names', () => {
     expect(subjectOf('Hi Sam,\nno subject here')).toBe('');
   });
 });
+
+describe('recent activity', () => {
+  it("a company's latest moment counts its emails and its people's notes", async () => {
+    const { companyActivity } = await import('./activity');
+    const page = (at: string) =>
+      ({
+        notes: [],
+        meetings: [],
+        applications: [],
+        events: [{ id: 'e', at, kind: 'comment', text: '', by: 'you' }],
+      }) as never;
+    const ana = { ...newContact('Ana', 'c1'), id: 'pe-1' };
+    const chains = [
+      {
+        id: 'ch',
+        companyId: 'c1',
+        title: '',
+        started: '',
+        messages: [{ id: 'm', dir: 'in', date: '2026-10-20', text: '' }],
+        summary: null,
+      },
+    ] as never;
+    expect(companyActivity('c1', { c1: page('2026-10-01T10:00:00') }, chains, [])).toBe(
+      '2026-10-20',
+    );
+    expect(companyActivity('c1', { 'pe-1': page('2026-10-30T09:00:00') }, chains, [ana])).toBe(
+      '2026-10-30T09:00:00',
+    );
+    expect(companyActivity('c2', {}, [], [])).toBe('');
+  });
+});

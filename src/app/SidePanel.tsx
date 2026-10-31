@@ -199,7 +199,7 @@ function CompanyPanel({ company: stored }: { company: Company }) {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-10">
+      <div className="panel-body min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-10">
         <div className="flex flex-wrap items-start gap-3">
           <button
             type="button"
@@ -516,7 +516,7 @@ function PersonPanel({ person }: { person: Contact }) {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-10">
+      <div className="panel-body min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-10">
         <InlineText
           value={person.name}
           label="Rename person"

@@ -5,6 +5,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   ArrowDownAZ,
+  ArrowUpDown,
   ArrowUpAZ,
   ChevronLeft,
   ChevronRight,
@@ -351,5 +352,51 @@ export function AddFieldDialog({
         )}
       </AnimatePresence>
     </Dialog.Root>
+  );
+}
+
+/**
+ * How the list is ordered (Zack, after M11): recently active (newest first),
+ * A to Z, or the order they were added. A column header's sort shows as
+ * "By <column>".
+ */
+export function SortMenu({ sort, onSort }: { sort: Sort; onSort: (s: Sort) => void }) {
+  const { board } = useList();
+  const [open, setOpen] = useState(false);
+  const choices: [string, Sort][] = [
+    ['Recently active', { key: 'recent', dir: -1 }],
+    ['A → Z', { key: 'name', dir: 1 }],
+    ['Date added', null],
+  ];
+  const current =
+    choices.find(
+      ([, s]) => (s?.key ?? null) === (sort?.key ?? null) && (!s || s.dir === sort?.dir),
+    )?.[0] ?? `By ${board.columns.find((c) => c.id === sort?.key)?.name ?? 'column'}`;
+  return (
+    <Pop
+      open={open}
+      onOpenChange={setOpen}
+      width={200}
+      align="end"
+      label="Sort"
+      trigger={
+        <button type="button" aria-label="Sort" className={ui.button}>
+          <ArrowUpDown size={15} aria-hidden="true" /> {current}
+        </button>
+      }
+    >
+      {choices.map(([label, s]) => (
+        <MenuItem
+          key={label}
+          active={label === current}
+          onSelect={() => {
+            onSort(s);
+            setOpen(false);
+          }}
+        >
+          {label}
+        </MenuItem>
+      ))}
+    </Pop>
   );
 }

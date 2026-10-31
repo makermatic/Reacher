@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { expectToast, field, openDemo, settings, statusCell } from './support';
+import { expectToast, openDemo, settings, statusCell } from './support';
 
 /** Import CSV lives in Settings → Import & export (Zack, M11 round 1). */
 const openImporter = async (page: Page) => {
@@ -54,7 +54,8 @@ test('CSV import: columns matched, existing companies found, then imported', asy
   await expect(page.locator('main tr:not(.person-row)', { hasText: 'Oddfellows' })).toBeVisible();
   await expect(statusCell(page, 'Oddfellows')).toHaveText('Reached out');
   await expect(statusCell(page, 'Psyop')).toHaveText(/Wrote back/);
-  await expect(field(page, 'Oddfellows', 'Main contact')).toContainText('Ana Ruiz');
+  // Their contacts are people, listed under them.
+  await expect(page.locator('main tr.person-row', { hasText: 'Ana Ruiz' })).toBeVisible();
 });
 
 test('CSV import from a file, with no company column picked', async ({ page }) => {

@@ -397,6 +397,18 @@ input:-webkit-autofill:focus {
     border-bottom: 0;
   }
 
+  /*
+   * The side panel fits its width like Kitsu's (after M11): long words and
+   * links break, and nothing inside can push it wider than the panel.
+   */
+  .panel-body {
+    overflow-wrap: anywhere;
+  }
+  .panel-body .grid > *,
+  .panel-body .flex > * {
+    min-width: 0;
+  }
+
   /* Comments in Markdown (M7 round 2). */
   .md {
     display: grid;

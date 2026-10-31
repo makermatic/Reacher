@@ -15,6 +15,7 @@ import { useAssistant } from '../ai/Assistant';
 import { useToast } from '../components/Toast';
 import { readPref, writePref } from '../lib/prefs';
 import { colShows, meta, optList, sheetColumns, statusCol, valueText } from '../model/board';
+import { companyActivity } from '../model/activity';
 import { matchesQuery, parseQuery } from '../model/query';
 import { inSprint, inView } from '../model/sprints';
 import { norm } from '../model/text';
@@ -23,7 +24,14 @@ import type { Company, Contact } from '../model/types';
 import { arrive, chipPop, glide, rowInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
-import { AddFieldDialog, DisplaySettings, FieldHeader, TwoClick, type Sort } from './columns';
+import {
+  AddFieldDialog,
+  DisplaySettings,
+  FieldHeader,
+  SortMenu,
+  TwoClick,
+  type Sort,
+} from './columns';
 import { FieldInput } from './fields';
 import { StatusBoard } from './StatusBoard';
 import { useSprintInfo } from './sprintLabels';
@@ -43,7 +51,7 @@ const isSort = (v: unknown): v is Sort =>
  * Fields edit in place.
  */
 export function CompaniesPage({ onImport }: { onImport: () => void }) {
-  const { board, companies, sprint, loading } = useWorkspace();
+  const { board, companies, pages, chains, people, sprint, loading } = useWorkspace();
   const info = useSprintInfo();
   const [query, setQuery] = useState('');
   const [view, setView] = useState<View>(() => readPref('view', 'sheet', isView));
@@ -58,6 +66,11 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
     () => companies.filter((c) => !sprint || inSprint(c, sprint)).map((c) => inView(c, sprint)),
     [companies, sprint],
   );
+  // When each company last had anything happen (Recently active sort).
+  const activity = useMemo(
+    () => new Map(companies.map((c) => [c.id, companyActivity(c.id, pages, chains, people)])),
+    [companies, pages, chains, people],
+  );
   const list = useMemo(() => {
     const q = parseQuery(query);
     const rows = inScope.filter((c) => matchesQuery(board, c, q));
@@ -65,6 +78,7 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
     if (!sort) return rows.sort((a, b) => order(a) - order(b));
     const key = (c: Company): string | number => {
       if (sort.key === 'name') return c.name.toLowerCase();
+      if (sort.key === 'recent') return activity.get(c.id) ?? '';
       const col = board.columns.find((x) => x.id === sort.key);
       if (col?.type === 'status') {
         // Status order (Gathering, Reached out...), not A to Z.
@@ -81,7 +95,7 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
       if (kb === '' || kb === 999) return -1;
       return (ka < kb ? -1 : ka > kb ? 1 : order(a) - order(b)) * sort.dir;
     });
-  }, [board, inScope, query, sort]);
+  }, [board, inScope, query, sort, activity]);
 
   const changeView = (v: View) => {
     setView(v);
@@ -159,6 +173,7 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
               </button>
             ))}
           </div>
+          <SortMenu sort={sort} onSort={setSort} />
           <DisplaySettings />
         </div>
       </div>
@@ -283,7 +298,8 @@ function CompanyTable({
   const toast = useToast();
   const [addingField, setAddingField] = useState(false);
   const sc = statusCol(board);
-  const fields = sheetColumns(board, list);
+  // With people under their companies, the Main contact column would say it twice (Zack).
+  const fields = sheetColumns(board, list).filter((col) => !(showPeople && col.type === 'person'));
 
   return (
     <div className="h-full overflow-auto rounded-xl border border-line bg-surface">

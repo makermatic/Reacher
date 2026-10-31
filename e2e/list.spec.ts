@@ -139,3 +139,28 @@ test('changes survive a reload', async ({ page }) => {
   await page.reload();
   await expect(row(page, 'Oddfellows')).toBeVisible();
 });
+
+test('sort: recently active, A to Z, date added; no Main contact twice', async ({ page }) => {
+  const names = () =>
+    page
+      .locator('tbody tr:not(.person-row) button[title^="Open"]:not([aria-label])')
+      .allTextContents();
+  // People are under their companies, so the Main contact column steps aside.
+  await expect(page.getByRole('columnheader', { name: /Main contact/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Sort' }).click();
+  await page.getByRole('menuitemradio', { name: 'A → Z' }).click();
+  await expect
+    .poll(names)
+    .toEqual(
+      [...(await names())].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
+    );
+  // A note on Gretel makes it the most recently active.
+  await page.locator('button[title="Open Gretel"]').click();
+  const p = page.locator('aside[aria-label="Company panel"]');
+  await p.getByLabel('Comment').fill('Checked their site');
+  await p.getByRole('button', { name: 'Post' }).click();
+  await page.getByRole('button', { name: 'Sort' }).click();
+  await page.getByRole('menuitemradio', { name: 'Recently active' }).click();
+  await expect.poll(async () => (await names())[0]).toBe('Gretel');
+  await expect(page.getByRole('button', { name: 'Sort' })).toHaveText(/Recently active/);
+});

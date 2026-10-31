@@ -11,7 +11,7 @@ import {
 import { useToast } from '../components/Toast';
 import { nextStatus, type StatusEvent } from '../model/automation';
 import { isStagesBoard, unstageCompany } from '../model/unstage';
-import { boardOrDefault, colById, metaPatch, optionOf, statusCol } from '../model/board';
+import { asPerson, boardOrDefault, colById, metaPatch, optionOf, statusCol } from '../model/board';
 import {
   describeAction,
   feedLineFor,
@@ -205,6 +205,28 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       ...moved.map((p) => store.setItem('people', p.id, body(p))),
     ]).catch(fail);
   }, [store, peopleBoard, people, companies, board, fail]);
+
+  // A person named by their email (an import with the name elsewhere) takes the
+  // name their company's contact field has for that email (Zack: lstern@ssk.com).
+  useEffect(() => {
+    if (!store || !people || !companies || board === undefined) return;
+    const b = boardOrDefault(board);
+    const personCols = b.columns.filter((c) => c.type === 'person');
+    for (const p of people) {
+      if (!p.name.includes('@')) continue;
+      const c = companies.find((x) => x.id === p.companyId);
+      const named = personCols
+        .map((col) => asPerson(c?.meta?.[col.id]))
+        .find((x) => x?.name && x.email.trim().toLowerCase() === p.name.trim().toLowerCase());
+      if (named)
+        void store
+          .updateItem('people', p.id, {
+            name: named.name,
+            meta: { email: p.meta?.email || p.name.trim() },
+          })
+          .catch(fail);
+    }
+  }, [store, people, companies, board, fail]);
 
   const resolvedBoard = boardOrDefault(board);
   const resolvedPeopleBoard = peopleBoardOrDefault(peopleBoard);
