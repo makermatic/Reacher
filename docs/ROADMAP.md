@@ -8,7 +8,7 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Import his companies and people** with Settings → Import & export → Import CSV (list cleared 2026-10-31, people too). Then test People round 1 (v20), list under M11. Next ideas: AI for person notes, picking a person in the email writer, News Feed and My Tasks for people.
+1. ⏳ **A week of real use (from 2026-10-31).** Zack is happy with round 5 (v24) and is tracking his real list in Reacher Test for a week, then sends notes. Next ideas waiting on that: AI for person notes, picking a person in the email writer, News Feed and My Tasks for people.
 2. ⏳ Optional: the real Reacher. Zack chose to track in Reacher Test for now (cleared 2026-10-31). A separate real Reacher, only updated when he OKs a round, can be published whenever he says "real".
 3. ⏳ **Outcome:** kept as in the prototype for now (a field that appears once there's been a meeting or interview). Zack wasn't sure what to do with it; decide once he's used it.
 4. ⏳ Still open from before: the M8 (Calendar) and M9 (Gmail) test lists below. They still apply; the buttons now live on the company page tabs.
@@ -491,6 +491,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-31 | Zack: "Everything seems great for now." Using Reacher Test for a week before the next round. |
 | 2026-10-31 | Round 5: list dropdown (Companies, People, Applications) replaces the icon filter; Applications is a third list built on each company's applications (no new data). |
 | 2026-10-31 | Round 4: no people under companies; contact columns follow the People filter; Shift/Cmd multi-select with a bulk bar (status, AI lookup). Replaces round 1's "no multi-select". |
 | 2026-10-31 | Round 3: person columns hide when people are listed under companies; panel content wraps; Sort menu with Recently active, A → Z, Date added. |
