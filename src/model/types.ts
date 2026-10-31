@@ -99,6 +99,24 @@ export type Company = {
   example?: boolean;
 };
 
+/**
+ * A person you're in touch with (M11, like Kitsu's assets next to shots):
+ * their own fields (Role, Email, Notes... customizable) and a thumbs up or
+ * down status, at one company, with the companies they were at before.
+ */
+export type Contact = {
+  id: string;
+  name: string;
+  order: number;
+  meta: Record<string, unknown>;
+  due: string | null;
+  rank?: number;
+  /** The company they're at now, if any. */
+  companyId: string | null;
+  /** Companies they moved on from (rare), newest last, with the day they moved. */
+  pastCompanies?: { companyId: string; until: string }[];
+};
+
 export type Message = {
   id: string;
   dir: 'in' | 'out';

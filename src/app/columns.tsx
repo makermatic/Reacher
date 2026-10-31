@@ -18,7 +18,7 @@ import { useToast } from '../components/Toast';
 import { deleteColumn, moveColumn, nameTaken, newColumn, updateColumn } from '../model/columns';
 import { TYPE_LABELS, type Column, type ColumnType } from '../model/types';
 import { dialogIn, fade } from '../motion';
-import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useList } from './listContext';
 import { MenuItem, MenuSeparator, Pop, ui } from './ui';
 
 export type Sort = { key: string; dir: 1 | -1 } | null;
@@ -96,7 +96,7 @@ export function FieldHeader({
   sort: Sort;
   onSort: (s: Sort) => void;
 }) {
-  const { board, actions } = useWorkspace();
+  const { board, saveBoard } = useList();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState(((col.options ?? []) as unknown[]).map(String).join('\n'));
@@ -118,7 +118,7 @@ export function FieldHeader({
       <RenameForm
         value={col.name}
         taken={(n) => nameTaken(board, n, col.id)}
-        onSave={(name) => actions.saveBoard(updateColumn(board, col.id, { name }))}
+        onSave={(name) => saveBoard(updateColumn(board, col.id, { name }))}
       />
       <MenuItem onSelect={() => (onSort({ key: col.id, dir: 1 }), setOpen(false))}>
         <ArrowDownAZ size={15} /> {col.type === 'status' ? 'Sort in status order' : 'Sort A → Z'}
@@ -126,16 +126,16 @@ export function FieldHeader({
       <MenuItem onSelect={() => (onSort({ key: col.id, dir: -1 }), setOpen(false))}>
         <ArrowUpAZ size={15} /> {col.type === 'status' ? 'Sort in reverse order' : 'Sort Z → A'}
       </MenuItem>
-      <MenuItem onSelect={() => actions.saveBoard(moveColumn(board, col.id, -1))}>
+      <MenuItem onSelect={() => saveBoard(moveColumn(board, col.id, -1))}>
         <ChevronLeft size={15} /> Move left
       </MenuItem>
-      <MenuItem onSelect={() => actions.saveBoard(moveColumn(board, col.id, 1))}>
+      <MenuItem onSelect={() => saveBoard(moveColumn(board, col.id, 1))}>
         <ChevronRight size={15} /> Move right
       </MenuItem>
       {!col.locked && (
         <MenuItem
           onSelect={() => {
-            actions.saveBoard(updateColumn(board, col.id, { onSheet: false }));
+            saveBoard(updateColumn(board, col.id, { onSheet: false }));
             toast(`${col.name} is off the sheet. Star it in a company's Details to bring it back.`);
           }}
         >
@@ -152,7 +152,7 @@ export function FieldHeader({
               value={options}
               onChange={(e) => setOptions(e.target.value)}
               onBlur={() =>
-                actions.saveBoard(
+                saveBoard(
                   updateColumn(board, col.id, {
                     options: options
                       .split('\n')
@@ -172,7 +172,7 @@ export function FieldHeader({
           <TwoClick
             armed="Click again to delete this field"
             onConfirm={() => {
-              actions.saveBoard(deleteColumn(board, col.id));
+              saveBoard(deleteColumn(board, col.id));
               toast(`Deleted ${col.name}`);
             }}
           >
@@ -186,7 +186,7 @@ export function FieldHeader({
 
 /** Display settings: which fields the sheet shows (the same as starring them). */
 export function DisplaySettings() {
-  const { board, actions } = useWorkspace();
+  const { board, saveBoard } = useList();
   const [open, setOpen] = useState(false);
   const row = (label: ReactNode, on: boolean, toggle: () => void, key: string) => (
     <label
@@ -217,7 +217,7 @@ export function DisplaySettings() {
           row(
             c.name,
             c.onSheet !== false,
-            () => actions.saveBoard(updateColumn(board, c.id, { onSheet: c.onSheet === false })),
+            () => saveBoard(updateColumn(board, c.id, { onSheet: c.onSheet === false })),
             c.id,
           ),
         )}
@@ -246,7 +246,7 @@ export function AddFieldDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const { board, actions } = useWorkspace();
+  const { board, saveBoard } = useList();
   const toast = useToast();
   const [name, setName] = useState('');
   const [type, setType] = useState<ColumnType>('text');
@@ -264,7 +264,7 @@ export function AddFieldDialog({
         .filter(Boolean),
       true,
     );
-    actions.saveBoard({ ...board, columns: [...board.columns, col] });
+    saveBoard({ ...board, columns: [...board.columns, col] });
     toast(`Added ${col.name}`);
     setName('');
     setChoices('');

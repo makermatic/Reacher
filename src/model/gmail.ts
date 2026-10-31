@@ -112,12 +112,25 @@ function localDay(iso: string) {
  * contact addresses, over the last `days`. Null when none of them has a
  * website or contact email to search by.
  */
-export function mailQuery(board: Board, companies: Company[], days: number): string | null {
+/** People's emails by company id (M11), on top of the company's own fields. */
+export type ExtraEmails = Record<string, string[]>;
+
+const emailsOf = (board: Board, c: Company, extra: ExtraEmails) => [
+  ...companyEmails(board, c),
+  ...(extra[c.id] ?? []),
+];
+
+export function mailQuery(
+  board: Board,
+  companies: Company[],
+  days: number,
+  extra: ExtraEmails = {},
+): string | null {
   const terms = new Set<string>();
   for (const c of companies) {
     const domains = companyDomains(board, c);
     for (const d of domains) terms.add(d);
-    for (const e of companyEmails(board, c)) if (!inDomains(e, domains)) terms.add(e);
+    for (const e of emailsOf(board, c, extra)) if (!inDomains(e, domains)) terms.add(e);
   }
   if (!terms.size) return null;
   const who = [...terms].flatMap((t) => [`from:${t}`, `to:${t}`]).join(' OR ');
@@ -129,9 +142,10 @@ export function threadCompany(
   board: Board,
   companies: Company[],
   thread: MailThread,
+  extra: ExtraEmails = {},
 ): Company | null {
   const people = new Set(thread.messages.flatMap((m) => [m.from, ...m.to]));
-  const byEmail = companies.find((c) => companyEmails(board, c).some((e) => people.has(e)));
+  const byEmail = companies.find((c) => emailsOf(board, c, extra).some((e) => people.has(e)));
   if (byEmail) return byEmail;
   return (
     companies.find((c) => {

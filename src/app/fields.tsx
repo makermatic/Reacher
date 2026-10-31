@@ -13,8 +13,8 @@ import { asChecklist, asPerson, asTags, meta } from '../model/board';
 import { ALIASES } from '../model/search';
 import { textSuggestions } from '../model/suggest';
 import { norm } from '../model/text';
-import type { Column, Company } from '../model/types';
-import { useWorkspace } from '../workspace/WorkspaceProvider';
+import type { Column } from '../model/types';
+import { useList, type Row } from './listContext';
 import { Pop, StatusPicker, ui } from './ui';
 
 type Variant = 'cell' | 'row';
@@ -31,7 +31,7 @@ export function FieldInput({
   col,
   variant = 'cell',
 }: {
-  company: Company;
+  company: Row;
   col: Column;
   variant?: Variant;
 }) {
@@ -56,11 +56,11 @@ export function FieldInput({
   }
 }
 
-type FieldProps = { company: Company; col: Column; label: string; variant: Variant };
+type FieldProps = { company: Row; col: Column; label: string; variant: Variant };
 
 /** Text, number, date and link: an input that saves on Enter or blur. */
 function TextField({ company, col, label, variant }: FieldProps) {
-  const { companies, actions } = useWorkspace();
+  const { rows: companies, setMeta } = useList();
   const listId = useId();
   const value = meta(company, col.id);
   const asText = value == null ? '' : String(value);
@@ -87,7 +87,7 @@ function TextField({ company, col, label, variant }: FieldProps) {
           used.find((u): u is string => typeof u === 'string' && norm(u) === norm(alias)) ??
           titleCase(alias);
     }
-    actions.setMeta(company.id, col.id, v === '' ? null : v);
+    setMeta(company.id, col.id, v === '' ? null : v);
   };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') e.currentTarget.blur();
@@ -135,13 +135,13 @@ function TextField({ company, col, label, variant }: FieldProps) {
 }
 
 function CheckboxField({ company, col, label, variant }: FieldProps) {
-  const { actions } = useWorkspace();
+  const { setMeta } = useList();
   return (
     <span className={`flex h-full items-center ${variant === 'cell' ? 'justify-center' : 'px-2'}`}>
       <input
         type="checkbox"
         checked={!!meta(company, col.id)}
-        onChange={(e) => actions.setMeta(company.id, col.id, e.target.checked)}
+        onChange={(e) => setMeta(company.id, col.id, e.target.checked)}
         aria-label={label}
         className="size-4 accent-[var(--accent)]"
       />
@@ -152,25 +152,25 @@ function CheckboxField({ company, col, label, variant }: FieldProps) {
 /** A list of values: a dropdown, like Kitsu's list descriptors. */
 /** A status-type field (Outcome): its colored choices. */
 function StatusField({ company, col, label }: FieldProps) {
-  const { actions } = useWorkspace();
+  const { setMeta } = useList();
   return (
     <StatusPicker
       col={col}
       value={meta(company, col.id)}
       label={label}
-      onPick={(v) => actions.setMeta(company.id, col.id, v)}
+      onPick={(v) => setMeta(company.id, col.id, v)}
       className="border-transparent bg-transparent"
     />
   );
 }
 
 function SelectField({ company, col, label, variant }: FieldProps) {
-  const { actions } = useWorkspace();
+  const { setMeta } = useList();
   const value = meta(company, col.id);
   return (
     <select
       value={value == null ? '' : String(value)}
-      onChange={(e) => actions.setMeta(company.id, col.id, e.target.value || null)}
+      onChange={(e) => setMeta(company.id, col.id, e.target.value || null)}
       aria-label={label}
       className={`${shell(variant)} cursor-pointer appearance-none`}
     >
@@ -208,30 +208,25 @@ function Opener({
 }
 
 function TagsField({ company, col, label, variant }: FieldProps) {
-  const { board, actions } = useWorkspace();
+  const { board, setMeta, saveBoard } = useList();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState('');
   const tags = asTags(meta(company, col.id));
   const options = (col.options ?? []).map(String);
   const toggle = (t: string) =>
-    actions.setMeta(
-      company.id,
-      col.id,
-      tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t],
-    );
+    setMeta(company.id, col.id, tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]);
   const add = () => {
     const t = adding.trim();
     if (!t) return;
     const existing = options.find((o) => norm(o) === norm(t));
     if (!existing)
-      actions.saveBoard({
+      saveBoard({
         ...board,
         columns: board.columns.map((c) =>
           c.id === col.id ? { ...c, options: [...options, t] } : c,
         ),
       });
-    if (!tags.includes(existing ?? t))
-      actions.setMeta(company.id, col.id, [...tags, existing ?? t]);
+    if (!tags.includes(existing ?? t)) setMeta(company.id, col.id, [...tags, existing ?? t]);
     setAdding('');
   };
   return (
@@ -291,12 +286,12 @@ function TagsField({ company, col, label, variant }: FieldProps) {
 }
 
 function PersonField({ company, col, label, variant }: FieldProps) {
-  const { actions } = useWorkspace();
+  const { setMeta } = useList();
   const p = asPerson(meta(company, col.id)) ?? { name: '', role: '', email: '' };
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(p);
   const save = () => {
-    actions.setMeta(company.id, col.id, draft.name || draft.email || draft.role ? draft : null);
+    setMeta(company.id, col.id, draft.name || draft.email || draft.role ? draft : null);
     setOpen(false);
   };
   return (
@@ -341,7 +336,7 @@ function PersonField({ company, col, label, variant }: FieldProps) {
 }
 
 function LongTextField({ company, col, label, variant }: FieldProps) {
-  const { actions } = useWorkspace();
+  const { setMeta } = useList();
   const value = String(meta(company, col.id) ?? '');
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -350,7 +345,7 @@ function LongTextField({ company, col, label, variant }: FieldProps) {
       open={open}
       onOpenChange={(o) => {
         if (o) setDraft(value);
-        else if (draft !== value) actions.setMeta(company.id, col.id, draft.trim() || null);
+        else if (draft !== value) setMeta(company.id, col.id, draft.trim() || null);
         setOpen(o);
       }}
       width={360}
@@ -377,12 +372,11 @@ function LongTextField({ company, col, label, variant }: FieldProps) {
 }
 
 function ChecklistField({ company, col, label, variant }: FieldProps) {
-  const { actions } = useWorkspace();
+  const { setMeta } = useList();
   const items = asChecklist(meta(company, col.id));
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState('');
-  const save = (next: typeof items) =>
-    actions.setMeta(company.id, col.id, next.length ? next : null);
+  const save = (next: typeof items) => setMeta(company.id, col.id, next.length ? next : null);
   const done = items.filter((i) => i.done).length;
   return (
     <Pop

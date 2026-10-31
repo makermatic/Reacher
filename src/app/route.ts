@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
  */
 export type Route =
   | { page: 'companies' }
+  /** People (M11): the second list, like Kitsu's assets next to shots. */
+  | { page: 'people' }
   | { page: 'company'; id: string; tab: CompanyTab }
   | { page: 'tasks'; tab: TasksTab }
   | { page: 'news' }
@@ -35,6 +37,7 @@ export function parseRoute(hash: string): Route {
     case 'tasks':
       return { page: 'tasks', tab: oneOf(TASKS_TABS, a, 'list') };
     case 'news':
+    case 'people':
     case 'statuses':
     case 'templates':
     case 'sprints':
@@ -55,6 +58,7 @@ export function formatRoute(r: Route): string {
     case 'tasks':
       return `#/tasks/${r.tab}`;
     case 'news':
+    case 'people':
     case 'statuses':
     case 'templates':
     case 'sprints':

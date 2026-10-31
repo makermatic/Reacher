@@ -8,6 +8,7 @@ import {
   Sparkles,
   Tags,
   UserRound,
+  Users,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, type ReactNode } from 'react';
@@ -91,6 +92,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               'Companies',
               route.page === 'companies' || route.page === 'company',
             )}
+            {item({ page: 'people' }, <Users size={20} />, 'People', route.page === 'people')}
             <div className={group}>Customize</div>
             {item(
               { page: 'statuses' },

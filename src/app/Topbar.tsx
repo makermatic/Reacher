@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Layers, Plus } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronRight, Layers, Plus, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { QuickUpdateBar } from '../components/QuickUpdateBar';
 import { useToast } from '../components/Toast';
@@ -29,7 +29,10 @@ export function Topbar() {
   const { route, navigate, openSidebar } = useAppUI();
   const { me } = useWorkspace();
   const sprintPages =
-    route.page === 'companies' || route.page === 'news' || route.page === 'company';
+    route.page === 'companies' ||
+    route.page === 'people' ||
+    route.page === 'news' ||
+    route.page === 'company';
   const title =
     {
       tasks: 'My Tasks',
@@ -53,6 +56,12 @@ export function Topbar() {
       {sprintPages ? (
         <nav aria-label="Where you are" className="flex min-w-0 items-center gap-2">
           <SprintPicker />
+          {(route.page === 'companies' || route.page === 'people') && (
+            <>
+              <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
+              <ListPicker />
+            </>
+          )}
           {route.page === 'news' && (
             <>
               <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
@@ -181,6 +190,41 @@ function SprintPicker() {
         }}
       >
         Manage sprints…
+      </MenuItem>
+    </Dropdown>
+  );
+}
+
+/** Companies or People (M11): the two lists, like Kitsu's shots and assets. */
+function ListPicker() {
+  const { route, navigate, select } = useAppUI();
+  const [open, setOpen] = useState(false);
+  const people = route.page === 'people';
+  const go = (page: 'companies' | 'people') => {
+    setOpen(false);
+    if (route.page !== page) select(null);
+    navigate({ page });
+  };
+  return (
+    <Dropdown
+      open={open}
+      onOpenChange={setOpen}
+      ariaLabel="List"
+      icon={
+        people ? (
+          <Users size={16} className="text-muted" aria-hidden="true" />
+        ) : (
+          <Building2 size={16} className="text-muted" aria-hidden="true" />
+        )
+      }
+      label={people ? 'People' : 'Companies'}
+      width={200}
+    >
+      <MenuItem active={!people} onSelect={() => go('companies')}>
+        <Building2 size={16} aria-hidden="true" /> Companies
+      </MenuItem>
+      <MenuItem active={people} onSelect={() => go('people')}>
+        <Users size={16} aria-hidden="true" /> People
       </MenuItem>
     </Dropdown>
   );

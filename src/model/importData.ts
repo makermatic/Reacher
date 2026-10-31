@@ -1,8 +1,10 @@
 import { boardOrDefault } from './board';
 import { isPlainObject } from './text';
+import { peopleBoardOrDefault } from './people';
 import { statusFromStages, unstageCompany } from './unstage';
 import type {
   Board,
+  Contact,
   Chain,
   Company,
   FeedEvent,
@@ -27,6 +29,9 @@ export type ImportData = {
   pages: Record<string, Page>;
   templates: Template[];
   me: Me | null;
+  /** People (M11) and their board; absent in older exports. */
+  people: Contact[];
+  peopleBoard: Board | null;
 };
 
 export class ImportError extends Error {}
@@ -63,6 +68,21 @@ export function parseExport(text: string): ImportData {
     ...(isPlainObject(c.sprints) ? { sprints: sprintEntries(c.sprints) } : {}),
   }));
   const companyIds = new Set(companies.map((c) => c.id));
+  const people: Contact[] = arr(raw.people)
+    .filter(withId)
+    .map((p) => ({
+      id: str(p.id),
+      name: str(p.name).trim() || 'Untitled',
+      order: typeof p.order === 'number' ? p.order : 0,
+      meta: isPlainObject(p.meta) ? p.meta : {},
+      due: null,
+      ...(typeof p.rank === 'number' ? { rank: p.rank } : {}),
+      companyId: companyIds.has(str(p.companyId)) ? str(p.companyId) : null,
+      ...(Array.isArray(p.pastCompanies)
+        ? { pastCompanies: p.pastCompanies as Contact['pastCompanies'] }
+        : {}),
+    }));
+  const pageOwners = new Set([...companyIds, ...people.map((p) => p.id)]);
 
   // Chains export as an array; accept an id-keyed object too.
   const rawChains = Array.isArray(raw.chains)
@@ -98,7 +118,7 @@ export function parseExport(text: string): ImportData {
   const pages: Record<string, Page> = {};
   if (isPlainObject(raw.pages)) {
     for (const [cid, p] of Object.entries(raw.pages)) {
-      if (!companyIds.has(cid) || !isPlainObject(p)) continue;
+      if (!pageOwners.has(cid) || !isPlainObject(p)) continue;
       pages[cid] = {
         notes: arr(p.notes)
           .filter(withId)
@@ -167,6 +187,8 @@ export function parseExport(text: string): ImportData {
     pages,
     templates,
     me,
+    people,
+    peopleBoard: isPlainObject(raw.peopleBoard) ? peopleBoardOrDefault(raw.peopleBoard) : null,
   };
 }
 

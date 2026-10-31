@@ -46,7 +46,8 @@ export function StatusTag({
       className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap ${className}`}
       style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
     >
-      <span className="size-1.5 rounded-full" style={{ background: color }} />
+      {/* A choice with its own emoji (👍, ❗) shows that instead of the dot. */}
+      {!o.icon && <span className="size-1.5 rounded-full" style={{ background: color }} />}
       {optionLabel(o)}
     </span>
   );

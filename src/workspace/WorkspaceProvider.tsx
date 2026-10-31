@@ -34,6 +34,13 @@ import { DEFAULT_TEMPLATES } from '../model/defaults';
 import { fillableColumns } from '../ai/prompts';
 import type { ImportData } from '../model/importData';
 import type { ImportPlan } from '../model/csvImport';
+import {
+  contactsFromCompanies,
+  DEFAULT_PEOPLE_BOARD,
+  movePatch,
+  newContact,
+  peopleBoardOrDefault,
+} from '../model/people';
 import { planCandidate, type Candidate, type QuickPlan, type QuickUndo } from '../model/quickPlan';
 import { norm, uid } from '../model/text';
 import type {
@@ -47,6 +54,7 @@ import type {
   Note,
   Page,
   FeedEvent,
+  Contact,
   Sprint,
   Template,
 } from '../model/types';
@@ -65,6 +73,9 @@ export type Workspace = {
   chains: Chain[];
   templates: Template[];
   me: Me | null;
+  /** People (M11) and their board of fields and statuses. */
+  people: Contact[];
+  peopleBoard: Board;
   /** Sprints, oldest first (M7). */
   sprints: Sprint[];
   /** The sprint on screen, or null for All companies. */
@@ -120,6 +131,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [people, setPeople] = useState<Contact[] | undefined>();
+  const [peopleBoard, setPeopleBoard] = useState<Board | null | undefined>();
   // 'all' = All companies; undefined = not chosen yet (the newest sprint).
   const [chosen, setChosen] = useState<string | undefined>(() =>
     readPref<string | undefined>('sprint', undefined, (v): v is string => typeof v === 'string'),
@@ -132,6 +145,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const stops = [
       store.watchDoc<Board>('board', setBoard),
       store.watchDoc<Me>('me', setMe),
+      store.watchDoc<Board>('people-board', setPeopleBoard),
+      store.watchCollection('people', (items) => setPeople(withIds<Contact>(items))),
       store.watchCollection('companies', (items) => setCompanies(withIds<Company>(items))),
       store.watchCollection<Page>('pages', setPages),
       store.watchCollection('chains', (items) => setChains(withIds<Chain>(items))),
@@ -174,7 +189,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     ]).catch(fail);
   }, [store, board, companies, fail]);
 
+  // The first time People exist (M11): everyone in a company's person fields
+  // (Main contact) becomes a person, and the People board is saved.
+  const peopleReady = useRef(false);
+  useEffect(() => {
+    if (!store || peopleReady.current) return;
+    if (peopleBoard !== null || people === undefined || companies === undefined) return;
+    if (board === undefined) return;
+    peopleReady.current = true;
+    const moved = contactsFromCompanies(boardOrDefault(board), companies, people);
+    void Promise.all([
+      store.setDoc('people-board', DEFAULT_PEOPLE_BOARD as unknown as Json),
+      ...moved.map((p) => store.setItem('people', p.id, body(p))),
+    ]).catch(fail);
+  }, [store, peopleBoard, people, companies, board, fail]);
+
   const resolvedBoard = boardOrDefault(board);
+  const resolvedPeopleBoard = peopleBoardOrDefault(peopleBoard);
   const sprint =
     chosen === 'all'
       ? null
@@ -196,8 +227,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         sprint,
         pending,
         fail,
+        people ?? [],
+        resolvedPeopleBoard,
       ),
-    [store, resolvedBoard, companies, pages, chains, templates, sprints, sprint, pending, fail],
+    [
+      store,
+      resolvedBoard,
+      companies,
+      pages,
+      chains,
+      templates,
+      sprints,
+      sprint,
+      pending,
+      fail,
+      people,
+      resolvedPeopleBoard,
+    ],
   );
 
   const value = useMemo<Workspace>(
@@ -210,6 +256,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // A new account starts with the default templates until it saves its own.
       templates: templates.length ? templates : DEFAULT_TEMPLATES,
       me,
+      people: people ?? [],
+      peopleBoard: resolvedPeopleBoard,
       sprints,
       sprint,
       setSprint,
@@ -225,6 +273,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       chains,
       templates,
       me,
+      people,
+      resolvedPeopleBoard,
       sprints,
       sprint,
       setSprint,
@@ -245,8 +295,11 @@ function makeActions(
   active: string | null,
   pending: Pending,
   fail: (e: unknown) => void,
+  people: Contact[],
+  peopleBoard: Board,
 ) {
   const company = (id: string) => companies.find((c) => c.id === id);
+  const person = (id: string) => people.find((p) => p.id === id);
   const guard = (p: Promise<unknown>) => p.catch(fail);
   const isStatusCol = (colId: string) => colById(board, colId)?.type === 'status';
   /** Where a change to this company lands: the sprint on screen, else its newest. */
@@ -308,6 +361,8 @@ function makeActions(
       let created = 0;
       let updated = 0;
       const base = Date.now();
+      /** The companies as they'll be, for the contacts that become people (M11). */
+      const touched: Company[] = [];
       for (const r of plan.rows) {
         if (r.state === 'new') {
           const id = uid('co');
@@ -321,6 +376,7 @@ function makeActions(
           };
           const joined = active ? { ...c, ...joinPatch(nextBoard, c, active) } : c;
           void guard(store.setItem('companies', id, body(joined)));
+          touched.push(joined);
           api.logEvents(id, [
             makeEvent('company', 'Imported from a CSV', 'you', { sprintId: active }),
             ...(r.comment ? [makeEvent('comment', r.comment, 'you', { sprintId: active })] : []),
@@ -333,9 +389,12 @@ function makeActions(
           if (status !== undefined && status !== r.existing.meta?.status)
             api.setMeta(r.existing.id, 'status', status);
           if (r.comment) api.comment(r.existing.id, r.comment);
+          touched.push({ ...r.existing, meta: { ...r.existing.meta, ...r.meta } });
           updated++;
         }
       }
+      for (const p of contactsFromCompanies(nextBoard, touched, people, base))
+        void guard(store.setItem('people', p.id, body(p)));
       return { created, updated };
     },
 
@@ -401,6 +460,10 @@ function makeActions(
     async deleteCompany(id: string) {
       await guard(
         Promise.all([
+          // Its people stay, with no company.
+          ...people
+            .filter((p) => p.companyId === id)
+            .map((p) => store.updateItem('people', p.id, { companyId: null })),
           store.deleteItem('companies', id),
           pages[id] ? store.deleteItem('pages', id) : null,
           ...chains
@@ -791,6 +854,78 @@ function makeActions(
      * Writes an export into this account. Items with the same id are replaced;
      * everything else is added. Columns, templates and Your details are replaced.
      */
+    // ---------- people (M11) ----------
+
+    /** A new person (thumbs up), at a company or none. */
+    addPerson(name: string, companyId: string | null, fields: Record<string, unknown> = {}) {
+      const p = newContact(name, companyId, fields);
+      void guard(store.setItem('people', p.id, body(p)));
+      const at = companyId ? company(companyId)?.name : null;
+      api.logEvents(p.id, [makeEvent('company', at ? `Added at ${at}` : 'Added', 'you')]);
+      return p;
+    },
+
+    /** One of a person's fields; a status change goes in their feed. */
+    setPersonMeta(id: string, colId: string, value: unknown) {
+      const p = person(id);
+      if (!p) return;
+      void guard(store.updateItem('people', id, { meta: { [colId]: value } }));
+      const col = colById(peopleBoard, colId);
+      if (col?.type === 'status') {
+        const label = (v: unknown) => (v ? (optionOf(col, v)?.label ?? String(v)) : 'none');
+        api.logEvents(id, [
+          makeEvent('status', `${col.name}: ${label(p.meta?.[colId])} → ${label(value)}`, 'you', {
+            status: {
+              col: colId,
+              from: (p.meta?.[colId] as string) ?? null,
+              to: (value as string) ?? null,
+            },
+          }),
+        ]);
+      }
+    },
+
+    renamePerson(id: string, name: string) {
+      if (name.trim()) void guard(store.updateItem('people', id, { name: name.trim() }));
+    },
+
+    /** Moves a person to another company (or none), keeping where they were. */
+    movePerson(id: string, companyId: string | null) {
+      const p = person(id);
+      if (!p || p.companyId === companyId) return;
+      void guard(store.updateItem('people', id, movePatch(p, companyId, todayISO()) as Json));
+      const from = p.companyId ? company(p.companyId)?.name : null;
+      const to = companyId ? company(companyId)?.name : null;
+      api.logEvents(id, [
+        makeEvent(
+          'company',
+          to ? (from ? `Moved from ${from} to ${to}` : `Now at ${to}`) : `No longer at ${from}`,
+          'you',
+        ),
+      ]);
+    },
+
+    /** A People Board drop: new status and position. */
+    movePersonCard(id: string, status: string | null, rank: number) {
+      const p = person(id);
+      if (!p) return;
+      if ((p.meta?.status ?? null) !== status) api.setPersonMeta(id, 'status', status);
+      void guard(store.updateItem('people', id, { rank }));
+    },
+
+    async deletePerson(id: string) {
+      await guard(
+        Promise.all([
+          store.deleteItem('people', id),
+          pages[id] ? store.deleteItem('pages', id) : null,
+        ]),
+      );
+    },
+
+    savePeopleBoard(next: Board) {
+      void guard(store.setDoc('people-board', { ...next, version: 2 }));
+    },
+
     async importData(data: ImportData, onProgress: (done: number, total: number) => void) {
       const writes: (() => Promise<void>)[] = [
         () => store.setDoc('board', data.board),
@@ -804,6 +939,16 @@ function makeActions(
         ),
         ...data.chains.map((ch) => () => store.setItem('chains', ch.id, body(ch))),
         ...data.templates.map((t) => () => store.setItem('templates', t.id, body(t))),
+        ...(data.peopleBoard
+          ? [() => store.setDoc('people-board', data.peopleBoard as unknown as Json)]
+          : []),
+        ...data.people.map((p) => () => store.setItem('people', p.id, body(p))),
+        // An export from before People (the prototype's): its contacts become people.
+        ...(data.people.length
+          ? []
+          : contactsFromCompanies(data.board, data.companies, people).map(
+              (p) => () => store.setItem('people', p.id, body(p)),
+            )),
       ];
       await runPaced(writes, onProgress);
     },

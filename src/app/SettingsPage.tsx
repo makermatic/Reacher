@@ -15,6 +15,7 @@ import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { SETTINGS_TABS, type SettingsTab } from './route';
 import { CsvImportButton } from './CsvImport';
+import { PeopleList, useList } from './listContext';
 import { useSprintInfo } from './sprintLabels';
 import { colorVar, ui } from './ui';
 import { TwoClick } from './columns';
@@ -326,20 +327,45 @@ export function StatusesTab() {
   const cols = board.columns.filter((c) => c.type === 'status');
   return (
     <div className="grid max-w-4xl gap-8">
+      <h2 className="m-0 text-[12px] font-semibold tracking-[0.06em] text-faint uppercase">
+        Companies
+      </h2>
       {cols.map((col) => (
         <ChoicesEditor key={col.id} col={col} />
       ))}
+      <h2 className="m-0 mt-4 text-[12px] font-semibold tracking-[0.06em] text-faint uppercase">
+        People
+      </h2>
+      <PeopleList>
+        <PeopleStatuses />
+      </PeopleList>
     </div>
   );
 }
 
+/** People's statuses (M11): thumbs up and down, editable like the rest. */
+function PeopleStatuses() {
+  const { board } = useList();
+  return (
+    <>
+      {board.columns
+        .filter((c) => c.type === 'status')
+        .map((col) => (
+          <ChoicesEditor key={col.id} col={col} />
+        ))}
+    </>
+  );
+}
+
 function ChoicesEditor({ col }: { col: Column }) {
-  const { board, templates, actions } = useWorkspace();
+  const { templates } = useWorkspace();
+  const { board, saveBoard, kind } = useList();
+  // Only a company's Status suggests an email.
+  const mainStatus = kind === 'company' && col.id === 'status';
   const toast = useToast();
   const [name, setName] = useState('');
   const opts = statusOptions(col);
-  const save = (options: StatusOption[]) =>
-    actions.saveBoard(updateColumn(board, col.id, { options }));
+  const save = (options: StatusOption[]) => saveBoard(updateColumn(board, col.id, { options }));
   const patch = (id: string, p: Partial<StatusOption>) =>
     save(opts.map((o) => (o.id === id ? { ...o, ...p } : o)));
   const move = (i: number, d: -1 | 1) => {
@@ -367,7 +393,7 @@ function ChoicesEditor({ col }: { col: Column }) {
   return (
     <section className="grid gap-3">
       <h2 className={ui.sectionTitle}>{col.name}</h2>
-      {col.id === 'status' && (
+      {mainStatus && (
         <p className="m-0 text-[13.5px] text-muted">
           The status column on the sheet. “Suggested email” is the template the email writer starts
           with when a company is at that status (for example, Reached out → Check-in).
@@ -401,7 +427,7 @@ function ChoicesEditor({ col }: { col: Column }) {
               </select>
             )}
             {swatches(o)}
-            {col.id === 'status' && (
+            {mainStatus && (
               <label className="flex items-center gap-2 text-[12.5px] text-muted">
                 Suggested email
                 <select
@@ -465,10 +491,10 @@ function ChoicesEditor({ col }: { col: Column }) {
         className="flex gap-2"
       >
         <input
-          id={`new-${col.id}`}
+          id={`new-${kind === 'person' ? 'person-' : ''}${col.id}`}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={col.id === 'status' ? 'New status, like Ghosted' : `New ${col.name} choice`}
+          placeholder={mainStatus ? 'New status, like Ghosted' : `New ${col.name} choice`}
           aria-label={`New ${col.name} choice`}
           className={`${ui.input} w-64`}
         />

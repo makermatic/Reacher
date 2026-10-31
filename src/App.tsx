@@ -7,6 +7,7 @@ import { CompaniesPage } from './app/CompaniesPage';
 import { CompanyPage } from './app/CompanyPage';
 import { MyTasksPage } from './app/MyTasksPage';
 import { NewsFeedPage } from './app/NewsFeedPage';
+import { PeoplePage } from './app/PeoplePage';
 import { useRoute } from './app/route';
 import { applyTheme, ManagePage, readTheme, SettingsPage } from './app/SettingsPage';
 import { clampPanel, SidePanel } from './app/SidePanel';
@@ -124,6 +125,7 @@ function Shell() {
               {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
               {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
               {route.page === 'news' && <NewsFeedPage />}
+              {route.page === 'people' && <PeoplePage />}
               {(route.page === 'statuses' ||
                 route.page === 'templates' ||
                 route.page === 'sprints') && <ManagePage page={route.page} />}
@@ -133,7 +135,7 @@ function Shell() {
             </motion.div>
           </main>
           {/* Only with the sheet and the board (Zack, M7 round 2). */}
-          {route.page === 'companies' && (
+          {(route.page === 'companies' || route.page === 'people') && (
             <SidePanel width={clampPanel(panelWidth)} onResize={resize} />
           )}
         </div>

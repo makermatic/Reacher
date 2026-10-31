@@ -108,7 +108,8 @@ export function DetailsForm({ initial, onDone }: { initial: Me; onDone: () => vo
 /** Export data (SPEC section 10): everything in one file, the same shape the import reads. */
 export function ExportButton() {
   const runtime = useRuntime();
-  const { board, companies, chains, pages, templates, me, sprints } = useWorkspace();
+  const { board, companies, chains, pages, templates, me, sprints, people, peopleBoard } =
+    useWorkspace();
   const toast = useToast();
   const saveFile = runtime.status === 'ready' ? runtime.saveFile : null;
   const exportAll = async () => {
@@ -122,6 +123,8 @@ export function ExportButton() {
       pages,
       templates,
       me,
+      people,
+      peopleBoard,
     };
     try {
       await saveFile(`reacher-${todayISO()}.json`, JSON.stringify(data, null, 2));

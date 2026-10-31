@@ -18,19 +18,20 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { useToast } from '../components/Toast';
 import { readPref, writePref } from '../lib/prefs';
 import { glide } from '../motion';
 import { meta, optList, optionOf, statusCol } from '../model/board';
 import { rankBetween, rankOf, byRank } from '../model/ranking';
-import type { Company } from '../model/types';
-import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useList, type Row } from './listContext';
 import { useAppUI } from './AppUI';
 import { colorVar, StatusTag } from './ui';
 
 const NONE = '_none';
+/** The card's second line, set by the page (People: the company). */
+const SubtitleContext = createContext<((row: Row) => ReactNode) | null>(null);
 const isFlags = (v: unknown): v is Record<string, boolean> =>
   !!v && typeof v === 'object' && !Array.isArray(v);
 type Lanes = Record<string, string[]>;
@@ -40,8 +41,15 @@ type Lanes = Record<string, string[]>;
  * its status, or within a lane to reorder; the others make room as you drag.
  * Click a card to open its panel.
  */
-export function StatusBoard({ list }: { list: Company[] }) {
-  const { board, actions } = useWorkspace();
+export function StatusBoard({
+  list,
+  subtitle,
+}: {
+  list: Row[];
+  /** A line under the name on each card (People: their company). */
+  subtitle?: (row: Row) => ReactNode;
+}) {
+  const { board, moveCard } = useList();
   const { selected, select } = useAppUI();
   const toast = useToast();
   const sc = statusCol(board);
@@ -61,7 +69,7 @@ export function StatusBoard({ list }: { list: Company[] }) {
 
   const byId = new Map(list.map((c) => [c.id, c]));
   const laneKeys = [NONE, ...opts.map((o) => o.id)];
-  const statusOf = (c: Company) => (meta(c, 'status') as string | null) ?? null;
+  const statusOf = (c: Row) => (meta(c, 'status') as string | null) ?? null;
   const stored: Lanes = Object.fromEntries(
     laneKeys.map((k) => [
       k,
@@ -111,7 +119,7 @@ export function StatusBoard({ list }: { list: Company[] }) {
     if (!moved && stored[lane]!.indexOf(id) === idx) return;
     const prev = order[idx - 1];
     const next = order[idx + 1];
-    actions.moveCard(
+    moveCard(
       id,
       status,
       rankBetween(
@@ -125,39 +133,41 @@ export function StatusBoard({ list }: { list: Company[] }) {
 
   return (
     <section aria-label="Board" className="flex h-full min-h-0 flex-col gap-3">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collide}
-        onDragStart={(e) => {
-          setActiveId(String(e.active.id));
-          setPreview(stored);
-        }}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
-        onDragCancel={() => {
-          setPreview(null);
-          setActiveId(null);
-        }}
-      >
-        <div className="min-h-0 flex-1 overflow-x-auto pb-2">
-          <div className="flex h-full gap-3">
-            {laneKeys.map((k) => (
-              <Lane
-                key={k}
-                laneKey={k}
-                label={k === NONE ? 'No status' : (optionOf(sc, k)?.label ?? k)}
-                color={k === NONE ? 'grey' : (optionOf(sc, k)?.color ?? 'grey')}
-                cards={(shown[k] ?? []).map((id) => byId.get(id)!).filter(Boolean)}
-                collapsed={!!collapsed[k]}
-                onToggle={() => toggleLane(k)}
-                isSelected={(id) => selected === id}
-                onPick={(id) => select(id)}
-              />
-            ))}
+      <SubtitleContext.Provider value={subtitle ?? null}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collide}
+          onDragStart={(e) => {
+            setActiveId(String(e.active.id));
+            setPreview(stored);
+          }}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => {
+            setPreview(null);
+            setActiveId(null);
+          }}
+        >
+          <div className="min-h-0 flex-1 overflow-x-auto pb-2">
+            <div className="flex h-full gap-3">
+              {laneKeys.map((k) => (
+                <Lane
+                  key={k}
+                  laneKey={k}
+                  label={k === NONE ? 'No status' : (optionOf(sc, k)?.label ?? k)}
+                  color={k === NONE ? 'grey' : (optionOf(sc, k)?.color ?? 'grey')}
+                  cards={(shown[k] ?? []).map((id) => byId.get(id)!).filter(Boolean)}
+                  collapsed={!!collapsed[k]}
+                  onToggle={() => toggleLane(k)}
+                  isSelected={(id) => selected === id}
+                  onPick={(id) => select(id)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-        <DragOverlay>{active && <CardFace company={active} lifted />}</DragOverlay>
-      </DndContext>
+          <DragOverlay>{active && <CardFace company={active} lifted />}</DragOverlay>
+        </DndContext>
+      </SubtitleContext.Provider>
     </section>
   );
 }
@@ -175,7 +185,7 @@ function Lane({
   laneKey: string;
   label: string;
   color: string;
-  cards: Company[];
+  cards: Row[];
   collapsed: boolean;
   onToggle: () => void;
   isSelected: (id: string) => boolean;
@@ -253,7 +263,7 @@ function Card({
   selected,
   onPick,
 }: {
-  company: Company;
+  company: Row;
   selected: boolean;
   onPick: () => void;
 }) {
@@ -284,11 +294,12 @@ function CardFace({
   selected = false,
   lifted = false,
 }: {
-  company: Company;
+  company: Row;
   selected?: boolean;
   lifted?: boolean;
 }) {
-  const { board } = useWorkspace();
+  const { board } = useList();
+  const subtitle = useContext(SubtitleContext);
   const outcome = board.columns.find((c) => c.id === 'outcome');
   return (
     <div
@@ -297,6 +308,7 @@ function CardFace({
       } ${lifted ? 'rotate-1 shadow-panel' : ''}`}
     >
       <b className="truncate text-[14px] text-strong">{company.name}</b>
+      {subtitle && <span className="truncate text-[12.5px] text-muted">{subtitle(company)}</span>}
       {outcome && meta(company, outcome.id) != null && (
         <StatusTag
           col={outcome}

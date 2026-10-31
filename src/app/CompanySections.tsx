@@ -13,6 +13,7 @@ import { fmtDate } from '../model/dates';
 import { sprintsOf } from '../model/sprints';
 import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useList, type Row } from './listContext';
 import { FieldInput } from './fields';
 import { useSprintInfo } from './sprintLabels';
 import { StatusTag, ui } from './ui';
@@ -52,8 +53,8 @@ export function Section({
  * Every field but Status, each with a star: starred fields are columns on
  * the sheet. Outcome only shows once there's been a meeting or interview.
  */
-export function FieldRows({ company }: { company: Company }) {
-  const { board, actions } = useWorkspace();
+export function FieldRows({ company }: { company: Row }) {
+  const { board, saveBoard } = useList();
   const cols = board.columns.filter(
     (col) => col.id !== 'status' && (colShows(col, company) || meta(company, col.id) != null),
   );
@@ -67,9 +68,7 @@ export function FieldRows({ company }: { company: Company }) {
               <button
                 type="button"
                 aria-pressed={starred}
-                onClick={() =>
-                  actions.saveBoard(updateColumn(board, col.id, { onSheet: !starred }))
-                }
+                onClick={() => saveBoard(updateColumn(board, col.id, { onSheet: !starred }))}
                 aria-label={`Show ${col.name} on the sheet`}
                 title={starred ? 'On the sheet. Click to take it off' : 'Star to show on the sheet'}
                 className="grid size-5 place-items-center rounded text-faint transition-colors hover:bg-hover hover:text-fg aria-pressed:text-[var(--c-amber)]"

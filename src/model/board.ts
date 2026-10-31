@@ -49,10 +49,12 @@ export function colorFor(col: Column, value: string): ColorName {
   return COLORS[(n % (COLORS.length - 1)) + 1]!;
 }
 
-export const meta = (c: Company | undefined, colId: string): unknown => c?.meta?.[colId];
+/** A row's value in a column: companies and people (M11) both keep values in `meta`. */
+export const meta = (c: { meta?: Record<string, unknown> } | undefined, colId: string): unknown =>
+  c?.meta?.[colId];
 
 /** Whether a column applies to this company (Outcome only shows at Meeting or Interview). */
-export function colShows(col: Column, c: Company) {
+export function colShows(col: Column, c: { meta?: Record<string, unknown> }) {
   if (!col.showWhen) return true;
   return (col.showWhen.values ?? []).includes(meta(c, col.showWhen.col) as string);
 }

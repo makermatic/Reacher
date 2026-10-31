@@ -10,8 +10,16 @@ import {
 } from 'react';
 import { useToast } from '../components/Toast';
 import { makeEvent } from '../model/events';
-import { knownCount, latestEmail, mailQuery, syncThread, threadCompany } from '../model/gmail';
-import type { Chain, Company } from '../model/types';
+import {
+  knownCount,
+  latestEmail,
+  mailQuery,
+  syncThread,
+  threadCompany,
+  type ExtraEmails,
+} from '../model/gmail';
+import { contactEmail } from '../model/people';
+import type { Chain, Company, Contact } from '../model/types';
 import type { ConnectorError } from '../runtime/connectors';
 import { gmailErrorMessage, type DraftInput } from '../runtime/gmail';
 import { useRuntime } from '../runtime/RuntimeProvider';
@@ -51,6 +59,16 @@ type GmailState = {
 };
 
 const GmailContext = createContext<GmailState | null>(null);
+
+/** People's emails by company (M11), so their email counts as the company's. */
+function emailsByCompany(people: Contact[]): ExtraEmails {
+  const out: ExtraEmails = {};
+  for (const p of people) {
+    const e = contactEmail(p);
+    if (p.companyId && e.includes('@')) (out[p.companyId] ??= []).push(e);
+  }
+  return out;
+}
 
 /** The status key of the all-companies check. */
 export const GMAIL_ALL = '_all';
@@ -104,7 +122,12 @@ export function GmailProvider({ children }: { children: ReactNode }) {
         const thread = await gmail.thread(hit.id);
         if (!thread?.messages.length) continue;
         // Even a company's own search can catch strays; keep only threads that are really theirs.
-        const company = threadCompany(board, only ? [only] : companies, thread);
+        const company = threadCompany(
+          board,
+          only ? [only] : companies,
+          thread,
+          emailsByCompany(wsRef.current.people),
+        );
         if (!company || company.gmailIgnore?.includes(thread.id)) {
           strays.current.set(hit.id, hit.messageCount);
           continue;
@@ -166,7 +189,12 @@ export function GmailProvider({ children }: { children: ReactNode }) {
         if (!(await gmail.allowed())) return;
       }
       lastRun.current[company.id] = now;
-      const query = mailQuery(wsRef.current.board, [company], COMPANY_DAYS);
+      const query = mailQuery(
+        wsRef.current.board,
+        [company],
+        COMPANY_DAYS,
+        emailsByCompany(wsRef.current.people),
+      );
       if (!query) {
         patch(company.id, {
           checking: false,
@@ -193,7 +221,12 @@ export function GmailProvider({ children }: { children: ReactNode }) {
     async (ask: boolean) => {
       if (!gmail) return;
       if (!ask && !(await gmail.allowed())) return;
-      const query = mailQuery(wsRef.current.board, wsRef.current.companies, ALL_DAYS);
+      const query = mailQuery(
+        wsRef.current.board,
+        wsRef.current.companies,
+        ALL_DAYS,
+        emailsByCompany(wsRef.current.people),
+      );
       if (!query) {
         patch(GMAIL_ALL, {
           checking: false,
