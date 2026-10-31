@@ -1,5 +1,5 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { MotionConfig } from 'motion/react';
+import { motion, MotionConfig } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import { AssistantProvider } from './ai/Assistant';
 import { AppUIContext, type AppUI } from './app/AppUI';
@@ -15,7 +15,7 @@ import { Topbar } from './app/Topbar';
 import { ImportDialog } from './components/ImportDialog';
 import { ToastProvider } from './components/Toast';
 import { readPref, writePref } from './lib/prefs';
-import { hoverDelay } from './motion';
+import { arrive, hoverDelay } from './motion';
 import { RuntimeProvider, useRuntime } from './runtime/RuntimeProvider';
 import { CalendarProvider } from './workspace/CalendarProvider';
 import { GmailProvider } from './workspace/GmailProvider';
@@ -114,16 +114,23 @@ function Shell() {
                 select(null);
             }}
           >
-            {route.page === 'companies' && <CompaniesPage onImport={() => setImportOpen(true)} />}
-            {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
-            {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
-            {route.page === 'news' && <NewsFeedPage />}
-            {(route.page === 'statuses' ||
-              route.page === 'templates' ||
-              route.page === 'sprints') && <ManagePage page={route.page} />}
-            {route.page === 'settings' && (
-              <SettingsPage tab={route.tab} onImport={() => setImportOpen(true)} />
-            )}
+            {/* Each page fades in as you arrive (M10); the old one leaves at once. */}
+            <motion.div
+              key={route.page === 'company' ? `company:${route.id}` : route.page}
+              {...arrive}
+              className="h-full"
+            >
+              {route.page === 'companies' && <CompaniesPage onImport={() => setImportOpen(true)} />}
+              {route.page === 'company' && <CompanyPage id={route.id} tab={route.tab} />}
+              {route.page === 'tasks' && <MyTasksPage tab={route.tab} />}
+              {route.page === 'news' && <NewsFeedPage />}
+              {(route.page === 'statuses' ||
+                route.page === 'templates' ||
+                route.page === 'sprints') && <ManagePage page={route.page} />}
+              {route.page === 'settings' && (
+                <SettingsPage tab={route.tab} onImport={() => setImportOpen(true)} />
+              )}
+            </motion.div>
           </main>
           {/* Only with the sheet and the board (Zack, M7 round 2). */}
           {route.page === 'companies' && (

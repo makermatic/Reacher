@@ -8,7 +8,7 @@ import {
   Table2,
   X,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useMemo, useState, type KeyboardEvent } from 'react';
 import { useAssistant } from '../ai/Assistant';
 import { useToast } from '../components/Toast';
@@ -18,7 +18,7 @@ import { matchesQuery, parseQuery } from '../model/query';
 import { inSprint, inView } from '../model/sprints';
 import { norm } from '../model/text';
 import type { Company } from '../model/types';
-import { glide } from '../motion';
+import { arrive, chipPop, glide, rowInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { AddFieldDialog, DisplaySettings, FieldHeader, TwoClick, type Sort } from './columns';
@@ -193,17 +193,19 @@ export function CompaniesPage({ onImport }: { onImport: () => void }) {
       )}
 
       <div className="min-h-0 flex-1">
-        {view === 'board' ? (
-          <StatusBoard list={list} />
-        ) : (
-          <CompanyTable
-            list={list}
-            total={inScope.length}
-            sort={sort}
-            onSort={setSort}
-            onImport={onImport}
-          />
-        )}
+        <motion.div key={view} {...arrive} className="h-full">
+          {view === 'board' ? (
+            <StatusBoard list={list} />
+          ) : (
+            <CompanyTable
+              list={list}
+              total={inScope.length}
+              sort={sort}
+              onSort={setSort}
+              onImport={onImport}
+            />
+          )}
+        </motion.div>
       </div>
       <div className="text-center text-[13px] text-muted">
         {loading ? 'Loading…' : `${list.length} ${list.length === 1 ? 'company' : 'companies'}`}
@@ -326,61 +328,80 @@ function CompanyTable({
           </tr>
         </thead>
         <tbody>
-          {list.map((c) => {
-            const open = selected === c.id;
-            return (
-              <tr key={c.id} className="group" aria-selected={open}>
-                <td className="sticky-a">
-                  <div className="flex items-center pr-1">
-                    <button
-                      type="button"
-                      onClick={() => select(c.id)}
-                      data-opens-panel
-                      title={`Open ${c.name}`}
-                      className="min-w-0 flex-1 truncate px-3 py-2.5 text-left text-[14px] font-semibold text-strong hover:underline"
-                    >
-                      {c.name || 'Untitled'}
-                    </button>
-                    <span className="flex opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <AnimatePresence initial={false}>
+            {list.map((c) => {
+              const open = selected === c.id;
+              return (
+                <motion.tr
+                  key={c.id}
+                  variants={rowInOut}
+                  initial="initial"
+                  animate="enter"
+                  exit="exit"
+                  className="group"
+                  aria-selected={open}
+                >
+                  <td className="sticky-a">
+                    <div className="flex items-center pr-1">
                       <button
                         type="button"
-                        onClick={() => openPage(c.id)}
-                        aria-label={`Open ${c.name}'s page`}
-                        title="Open the full page"
-                        className={ui.ghostIcon}
+                        onClick={() => select(c.id)}
+                        data-opens-panel
+                        title={`Open ${c.name}`}
+                        className="min-w-0 flex-1 truncate px-3 py-2.5 text-left text-[14px] font-semibold text-strong hover:underline"
                       >
-                        <ArrowUpRight size={15} />
+                        {c.name || 'Untitled'}
                       </button>
-                      <RowDelete
-                        company={c}
-                        onDelete={() => {
-                          void actions.deleteCompany(c.id);
-                          toast(`Deleted ${c.name}`);
-                        }}
-                      />
-                    </span>
-                  </div>
-                </td>
-                <td
-                  onClick={() => select(c.id)}
-                  data-opens-panel
-                  aria-selected={open}
-                  aria-label={`${sc.name} for ${c.name}`}
-                  className="stage-cell cursor-pointer px-3"
-                >
-                  <StatusTag col={sc} value={meta(c, sc.id)} />
-                </td>
-                {fields.map((col) => (
-                  <td key={col.id} className="field-cell max-w-72">
-                    {colShows(col, c) || meta(c, col.id) != null ? (
-                      <FieldInput company={c} col={col} />
-                    ) : null}
+                      <span className="flex opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => openPage(c.id)}
+                          aria-label={`Open ${c.name}'s page`}
+                          title="Open the full page"
+                          className={ui.ghostIcon}
+                        >
+                          <ArrowUpRight size={15} />
+                        </button>
+                        <RowDelete
+                          company={c}
+                          onDelete={() => {
+                            void actions.deleteCompany(c.id);
+                            toast(`Deleted ${c.name}`);
+                          }}
+                        />
+                      </span>
+                    </div>
                   </td>
-                ))}
-                <td />
-              </tr>
-            );
-          })}
+                  <td
+                    onClick={() => select(c.id)}
+                    data-opens-panel
+                    aria-selected={open}
+                    aria-label={`${sc.name} for ${c.name}`}
+                    className="stage-cell cursor-pointer px-3"
+                  >
+                    {/* A changed status pops in (M10); not on first show. */}
+                    <AnimatePresence initial={false}>
+                      <motion.span
+                        key={String(meta(c, sc.id) ?? '')}
+                        {...chipPop}
+                        className="inline-block"
+                      >
+                        <StatusTag col={sc} value={meta(c, sc.id)} />
+                      </motion.span>
+                    </AnimatePresence>
+                  </td>
+                  {fields.map((col) => (
+                    <td key={col.id} className="field-cell max-w-72">
+                      {colShows(col, c) || meta(c, col.id) != null ? (
+                        <FieldInput company={c} col={col} />
+                      ) : null}
+                    </td>
+                  ))}
+                  <td />
+                </motion.tr>
+              );
+            })}
+          </AnimatePresence>
           <AddCompanyRow disabled={loading} span={fields.length + 2} />
         </tbody>
       </table>

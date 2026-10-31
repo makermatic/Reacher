@@ -1,5 +1,6 @@
 import { ArrowUpRight, Check, Layers, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAssistant } from '../ai/Assistant';
 import { ApplicationsBody } from '../company/EntrySections';
 import { LookupCard } from '../company/LookupCard';
@@ -12,6 +13,7 @@ import { eventsOf } from '../model/events';
 import { nextSteps } from '../model/nextSteps';
 import { inView } from '../model/sprints';
 import type { Company } from '../model/types';
+import { rowInOut, slideIn } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { TwoClick } from './columns';
@@ -72,7 +74,10 @@ export function SidePanel({ width, onResize }: { width: number; onResize: (w: nu
       >
         <span className="absolute inset-y-0 left-0.5 w-0.5 bg-transparent transition-colors group-hover/rz:bg-selectable" />
       </div>
-      <CompanyPanel key={company.id} company={company} />
+      {/* Slides in as it opens, and again when it switches company (M10). */}
+      <motion.div key={company.id} {...slideIn} className="flex min-h-0 flex-1 flex-col">
+        <CompanyPanel company={company} />
+      </motion.div>
     </aside>
   );
 }
@@ -284,7 +289,19 @@ function CompanyPanel({ company: stored }: { company: Company }) {
 
         <div className="mt-4 grid gap-2" role="feed" aria-label="Feed">
           {feed.length ? (
-            feed.map((ev) => <FeedCard key={ev.id} event={ev} />)
+            <AnimatePresence initial={false}>
+              {feed.map((ev) => (
+                <motion.div
+                  key={ev.id}
+                  variants={rowInOut}
+                  initial="initial"
+                  animate="enter"
+                  exit="exit"
+                >
+                  <FeedCard event={ev} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           ) : (
             <p className="m-0 text-[13px] text-muted">
               Comments, status changes and emails show up here.

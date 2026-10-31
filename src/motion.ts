@@ -68,3 +68,35 @@ export const itemInOut = {
 
 /** Elements that slide to a new position (e.g. the view switcher's highlight). */
 export const glide: Transition = { duration: duration.slow, ease: ease.standard };
+
+/**
+ * Enter-only motion (M10): things arrive with a quick fade and a few pixels
+ * of travel, and leave at once, so nothing on its way out ever sits in front
+ * of a click. Spread on a motion element: <motion.div {...arrive} />.
+ */
+export const arrive = {
+  initial: { opacity: 0, y: 4 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: duration.base, ease: ease.out },
+} as const;
+
+/** The side panel's content sliding in from the right as it opens or switches company. */
+export const slideIn = {
+  initial: { opacity: 0, x: 14 },
+  animate: { opacity: 1, x: 0 },
+  transition: { duration: duration.slow, ease: ease.out },
+} as const;
+
+/** A status chip that just changed: a small pop, not on first show. */
+export const chipPop = {
+  initial: { opacity: 0, scale: 0.85 },
+  animate: { opacity: 1, scale: 1 },
+  transition: { duration: duration.base, ease: ease.out },
+} as const;
+
+/** Rows and feed lines: in with `arrive`, out quickly. */
+export const rowInOut: Variants = {
+  initial: { opacity: 0, y: 4 },
+  enter: { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.out } },
+  exit: { opacity: 0, transition: { duration: duration.fast, ease: ease.out } },
+};
