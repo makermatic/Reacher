@@ -1,0 +1,508 @@
+@import 'tailwindcss';
+
+/*
+ * M7: Reacher's own look. Kitsu shapes how it works, not how it looks
+ * (Zack, 2026-10-29). Dark by default; Settings → Appearance switches to light
+ * (data-theme="light" on <html>).
+ */
+:root {
+  /* Dark navy (Zack, round 1 of M7: "more dark blueish"). */
+  --bg: #0a0f19;
+  --surface: #0f1521;
+  --surface-2: #141c2b;
+  --hover: #1b2436;
+  --line: #1c2536;
+  --line-strong: #2b3850;
+  --fg: #e3e8f1;
+  --strong: #ffffff;
+  --muted: #92a0b6;
+  --faint: #66748c;
+  /* Zack's palette (coolors 0a0f19-6633aa-5500cc-2c2c8a-cc1133), M11 round 1:
+     violet accent, indigo for selection, purple for stars and warnings, crimson
+     for danger. Text in those colors uses a lighter tint so it reads on navy. */
+  --accent: #5500cc;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(85 0 204 / 0.22);
+  --accent-text: #a98bff;
+  --warn: #9b6ee0;
+  --topbar: #070b13;
+  --sidebar: #0d1320;
+  --panel: #0c121e;
+  --selected: rgb(44 44 138 / 0.55);
+  --selectable: #8585f2;
+  --c-grey: #8b94a1;
+  --c-blue: #4c8dff;
+  --c-teal: #2cc5c5;
+  --c-green: #3ddc84;
+  --c-amber: #f0b03c;
+  --c-pink: #ff6fb1;
+  --c-red: #e5334f;
+  --c-violet: #a78bfa;
+  --chip-ink: #0d0f12;
+  --shadow: 0 12px 40px rgb(2 6 16 / 0.6);
+  --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --f-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --hover: #eef0f3;
+  --line: #e3e6ea;
+  --line-strong: #cfd4da;
+  --fg: #1d2127;
+  --strong: #0b0d10;
+  --muted: #5f6873;
+  --faint: #8d959f;
+  --accent: #5500cc;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(85 0 204 / 0.1);
+  --accent-text: #5500cc;
+  --warn: #6633aa;
+  --topbar: #ffffff;
+  --sidebar: #ffffff;
+  --panel: #ffffff;
+  --selected: rgb(44 44 138 / 0.14);
+  --selectable: #2c2c8a;
+  --c-grey: #7d8692;
+  --c-blue: #2f6fed;
+  --c-teal: #0d9a9a;
+  --c-green: #0e9f53;
+  --c-amber: #b7790b;
+  --c-pink: #d6407f;
+  --c-red: #cc1133;
+  --c-violet: #7b5ce6;
+  --chip-ink: #ffffff;
+  --shadow: 0 12px 40px rgb(18 24 33 / 0.14);
+  color-scheme: light;
+}
+
+/* Expose the tokens to Tailwind utilities: bg-surface, text-muted, border-line, font-display... */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-chip-ink: var(--chip-ink);
+  --color-strong: var(--strong);
+  --color-topbar: var(--topbar);
+  --color-sidebar: var(--sidebar);
+  --color-panel: var(--panel);
+  --color-selected: var(--selected);
+  --color-selectable: var(--selectable);
+  --font-display: var(--f-display);
+  --font-body: var(--f-body);
+  --font-mono: var(--f-mono);
+  --shadow-panel: var(--shadow);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Keep browser autofill from painting fields bright blue or yellow. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--fg);
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  caret-color: var(--fg);
+}
+
+/* In a layer so a component's own outline-none wins (the inline name editor). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Status color by name: class="c-blue" sets --c for chips, bars and stripes. */
+.c-grey {
+  --c: var(--c-grey);
+}
+.c-blue {
+  --c: var(--c-blue);
+}
+.c-teal {
+  --c: var(--c-teal);
+}
+.c-green {
+  --c: var(--c-green);
+}
+.c-amber {
+  --c: var(--c-amber);
+}
+.c-pink {
+  --c: var(--c-pink);
+}
+.c-red {
+  --c: var(--c-red);
+}
+.c-violet {
+  --c: var(--c-violet);
+}
+
+.eyebrow {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Side gutter that clears a phone's side system bar. */
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- sheet pieces (from the prototype) ---------- */
+/* In the components layer so per-element utility classes can override them. */
+@layer components {
+  /* Status chip: solid in its status color. Color changes ease instead of snapping. */
+  .schip {
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 3px 10px;
+    text-align: center;
+    border: 1px solid transparent;
+    background: var(--c);
+    color: var(--chip-ink);
+    white-space: nowrap;
+    transition:
+      background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      filter 0.15s;
+  }
+  .schip:hover {
+    filter: brightness(1.07);
+  }
+  .schip.empty {
+    background: transparent;
+    border-color: var(--line-strong);
+    color: var(--faint);
+    font-weight: 500;
+  }
+
+  /* List value / tag: a soft pill tinted with its color. */
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 0 7px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--c) 18%, var(--surface));
+    color: var(--fg);
+    border: 1px solid color-mix(in srgb, var(--c) 35%, var(--surface));
+    margin-right: 3px;
+    white-space: nowrap;
+  }
+
+  .cb {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 4px;
+    display: inline-grid;
+    place-items: center;
+    vertical-align: middle;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
+  }
+  .cb.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .due {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .due.late {
+    color: var(--c-red);
+    font-weight: 600;
+  }
+  .due.today {
+    color: var(--c-amber);
+    font-weight: 600;
+  }
+  .due.when {
+    color: var(--accent);
+    font-weight: 600;
+    cursor: default;
+  }
+
+  /* Sheet grid (M7, Kitsu's shot list): header on the page, rows as one block. */
+  .sheet-grid th,
+  .sheet-grid td {
+    border-bottom: 1px solid var(--line);
+    padding: 0;
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .sheet-grid tbody td {
+    background: var(--surface);
+    transition: background-color 0.15s;
+  }
+  .sheet-grid tbody tr:last-child td {
+    background: transparent;
+  }
+  .sheet-grid tbody tr:hover > td {
+    background: var(--hover);
+  }
+  .sheet-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .sheet-grid .sticky-col,
+  .sheet-grid .sticky-col-2 {
+    position: sticky;
+    z-index: 1;
+  }
+  .sheet-grid .sticky-col {
+    left: 0;
+  }
+  .sheet-grid .sticky-col-2 {
+    left: 40px;
+    border-right: 1px solid var(--line);
+  }
+  .sheet-grid thead .sticky-col,
+  .sheet-grid thead .sticky-col-2 {
+    z-index: 3;
+  }
+  /* Status columns: tinted like Kitsu's task-type columns, with a colored edge. */
+  .sheet-grid .status-head {
+    background: color-mix(in srgb, var(--tint) 16%, var(--bg));
+    border-left: 1px solid var(--tint);
+  }
+  .sheet-grid tbody td.status-cell {
+    background: color-mix(in srgb, var(--tint) 14%, var(--surface));
+    border-left: 1px solid color-mix(in srgb, var(--tint) 60%, transparent);
+  }
+  .sheet-grid tbody tr:hover > td.status-cell {
+    background: color-mix(in srgb, var(--tint) 22%, var(--hover));
+  }
+  .sheet-grid tbody td.status-cell.is-selected,
+  .sheet-grid tbody tr:hover > td.status-cell.is-selected {
+    background: var(--selected);
+  }
+
+  /* The companies list (M7): rows on one surface, the Status column lightly tinted. */
+  .rtable th,
+  .rtable td {
+    border-bottom: 1px solid var(--line);
+    padding: 0;
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+    height: 44px;
+  }
+  .rtable thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-2);
+    height: 40px;
+  }
+  .rtable tbody td {
+    background: var(--surface);
+    transition: background-color 0.12s;
+  }
+  .rtable tbody tr:hover > td {
+    background: var(--hover);
+  }
+  .rtable .sticky-a {
+    position: sticky;
+    z-index: 1;
+    left: 0;
+    border-right: 1px solid var(--line);
+  }
+  .rtable thead .sticky-a {
+    z-index: 3;
+  }
+  .rtable tbody tr[aria-selected='true'] > td {
+    background: color-mix(in srgb, var(--selectable) 10%, var(--surface));
+  }
+  .rtable .stage-col,
+  .rtable .stage-cell {
+    --tint: var(--accent);
+  }
+  .rtable th.stage-col {
+    background: color-mix(in srgb, var(--tint) 10%, var(--surface-2));
+    box-shadow: inset 0 2px 0 var(--tint);
+  }
+  .rtable td.stage-cell {
+    background: color-mix(in srgb, var(--tint) 6%, var(--surface));
+    border-left: 1px solid var(--line);
+  }
+  .rtable tbody tr:hover > td.stage-cell {
+    background: color-mix(in srgb, var(--tint) 10%, var(--hover));
+  }
+  .rtable td.stage-cell[aria-selected='true'],
+  .rtable tbody tr:hover > td.stage-cell[aria-selected='true'] {
+    background: var(--selected);
+    box-shadow: inset 0 0 0 1px var(--selectable);
+  }
+  .rtable td.field-cell {
+    border-left: 1px solid var(--line);
+  }
+  .rtable tr.add-row td {
+    background: transparent;
+    border-bottom: 0;
+  }
+
+  /*
+   * The side panel fits its width like Kitsu's (after M11): long words and
+   * links break, and nothing inside can push it wider than the panel.
+   */
+  .panel-body {
+    overflow-wrap: anywhere;
+  }
+  .panel-body .grid > *,
+  .panel-body .flex > * {
+    min-width: 0;
+  }
+
+  /* Comments in Markdown (M7 round 2). */
+  .md {
+    display: grid;
+    gap: 0.45em;
+    overflow-wrap: anywhere;
+  }
+  .md p,
+  .md ul,
+  .md ol,
+  .md blockquote {
+    margin: 0;
+  }
+  .md ul,
+  .md ol {
+    padding-left: 1.3em;
+  }
+  .md ul {
+    list-style: disc;
+  }
+  .md ol {
+    list-style: decimal;
+  }
+  .md .md-h {
+    font-weight: 700;
+    color: var(--strong);
+  }
+  .md strong {
+    color: var(--strong);
+  }
+  .md code {
+    font-family: var(--f-mono);
+    font-size: 0.9em;
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background: var(--surface-2);
+  }
+  .md a {
+    color: var(--selectable);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .md blockquote {
+    border-left: 2px solid var(--line-strong);
+    padding-left: 0.7em;
+    color: var(--muted);
+  }
+
+  /*
+   * AI is working on this box (Zack, round 2): a thin light that runs around
+   * its border. Put the class on any element with a border radius. The spin
+   * speed lives here because CSS can't read src/motion.ts.
+   */
+  .ai-working {
+    position: relative;
+  }
+  .ai-working::after {
+    content: '';
+    position: absolute;
+    /* Over the 1px border plus 1px inside, so boxes that clip still show it. */
+    inset: -1px;
+    border-radius: inherit;
+    padding: 2px;
+    pointer-events: none;
+    background: conic-gradient(
+      from var(--ai-angle),
+      transparent 0 55%,
+      color-mix(in srgb, var(--accent) 60%, transparent) 72%,
+      var(--accent) 86%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: ai-spin 1.4s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ai-working::after {
+      background: var(--accent);
+      animation: ai-pulse 1.4s ease-in-out infinite alternate;
+    }
+  }
+}
+
+@property --ai-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes ai-spin {
+  to {
+    --ai-angle: 360deg;
+  }
+}
+@keyframes ai-pulse {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 0.8;
+  }
+}

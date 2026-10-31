@@ -1,0 +1,321 @@
+import {
+  DndContext,
+  DragOverlay,
+  pointerWithin,
+  PointerSensor,
+  TouchSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { motion } from 'motion/react';
+import { useToast } from '../components/Toast';
+import { readPref, writePref } from '../lib/prefs';
+import { glide } from '../motion';
+import { meta, optList, optionOf, statusCol } from '../model/board';
+import { rankBetween, rankOf, byRank } from '../model/ranking';
+import { useList, type Row } from './listContext';
+import { useAppUI } from './AppUI';
+import { colorVar, StatusTag } from './ui';
+
+const NONE = '_none';
+/** The card's second line, set by the page (People: the company). */
+const SubtitleContext = createContext<((row: Row) => ReactNode) | null>(null);
+const isFlags = (v: unknown): v is Record<string, boolean> =>
+  !!v && typeof v === 'object' && !Array.isArray(v);
+type Lanes = Record<string, string[]>;
+
+/**
+ * The Board (M7): a lane per status. Drag a card to another lane to change
+ * its status, or within a lane to reorder; the others make room as you drag.
+ * Click a card to open its panel.
+ */
+export function StatusBoard({
+  list,
+  subtitle,
+}: {
+  list: Row[];
+  /** A line under the name on each card (People: their company). */
+  subtitle?: (row: Row) => ReactNode;
+}) {
+  const { board, moveCard } = useList();
+  const { selected, select } = useAppUI();
+  const toast = useToast();
+  const sc = statusCol(board);
+  const opts = optList(sc);
+  const [collapsed, setCollapsed] = useState(() => readPref('collapsed-lanes', {}, isFlags));
+  const toggleLane = (key: string) => {
+    const next = { ...collapsed, [key]: !collapsed[key] };
+    setCollapsed(next);
+    writePref('collapsed-lanes', next);
+  };
+  const [preview, setPreview] = useState<Lanes | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+  );
+
+  const byId = new Map(list.map((c) => [c.id, c]));
+  const laneKeys = [NONE, ...opts.map((o) => o.id)];
+  const statusOf = (c: Row) => (meta(c, 'status') as string | null) ?? null;
+  const stored: Lanes = Object.fromEntries(
+    laneKeys.map((k) => [
+      k,
+      byRank(list.filter((c) => (k === NONE ? !optionOf(sc, statusOf(c)) : statusOf(c) === k))).map(
+        (c) => c.id,
+      ),
+    ]),
+  );
+  const shown = preview ?? stored;
+  const laneOf = (lanes: Lanes, id: string) =>
+    id in lanes ? id : Object.keys(lanes).find((k) => lanes[k]!.includes(id));
+
+  const collide: CollisionDetection = (args) => {
+    const hits = pointerWithin(args);
+    const cards = hits.filter((h) => !(String(h.id) in stored));
+    return cards.length ? cards : hits;
+  };
+  const onDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over || !preview) return;
+    const from = laneOf(preview, String(active.id));
+    const to = laneOf(preview, String(over.id));
+    if (!from || !to || from === to) return;
+    const id = String(active.id);
+    const target = preview[to]!.filter((x) => x !== id);
+    const at = target.indexOf(String(over.id));
+    const dragged = active.rect.current.translated;
+    const below =
+      !!dragged && dragged.top + dragged.height / 2 > over.rect.top + over.rect.height / 2;
+    target.splice(at >= 0 ? at + (below ? 1 : 0) : target.length, 0, id);
+    setPreview({ ...preview, [from]: preview[from]!.filter((x) => x !== id), [to]: target });
+  };
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    const lanes = preview ?? stored;
+    setPreview(null);
+    setActiveId(null);
+    const id = String(active.id);
+    const lane = laneOf(lanes, id);
+    if (!lane || !over) return;
+    let order = lanes[lane]!;
+    const overIdx = order.indexOf(String(over.id));
+    const curIdx = order.indexOf(id);
+    if (overIdx >= 0 && overIdx !== curIdx) order = arrayMove(order, curIdx, overIdx);
+    const idx = order.indexOf(id);
+    const status = lane === NONE ? null : lane;
+    const c = byId.get(id)!;
+    const moved = statusOf(c) !== status;
+    if (!moved && stored[lane]!.indexOf(id) === idx) return;
+    const prev = order[idx - 1];
+    const next = order[idx + 1];
+    moveCard(
+      id,
+      status,
+      rankBetween(
+        prev ? rankOf(byId.get(prev)!) : undefined,
+        next ? rankOf(byId.get(next)!) : undefined,
+      ),
+    );
+    if (moved) toast(`${c.name} → ${optionOf(sc, status)?.label ?? 'No status'}`);
+  };
+  const active = activeId ? byId.get(activeId) : undefined;
+
+  return (
+    <section aria-label="Board" className="flex h-full min-h-0 flex-col gap-3">
+      <SubtitleContext.Provider value={subtitle ?? null}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collide}
+          onDragStart={(e) => {
+            setActiveId(String(e.active.id));
+            setPreview(stored);
+          }}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => {
+            setPreview(null);
+            setActiveId(null);
+          }}
+        >
+          <div className="min-h-0 flex-1 overflow-x-auto pb-2">
+            <div className="flex h-full gap-3">
+              {laneKeys.map((k) => (
+                <Lane
+                  key={k}
+                  laneKey={k}
+                  label={k === NONE ? 'No status' : (optionOf(sc, k)?.label ?? k)}
+                  color={k === NONE ? 'grey' : (optionOf(sc, k)?.color ?? 'grey')}
+                  cards={(shown[k] ?? []).map((id) => byId.get(id)!).filter(Boolean)}
+                  collapsed={!!collapsed[k]}
+                  onToggle={() => toggleLane(k)}
+                  isSelected={(id) => selected === id}
+                  onPick={(id) => select(id)}
+                />
+              ))}
+            </div>
+          </div>
+          <DragOverlay>{active && <CardFace company={active} lifted />}</DragOverlay>
+        </DndContext>
+      </SubtitleContext.Provider>
+    </section>
+  );
+}
+
+function Lane({
+  laneKey,
+  label,
+  color,
+  cards,
+  collapsed,
+  onToggle,
+  isSelected,
+  onPick,
+}: {
+  laneKey: string;
+  label: string;
+  color: string;
+  cards: Row[];
+  collapsed: boolean;
+  onToggle: () => void;
+  isSelected: (id: string) => boolean;
+  onPick: (id: string) => void;
+}) {
+  // The lane itself takes drops, so empty and collapsed lanes accept cards.
+  const { setNodeRef, isOver } = useDroppable({ id: laneKey });
+  const dot = (
+    <span
+      className="size-2 shrink-0 rounded-full"
+      style={{ background: colorVar(color as never) }}
+    />
+  );
+  return (
+    <motion.div
+      ref={setNodeRef}
+      role="group"
+      aria-label={label}
+      initial={false}
+      animate={{ width: collapsed ? 44 : 256 }}
+      transition={glide}
+      className={`flex shrink-0 flex-col overflow-hidden rounded-xl border bg-surface transition-colors ${isOver ? 'border-selectable' : 'border-line'}`}
+    >
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={false}
+          title={`Show ${label}`}
+          aria-label={`Show ${label}`}
+          className="flex flex-1 flex-col items-center gap-2 py-2.5 transition-colors hover:bg-hover"
+        >
+          {dot}
+          <span className="text-[12px] text-faint tabular-nums">{cards.length}</span>
+          <span className="text-[13.5px] font-semibold whitespace-nowrap text-strong [writing-mode:vertical-rl]">
+            {label}
+          </span>
+        </button>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded
+            title={`Collapse ${label}`}
+            aria-label={`Collapse ${label}`}
+            className="flex items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-hover"
+          >
+            <span className="flex min-w-0 items-center gap-2 text-[13.5px] font-semibold text-strong">
+              {dot}
+              <span className="truncate">{label}</span>
+            </span>
+            <span className="text-[12px] text-faint tabular-nums">{cards.length}</span>
+          </button>
+          <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex min-h-16 w-64 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+              {cards.map((c) => (
+                <Card
+                  key={c.id}
+                  company={c}
+                  selected={isSelected(c.id)}
+                  onPick={() => onPick(c.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
+function Card({
+  company,
+  selected,
+  onPick,
+}: {
+  company: Row;
+  selected: boolean;
+  onPick: () => void;
+}) {
+  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
+    id: company.id,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      role="button"
+      tabIndex={0}
+      aria-label={`${company.name}. Select, or drag to change status or order`}
+      onClick={onPick}
+      data-opens-panel
+      onKeyDown={(e) => e.key === 'Enter' && onPick()}
+      className={`cursor-grab rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-selectable ${isDragging ? 'opacity-30' : ''}`}
+    >
+      <CardFace company={company} selected={selected} />
+    </div>
+  );
+}
+
+function CardFace({
+  company,
+  selected = false,
+  lifted = false,
+}: {
+  company: Row;
+  selected?: boolean;
+  lifted?: boolean;
+}) {
+  const { board } = useList();
+  const subtitle = useContext(SubtitleContext);
+  const outcome = board.columns.find((c) => c.id === 'outcome');
+  return (
+    <div
+      className={`grid gap-1.5 rounded-lg border px-3 py-2.5 ${
+        selected ? 'border-selectable bg-selected' : 'border-line bg-surface-2'
+      } ${lifted ? 'rotate-1 shadow-panel' : ''}`}
+    >
+      <b className="truncate text-[14px] text-strong">{company.name}</b>
+      {subtitle && <span className="truncate text-[12.5px] text-muted">{subtitle(company)}</span>}
+      {outcome && meta(company, outcome.id) != null && (
+        <StatusTag
+          col={outcome}
+          value={meta(company, outcome.id)}
+          className="justify-self-start text-[11px]"
+        />
+      )}
+    </div>
+  );
+}

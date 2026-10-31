@@ -1,0 +1,7 @@
+dist
+dist-artifact
+prototype
+node_modules
+package-lock.json
+*.md
+src/runtime/contract
