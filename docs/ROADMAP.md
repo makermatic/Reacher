@@ -8,14 +8,14 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Start tracking for real: say "real".** Zack wants to start from scratch and track everything. Plan: publish the real Reacher (empty, with his Email templates, Your details and Status types copied from Reacher Test), and keep Reacher Test for testing. Publishing it needs his explicit OK.
-2. ⏳ **Quick check of M7g and CSV import on Reacher Test (v16)**, test list under M7g below. Zack said round 2 was fine without another round of notes.
+1. ⏳ **Contacts (M11): confirm the plan** under M11 below, especially the two questions.
+2. ⏳ Optional: the real Reacher. Zack chose to track in Reacher Test for now (cleared 2026-10-31). A separate real Reacher, only updated when he OKs a round, can be published whenever he says "real".
 3. ⏳ **Outcome:** kept as in the prototype for now (a field that appears once there's been a meeting or interview). Zack wasn't sure what to do with it; decide once he's used it.
 4. ⏳ Still open from before: the M8 (Calendar) and M9 (Gmail) test lists below. They still apply; the buttons now live on the company page tabs.
 
 ## Now
 
-M7g (the older pieces in the new style, editing entries) and CSV import are published to Reacher Test v16. Next: the real Reacher once Zack says so, then motion and polish (M10).
+Reacher Test v18: M7g, CSV import, feed labels (dot + bold, no icons) and M10 motion. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
 
 ## Links
 
@@ -277,7 +277,13 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
 - M7f My Tasks (List, Board, Calendar), News Feed (day timeline, filters, click opens the panel), Settings.
 - M7g ✅ (v16) The older pieces in the new style: shared button and field looks match the kit; real icons (chain toggle and options, edit, delete) instead of text glyphs; no monospace dates; meeting times on one line; the writer's "Log as sent and follow up in" kept together; Email templates titled once; Gmail & Calendar settings show each connection, Check Gmail now with the last check, and the add-to-calendar default. Meetings, applications and pasted emails can be edited after adding (backlog item).
 - CSV import ✅ (v16, Zack's ask after round 2): Kitsu's importer for companies and contacts. Upload or paste; each column matched by header or contents (emails, links), changeable, Don't import or New field; companies you have found and skipped or updated; same company twice is one; rows with no company flagged. Toolbar "Import CSV", the empty list, and Settings → Import & export.
-- M10 ⬜ Motion and polish: the panel sliding, lanes folding, status changes, new feed lines. Quick and subtle (no waits).
+- M10 ✅ (v18) Motion, enter-only so nothing waits: pages and Sheet/Board fade in, the panel slides in (and when it switches company), rows and feed lines arrive with a short fade and leave quickly, a changed status chip pops. Menus stay instant (Zack). Reduced-motion settings respected.
+- M11 ⬜ **Contacts** (Zack's idea, 2026-10-31), like Kitsu's shots and assets:
+  - A second list, People, with its own Sheet and Board, side panel, comments and feed. Each person belongs to a company.
+  - Top bar: two dropdowns, Companies / People and All / a sprint. A sprint holds companies and their people together.
+  - A person's status is thumbs up or down, up by default. Default fields: Role, Email, Notes. All customizable like companies (fields, stars, status types).
+  - Today's "Main contact" fields become links to people, moved over once; CSV import can fill People too.
+  - Open questions for Zack: what a thumbs down means (not a fit, stopped replying?), and whether a person can belong to more than one company over time.
 
 #### Test list for M7g + CSV import (Reacher Test v16)
 1. Open a company. In Meetings, hover an entry: a pencil appears. Click it, change "With whom", Save. Same for an application and a pasted email.
@@ -426,6 +432,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-31 | Feed: a dot and bold label on every line (comments and quick updates too); icons removed. Zack's list in Reacher Test cleared at his request. M10 motion done. Next: People (M11). |
 | 2026-10-30 | Zack happy with round 2 without more notes. M7g done; CSV import added (Kitsu's importer as the model). Zack wants to start tracking for real from scratch, keeping templates, Your details and Status types; recommended the real Reacher (Reacher Test stays for testing). Publishing it waits for his explicit OK. |
 | 2026-10-30 | Round 2: comments are notes (no names, Markdown); the AI writes a plain-words line per company; suggestions only when something's owed; the panel only on the sheet and board, never with the full page; Status types, Email templates and Sprints get their own pages. Then on to M7g. |
 | 2026-10-30 | Reverted after Zack tested v12 ("you went backwards"): one Status column with the prototype's statuses. The side panel is the company page (comment box, status by Post, feed, then sections); name and status both open it. No multi-select. Star fields to show them on the sheet. Navy palette. Outcome stays as in the prototype until Zack decides. |
