@@ -262,7 +262,7 @@ function PeopleTable({
                     </div>
                   </td>
                   <td className="field-cell">
-                    <CompanyPicker person={p} name={companyName(p)} />
+                    <CompanyPicker person={p} name={companyName(p)} openOnClick />
                   </td>
                   <td
                     onClick={() => select(p.id)}
@@ -312,13 +312,16 @@ export function CompanyPicker({
   person,
   name,
   className = '',
+  openOnClick = false,
 }: {
   person: Contact;
   name: string;
   className?: string;
+  /** On the People sheet (Zack): a click opens the company, a right-click changes it. */
+  openOnClick?: boolean;
 }) {
   const { companies, actions } = useWorkspace();
-  const { openPage } = useAppUI();
+  const { openPage, select } = useAppUI();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const matches = [...companies]
@@ -340,6 +343,20 @@ export function CompanyPicker({
         <button
           type="button"
           aria-label={`Company for ${person.name}`}
+          {...(openOnClick && person.companyId
+            ? {
+                'data-opens-panel': true,
+                title: `Open ${name}. Right-click to change`,
+                onClick: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  select(person.companyId);
+                },
+                onContextMenu: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  setOpen(true);
+                },
+              }
+            : {})}
           className={`flex h-full min-h-[44px] w-full items-center gap-2 px-3 text-left text-[13.5px] ${name ? 'text-fg' : 'text-faint'} ${className}`}
         >
           <Building2 size={14} className="shrink-0 text-faint" aria-hidden="true" />
@@ -400,40 +417,131 @@ function RowDelete({ name, onDelete }: { name: string; onDelete: () => void }) {
   );
 }
 
-/** The last row: a name, and the company they're at. */
+/**
+ * The last row: a name, and the company they're at. In a sprint, people you
+ * have who aren't in it come first (Zack): picking one adds their company to
+ * the sprint, so they show up, instead of making a duplicate.
+ */
 function AddPersonRow({ span, disabled }: { span: number; disabled: boolean }) {
-  const { companies, actions } = useWorkspace();
+  const { companies, people, sprint, actions } = useWorkspace();
+  const { select } = useAppUI();
+  const info = useSprintInfo();
   const toast = useToast();
   const [name, setName] = useState('');
   const [companyId, setCompanyId] = useState('');
-  const add = () => {
+  const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false);
+  const companyOf = (p: Contact) => companies.find((c) => c.id === p.companyId);
+
+  const n = name.trim().toLowerCase();
+  const inView = (p: Contact) => {
+    const c = companyOf(p);
+    return !sprint || (!!c && inSprint(c, sprint));
+  };
+  const matches = n
+    ? people
+        .filter((p) => !inView(p) && p.name.toLowerCase().includes(n))
+        .sort(
+          (a, b) =>
+            Number(b.name.toLowerCase().startsWith(n)) - Number(a.name.toLowerCase().startsWith(n)),
+        )
+        .slice(0, 6)
+    : [];
+  const exact = people.find((p) => p.name.trim().toLowerCase() === n);
+  const options = [...matches.map((p) => ({ p })), ...(exact ? [] : [{ p: null }])];
+  const showList = open && matches.length > 0;
+
+  const reset = () => {
+    setName('');
+    setActive(0);
+  };
+  const addExisting = (p: Contact) => {
+    reset();
+    const c = companyOf(p);
+    if (inView(p)) return toast(`${p.name} is already on the list`);
+    if (!c) {
+      toast(`${p.name} isn’t at a company yet. Put them at one to add them to this sprint.`);
+      return select(p.id);
+    }
+    actions.addToSprint(c.id, sprint!);
+    toast(`Added ${c.name} to ${info[sprint!]?.label ?? 'this sprint'}, with ${p.name}`);
+  };
+  const create = () => {
     if (!name.trim()) return;
+    if (exact) return addExisting(exact);
     actions.addPerson(name, companyId || null);
     toast(`Added ${name.trim()}`);
-    setName('');
+    reset();
   };
+  const choose = (i: number) => {
+    const o = showList ? options[i] : undefined;
+    if (o?.p) addExisting(o.p);
+    else create();
+  };
+
   return (
     <tr className="add-row">
-      <td className="sticky-a">
+      <td className="sticky-a relative">
         <input
           id="new-person"
           value={name}
           disabled={disabled}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+            if (e.nativeEvent.isComposing) return;
+            if (e.key === 'ArrowDown' && showList) {
               e.preventDefault();
-              add();
-            } else if (e.key === 'Escape') setName('');
+              setActive((a) => Math.min(a + 1, options.length - 1));
+            } else if (e.key === 'ArrowUp' && showList) {
+              e.preventDefault();
+              setActive((a) => Math.max(a - 1, 0));
+            } else if (e.key === 'Enter') {
+              e.preventDefault();
+              choose(active);
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              if (showList) setOpen(false);
+              else reset();
+            }
           }}
           placeholder="+ Add a person"
           aria-label="Add a person"
+          aria-expanded={showList}
           autoComplete="off"
           className="w-full bg-transparent px-3 py-3 text-[14px] text-muted outline-none placeholder:text-faint"
         />
+        {showList && (
+          <div
+            role="listbox"
+            aria-label="People you have"
+            onMouseDown={(e) => e.preventDefault()}
+            className={`${ui.menu} absolute top-full left-2 w-80`}
+          >
+            {options.map((o, i) =>
+              o.p ? (
+                <MenuItem key={o.p.id} active={active === i} onSelect={() => choose(i)}>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{o.p.name}</span>
+                  <span className="shrink-0 truncate text-[11.5px] text-faint">
+                    {companyOf(o.p)?.name ?? 'No company'}
+                  </span>
+                </MenuItem>
+              ) : (
+                <MenuItem key="new" active={active === i} onSelect={() => choose(i)}>
+                  <span className="text-muted">New person “{name.trim()}”</span>
+                </MenuItem>
+              ),
+            )}
+          </div>
+        )}
       </td>
       <td>
-        {name.trim() && (
+        {name.trim() && !showList && (
           <select
             value={companyId}
             onChange={(e) => setCompanyId(e.target.value)}

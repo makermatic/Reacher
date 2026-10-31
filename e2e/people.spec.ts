@@ -2,7 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectToast, openDemo, settings } from './support';
 
 const person = (page: Page) => page.locator('aside[aria-label="Person panel"]');
-const toPeople = (page: Page) => page.getByRole('button', { name: 'Show people' }).click();
+/** Companies off: just People (the list filter, M11 round 2). */
+const toPeople = (page: Page) =>
+  page.getByRole('group', { name: 'Show' }).getByRole('button', { name: 'Companies' }).click();
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page);
@@ -69,17 +71,40 @@ test('People statuses are editable in Status types', async ({ page }) => {
   await expect(page.getByRole('menuitemradio', { name: /Warm/ })).toBeVisible();
 });
 
-test('the list toggle: the list on screen is pressed', async ({ page }) => {
-  await expect(page.getByRole('button', { name: 'Show companies' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await toPeople(page);
-  await expect(page.getByRole('button', { name: 'Show people' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+test('the list filter: both on by default, people under their companies', async ({ page }) => {
+  const show = page.getByRole('group', { name: 'Show' });
+  const companies = show.getByRole('button', { name: 'Companies' });
+  const people = show.getByRole('button', { name: 'People' });
+  await expect(companies).toHaveAttribute('aria-pressed', 'true');
+  await expect(people).toHaveAttribute('aria-pressed', 'true');
+  // Sam is listed under Psyop on the Companies sheet; click opens Sam.
+  const sam = page.locator('main tr.person-row', { hasText: 'Sam Example' });
+  await expect(sam).toBeVisible();
+  await sam.getByRole('button', { name: 'Sam Example' }).click();
+  await expect(person(page)).toBeVisible();
+  // People off: just companies.
+  await people.click();
+  await expect(people).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('main tr.person-row')).toHaveCount(0);
+  // The last one on can't be turned off.
+  await companies.click();
+  await expect(companies).toHaveAttribute('aria-pressed', 'true');
+  // Companies off (people on): the People list.
+  await people.click();
+  await companies.click();
+  await expect(page.getByRole('region', { name: 'People' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sprint', exact: true })).toHaveText(/All/);
+});
+
+test('People sheet: a company click opens it; right-click changes it', async ({ page }) => {
+  await toPeople(page);
+  const cell = page.getByRole('button', { name: 'Company for Sam Example' });
+  await cell.click();
+  await expect(page.locator('aside[aria-label="Company panel"]')).toBeVisible();
+  await cell.click({ button: 'right' });
+  await page.getByLabel('Find a company').fill('buck');
+  await page.getByRole('menuitemradio', { name: 'Buck' }).click();
+  await expect(cell).toHaveText('Buck');
 });
 
 test('a company note that names someone goes to them too; their emails are theirs', async ({
@@ -97,4 +122,25 @@ test('a company note that names someone goes to them too; their emails are their
   // A chain started with Sam is in Sam's Emails.
   await p.getByRole('button', { name: '+ New chain with Sam' }).click();
   await expect(p.getByLabel('Rename chain')).toHaveValue(/Email with Sam/);
+});
+
+test('in a sprint, people you have are suggested; picking one adds their company', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Sprint', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'New sprint' }).click();
+  await page.fill('#new-sprint-name', 'First Light');
+  await page.keyboard.press('Enter');
+  await toPeople(page);
+  await page.fill('#new-person', 'sam');
+  const list = page.getByRole('listbox', { name: 'People you have' });
+  // Names starting with what you typed come first ("Alex Sample" has it too).
+  await expect(list.getByRole('menuitemradio')).toHaveText([
+    /Sam Example.*Psyop/,
+    /Alex Sample/,
+    'New person “sam”',
+  ]);
+  await page.press('#new-person', 'Enter');
+  await expectToast(page, 'Added Psyop to First Light');
+  await expect(page.locator('button[title="Open Sam Example"]')).toBeVisible();
 });

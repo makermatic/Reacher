@@ -34,6 +34,7 @@ import { DEFAULT_TEMPLATES } from '../model/defaults';
 import { fillableColumns } from '../ai/prompts';
 import type { ImportData } from '../model/importData';
 import type { ImportPlan } from '../model/csvImport';
+import { baseSubject, isDefaultTitle, subjectOf } from '../model/gmail';
 import {
   contactsFromCompanies,
   DEFAULT_PEOPLE_BOARD,
@@ -364,6 +365,7 @@ function makeActions(
       const base = Date.now();
       /** Each line's company id, so every row's contact becomes a person (M11). */
       const idByLine = new Map<number, string>();
+      const made: Company[] = [];
       for (const r of plan.rows) {
         if (r.state === 'new') {
           const id = uid('co');
@@ -378,6 +380,7 @@ function makeActions(
           const joined = active ? { ...c, ...joinPatch(nextBoard, c, active) } : c;
           void guard(store.setItem('companies', id, body(joined)));
           idByLine.set(r.line, id);
+          made.push(joined);
           api.logEvents(id, [
             makeEvent('company', 'Imported from a CSV', 'you', { sprintId: active }),
             ...(r.comment ? [makeEvent('comment', r.comment, 'you', { sprintId: active })] : []),
@@ -404,7 +407,7 @@ function makeActions(
         .filter((x) => x.id) as Company[];
       const newPeople = contactsFromCompanies(nextBoard, rowsAsCompanies, people, base);
       for (const p of newPeople) void guard(store.setItem('people', p.id, body(p)));
-      return { created, updated, people: newPeople.length };
+      return { created, updated, people: newPeople.length, companies: made };
     },
 
     // ---------- sprints (M7) ----------
@@ -570,7 +573,12 @@ function makeActions(
       };
       const existing = target !== 'new' ? chains.find((ch) => ch.id === target) : undefined;
       const chain: Chain = existing
-        ? { ...existing, messages: [...existing.messages, msg] }
+        ? {
+            ...existing,
+            messages: [...existing.messages, msg],
+            // Named after its subject until you rename it (Zack).
+            ...(subject && isDefaultTitle(existing.title) ? { title: baseSubject(subject) } : {}),
+          }
         : {
             id: uid('ch'),
             companyId: c.id,
@@ -693,9 +701,11 @@ function makeActions(
     },
 
     /** Fills a company from a lookup candidate; returns the names of the fields filled. */
-    applyCandidate(c: Company, cand: Candidate) {
+    /** `keepName`: a bulk fill keeps the name as typed (after M11). */
+    applyCandidate(c: Company, cand: Candidate, keepName = false) {
       const fillable = fillableColumns(board).map((col) => col.id);
       const { patch, filled, newOptions } = planCandidate(board, c, cand, fillable);
+      if (keepName) delete patch.name;
       if (Object.keys(newOptions).length)
         api.saveBoard({
           ...board,
@@ -860,7 +870,14 @@ function makeActions(
      */
     addEmail(chain: Chain, msg: Omit<Message, 'id'>) {
       const started = !chain.started || msg.date < chain.started ? msg.date : chain.started;
-      api.saveChain({ ...chain, started, messages: [...chain.messages, { id: uid('m'), ...msg }] });
+      const subject = subjectOf(msg.text);
+      api.saveChain({
+        ...chain,
+        started,
+        messages: [...chain.messages, { id: uid('m'), ...msg }],
+        // A chain still on its starting name takes the email's subject (Zack).
+        ...(subject && isDefaultTitle(chain.title) ? { title: subject } : {}),
+      });
       const c = company(chain.companyId);
       const ev = makeEvent(
         'email',

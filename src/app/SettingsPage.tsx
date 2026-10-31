@@ -1,5 +1,7 @@
 import { CalendarDays, Mail, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
+import { useAssistant } from '../ai/Assistant';
+import { missingDetails } from '../ai/prompts';
 import { AiCheck } from '../components/AiCheck';
 import { Templates } from '../components/TemplatesScreen';
 import { armedDanger, ConfirmButton } from '../components/ConfirmButton';
@@ -305,18 +307,66 @@ function ConnectionsTab() {
 
 function DataTab({ onImport }: { onImport: () => void }) {
   return (
-    <div className={`${ui.block} grid max-w-2xl gap-3 p-5 text-[14px]`}>
-      <p className="m-0">
-        Your data is yours. Export everything as one file (a backup you can import back), bring in
-        an export from the prototype, or add companies and contacts from a CSV.
-      </p>
-      <div className="flex gap-2">
-        <ExportButton />
-        <button type="button" className={ui.button} onClick={onImport}>
-          Import data
-        </button>
-        <CsvImportButton />
+    <div className="grid max-w-2xl gap-4">
+      <div className={`${ui.block} grid gap-3 p-5 text-[14px]`}>
+        <p className="m-0">
+          Your data is yours. Export everything as one file (a backup you can import back), bring in
+          an export from the prototype, or add companies and contacts from a CSV.
+        </p>
+        <div className="flex gap-2">
+          <ExportButton />
+          <button type="button" className={ui.button} onClick={onImport}>
+            Import data
+          </button>
+          <CsvImportButton />
+        </div>
       </div>
+      <FillDetails />
+    </div>
+  );
+}
+
+/**
+ * Look up missing details for every company (after M11): website, city,
+ * size, type. One at a time in the background; only what the AI is sure of.
+ */
+function FillDetails() {
+  const { board, companies } = useWorkspace();
+  const { available, fillMissing, filling, stopFilling } = useAssistant();
+  const missing = companies.filter((c) => missingDetails(board, c));
+  return (
+    <div className={`${ui.block} grid gap-3 p-5 text-[14px]`}>
+      <h2 className={`${ui.sectionTitle} text-[16px]`}>Fill in missing details</h2>
+      <p className="m-0 text-muted">
+        The AI looks up each company with empty fields (website, city, size, type) and fills only
+        those, when it’s sure which company it is. Your own entries and names stay as they are.
+      </p>
+      {!available ? (
+        <p className="m-0 text-[13px] text-faint">This uses AI, which works inside Claude.</p>
+      ) : filling ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="ai-working rounded-lg px-3 py-1.5 text-[13.5px]">
+            Looking up {filling.done + 1 > filling.total ? filling.total : filling.done + 1} of{' '}
+            {filling.total}… {filling.filled} filled so far
+          </span>
+          <button type="button" className={ui.button} onClick={stopFilling}>
+            Stop
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={!missing.length}
+            className={ui.primary}
+            onClick={() => fillMissing(missing)}
+          >
+            {missing.length
+              ? `Look up ${missing.length} ${missing.length === 1 ? 'company' : 'companies'}`
+              : 'Every company has its details'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

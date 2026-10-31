@@ -13,6 +13,12 @@ export type AppUI = {
   openPage: (id: string) => void;
   /** The companies list with this company open in the side panel. */
   showCompany: (id: string) => void;
+  /**
+   * The list filter (M11 round 2), both on by default: on the Companies page,
+   * each company's people are listed under it. Companies off = the People page.
+   */
+  showPeople: boolean;
+  setShowPeople: (on: boolean) => void;
 };
 
 export const AppUIContext = createContext<AppUI | null>(null);

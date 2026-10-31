@@ -181,7 +181,12 @@ export function Dropdown({
       width={width}
       label={ariaLabel}
       trigger={
-        <button type="button" aria-label={ariaLabel} className={`${ui.button} ${className}`}>
+        <button
+          type="button"
+          aria-label={ariaLabel}
+          title={typeof label === 'string' ? label : undefined}
+          className={`${ui.button} ${className}`}
+        >
           {icon}
           <span className="min-w-0 truncate">{label}</span>
           <ChevronDown size={15} className="shrink-0 text-faint" aria-hidden="true" />

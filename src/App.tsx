@@ -59,6 +59,10 @@ function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => readPref('panel-width', 520, isNumber));
+  // People listed under their companies (M11 round 2): on by default.
+  const [showPeople, setShowPeopleState] = useState(() =>
+    readPref('show-people', true, (v): v is boolean => typeof v === 'boolean'),
+  );
 
   // Escape closes the side panel, unless a menu, picker or dialog is in front,
   // or you're halfway through typing something.
@@ -90,8 +94,13 @@ function Shell() {
         navigate({ page: 'companies' });
         select(id);
       },
+      showPeople,
+      setShowPeople: (on) => {
+        setShowPeopleState(on);
+        writePref('show-people', on);
+      },
     }),
-    [route, navigate, selected],
+    [route, navigate, selected, showPeople],
   );
 
   const resize = (w: number) => {

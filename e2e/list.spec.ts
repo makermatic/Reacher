@@ -117,7 +117,7 @@ test('add a field, take one off the sheet, sort by name', async ({ page }) => {
   await expect(field(page, 'Buck', 'City')).toHaveCount(0);
   await page.getByRole('button', { name: 'Company', exact: true }).click();
   const names = await page
-    .locator('tbody tr button[title^="Open"]:not([aria-label])')
+    .locator('tbody tr:not(.person-row) button[title^="Open"]:not([aria-label])')
     .allTextContents();
   expect(names).toEqual([...names].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())));
 });

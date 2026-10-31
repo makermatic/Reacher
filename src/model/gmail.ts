@@ -34,6 +34,16 @@ const list = (v: unknown) => (Array.isArray(v) ? v : []);
 /** "Sam Lee <sam@psyop.tv>" or "sam@psyop.tv" → "sam@psyop.tv". */
 export const addressOf = (s: string) => (/<([^>]+)>/.exec(s)?.[1] ?? s).trim().toLowerCase();
 
+/** A chain still wearing the name it was started with ("Email chain Oct 31", "Email with Ana Oct 31"). */
+export const isDefaultTitle = (title: string) =>
+  /^Email (chain|with .+?)( [A-Z][a-z]{2} \d{1,2}(, \d{4})?)?$/.test(title.trim());
+
+/** The subject of a pasted or logged email ("Subject: …" on its first lines), without Re:/Fwd:. */
+export function subjectOf(text: string): string {
+  const m = /^\s*subject:\s*(.+)$/im.exec(text.split('\n').slice(0, 4).join('\n'));
+  return m ? baseSubject(m[1]!.trim()) : '';
+}
+
 /** "Re: Fwd: Hello" → "Hello". */
 export const baseSubject = (s: string) => s.replace(/^\s*((re|fwd?|aw|sv)\s*:\s*)+/i, '').trim();
 
@@ -159,6 +169,8 @@ export function threadCompany(
 export const knownCount = (chains: Chain[], threadId: string) =>
   chains
     .filter((ch) => ch.gmailThreadId === threadId)
+    // A chain from before M11 doesn't know who's on it yet: read it once more.
+    .filter((ch) => ch.people?.length)
     .reduce(
       (n, ch) => n + ch.messages.filter((m) => m.gmailId).length + (ch.gmailSkip?.length ?? 0),
       0,
@@ -200,11 +212,14 @@ export function syncThread(
         summary: null,
       };
   const linked = chain.gmailThreadId !== thread.id;
+  // A chain started by hand takes the email's subject once Gmail links it (Zack).
+  if (linked && isDefaultTitle(chain.title) && thread.subject) chain.title = baseSubject(title);
   chain.gmailThreadId = thread.id;
   // Who's on it, so each person's panel can show their emails (M11).
   const everyone = thread.messages.flatMap((m) => [m.from, ...m.to]).filter(Boolean);
   const people = [...new Set([...(chain.people ?? []), ...everyone])];
-  if (people.length !== (chain.people ?? []).length) chain.people = people;
+  const newPeople = people.length !== (chain.people ?? []).length;
+  if (newPeople) chain.people = people;
   chain.gmailLink = thread.link;
 
   const added: Message[] = [];
@@ -222,7 +237,7 @@ export function syncThread(
     chain.messages.push(msg);
     added.push(msg);
   }
-  if (!added.length && !linked) return null;
+  if (!added.length && !linked && !newPeople) return null;
   chain.messages.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   if (chain.messages[0] && (!chain.started || chain.messages[0].date < chain.started))
     chain.started = chain.messages[0].date;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BOARD } from './defaults';
-import { mailQuery, threadCompany } from './gmail';
+import { isDefaultTitle, mailQuery, subjectOf, threadCompany } from './gmail';
 import { parseExport } from './importData';
 import {
   chainsOf,
@@ -127,5 +127,15 @@ describe('notes and emails for a person (M11)', () => {
         .map((c: { id: string }) => c.id)
         .sort(),
     ).toEqual(['a', 'b']);
+  });
+});
+
+describe('chain names', () => {
+  it('a chain on its starting name takes the email subject', () => {
+    expect(isDefaultTitle('Email chain Oct 31')).toBe(true);
+    expect(isDefaultTitle('Email with Ana Oct 31')).toBe(true);
+    expect(isDefaultTitle('Intro to Sam')).toBe(false);
+    expect(subjectOf('Subject: Re: Motion designer\n\nHi')).toBe('Motion designer');
+    expect(subjectOf('Hi Sam,\nno subject here')).toBe('');
   });
 });

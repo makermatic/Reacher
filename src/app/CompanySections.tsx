@@ -7,6 +7,9 @@ import { ChevronDown, ChevronRight, Star } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChainCard, ChainsBody, NewChainButton } from '../company/ChainsBody';
 import { useToast } from '../components/Toast';
+import { needsOk } from '../runtime/connectors';
+import { gmailErrorMessage } from '../runtime/gmail';
+import { useGmail } from '../workspace/GmailProvider';
 import { chainsOf } from '../model/people';
 import { ComposeEmail } from '../company/ComposeEmail';
 import { colShows, meta, statusCol } from '../model/board';
@@ -172,14 +175,15 @@ export function EmailsSection({
   useEffect(() => {
     if (preset) writer.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [preset]);
+  // The writer first, then the chains (Zack, after M11).
   return (
     <>
+      <div ref={writer} className="scroll-mt-4">
+        <ComposeEmail key={preset?.key ?? 0} company={company} preset={preset} />
+      </div>
       <ChainsBody company={company} open={open} setOpen={setChainOpen} />
       <div>
         <NewChainButton company={company} onCreated={(id) => setChainOpen(id, true)} />
-      </div>
-      <div ref={writer} className="scroll-mt-4">
-        <ComposeEmail key={preset?.key ?? 0} company={company} preset={preset} />
       </div>
     </>
   );
@@ -197,8 +201,54 @@ export function PersonEmails({ person }: { person: Contact }) {
     mine[0] ? { [mine[0].id]: true } : {},
   );
   const first = person.name.split(/\s+/)[0] || person.name;
+  const gmail = useGmail();
+  const { checkPerson } = gmail;
+  const s = gmail.status[person.id];
+  // Opening their panel checks their email (once Gmail is allowed; not too often).
+  useEffect(() => {
+    void checkPerson(person, false);
+    // Once per person, not on every edit to them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [person.id, checkPerson]);
+  const check = (label: string) => (
+    <button
+      type="button"
+      onClick={() => void checkPerson(person, true)}
+      className="rounded-md px-2 py-0.5 text-[12.5px] font-semibold text-selectable hover:bg-hover"
+    >
+      {label}
+    </button>
+  );
   return (
     <div className="grid gap-2">
+      {gmail.available && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">
+          <span className="text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+            Gmail
+          </span>
+          {s?.checking ? (
+            <span>Checking your email with {first}…</span>
+          ) : s?.error ? (
+            <>
+              <span>
+                {s.error.code === 'no_address' ? s.error.message : gmailErrorMessage(s.error)}
+              </span>
+              {s.error.code !== 'no_address' &&
+                check(needsOk(s.error.code) ? 'Allow Gmail' : 'Try again')}
+            </>
+          ) : s?.at ? (
+            <>
+              <span>Checked</span>
+              {check('Check again')}
+            </>
+          ) : (
+            <>
+              <span>Find your emails with {first}.</span>
+              {check('Check Gmail')}
+            </>
+          )}
+        </div>
+      )}
       {mine.length ? (
         mine.map((ch) => (
           <ChainCard

@@ -149,6 +149,13 @@ function GmailBar({ company }: { company: Company }) {
   );
 }
 
+/** Puts the caret in a chain's name, all of it selected, to type a new one. */
+const focusTitle = (chainId: string) => {
+  const el = document.getElementById(`chain-title-${chainId}`) as HTMLInputElement | null;
+  el?.focus();
+  el?.select();
+};
+
 export function ChainCard({
   chain,
   open,
@@ -186,12 +193,24 @@ export function ChainCard({
             <ChevronDown size={16} aria-hidden="true" />
           </motion.span>
         </button>
-        <InlineText
-          value={chain.title}
-          label="Rename chain"
-          onSave={(title) => actions.saveChain({ ...chain, title })}
-          className="flex-1 font-semibold"
-        />
+        <span className="group/title flex min-w-0 flex-1 items-center gap-1">
+          <InlineText
+            id={`chain-title-${chain.id}`}
+            value={chain.title}
+            label="Rename chain"
+            onSave={(title) => actions.saveChain({ ...chain, title })}
+            className="font-semibold"
+          />
+          <button
+            type="button"
+            onClick={() => focusTitle(chain.id)}
+            aria-label={`Rename ${chain.title}`}
+            title="Rename"
+            className={`${btn.icon} shrink-0 opacity-0 group-hover/title:opacity-100 focus:opacity-100`}
+          >
+            <Pencil size={13} aria-hidden="true" />
+          </button>
+        </span>
         <span className="text-[12px] whitespace-nowrap text-muted tabular-nums">
           {msgs.length} · {range}
         </span>
@@ -254,6 +273,16 @@ function ChainMenu({ chain }: { chain: Chain }) {
       }
     >
       <PopoverHeader title={chain.title} />
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          requestAnimationFrame(() => focusTitle(chain.id));
+        }}
+        className={`${btn.ghost} ${btn.small} mb-1 w-full justify-start`}
+      >
+        <Pencil size={13} aria-hidden="true" /> Rename
+      </button>
       <div>
         <ConfirmButton
           onConfirm={del}

@@ -6,6 +6,7 @@
  */
 import { FileUp, Upload } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
+import { useAssistant } from '../ai/Assistant';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { parseCsv } from '../model/csv';
@@ -187,6 +188,9 @@ function Preview({
   const cols = Array.from({ length: width }, (_, i) => header[i] ?? '');
   const [targets, setTargets] = useState<Target[]>(() => guessTargets(board, cols, body));
   const [update, setUpdate] = useState(false);
+  const assistant = useAssistant();
+  // Fill in website, city, size... for the new companies (Zack, after M11).
+  const [lookUp, setLookUp] = useState(true);
   const options = importTargets(board);
   const groups = [...new Set(options.map((o) => o.group))];
   // Once imported, the preview stays as it was while the dialog closes.
@@ -212,6 +216,8 @@ function Preview({
         ? plan
         : planImport(made.board, companies, cols, body, made.targets, update);
     const done = actions.importRows(final, made.board);
+    if (lookUp && assistant.available && done.companies.length)
+      assistant.fillMissing(done.companies);
     const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
     const added = [
       done.created && n(done.created, 'company', 'companies'),
@@ -238,6 +244,18 @@ function Preview({
           />
           Update companies you already have
         </label>
+        {assistant.available && (
+          <label className="flex items-center gap-2 text-[13.5px]">
+            <input
+              id="csv-lookup"
+              type="checkbox"
+              checked={lookUp}
+              onChange={(e) => setLookUp(e.target.checked)}
+              className="accent-[var(--accent)]"
+            />
+            Look up details for new companies (website, city, size)
+          </label>
+        )}
         <div className="flex flex-wrap gap-2" aria-label="Legend">
           {(['new', 'update', 'skip', 'incomplete'] as RowState[]).map((s) => (
             <Tag key={s} state={s} />

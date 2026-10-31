@@ -10,7 +10,10 @@ export function InlineText({
   onSave,
   label,
   className,
+  id,
 }: {
+  /** So a Rename button elsewhere can focus it. */
+  id?: string;
   value: string;
   onSave: (v: string) => void;
   label: string;
@@ -33,6 +36,7 @@ export function InlineText({
 
   return (
     <input
+      id={id}
       value={draft}
       aria-label={label}
       title={label}

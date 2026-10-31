@@ -6,6 +6,7 @@ import {
   Plus,
   Search,
   Table2,
+  UserRound,
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -17,7 +18,8 @@ import { colShows, meta, optList, sheetColumns, statusCol, valueText } from '../
 import { matchesQuery, parseQuery } from '../model/query';
 import { inSprint, inView } from '../model/sprints';
 import { norm } from '../model/text';
-import type { Company } from '../model/types';
+import { contactsAt } from '../model/people';
+import type { Company, Contact } from '../model/types';
 import { arrive, chipPop, glide, rowInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
@@ -276,8 +278,8 @@ function CompanyTable({
   onSort: (s: Sort) => void;
   onImport: () => void;
 }) {
-  const { board, companies, loading, actions } = useWorkspace();
-  const { selected, select, openPage } = useAppUI();
+  const { board, companies, people, loading, actions } = useWorkspace();
+  const { selected, select, openPage, showPeople } = useAppUI();
   const toast = useToast();
   const [addingField, setAddingField] = useState(false);
   const sc = statusCol(board);
@@ -327,9 +329,9 @@ function CompanyTable({
         </thead>
         <tbody>
           <AnimatePresence initial={false}>
-            {list.map((c) => {
+            {list.flatMap((c) => {
               const open = selected === c.id;
-              return (
+              return [
                 <motion.tr
                   key={c.id}
                   variants={rowInOut}
@@ -396,8 +398,14 @@ function CompanyTable({
                     </td>
                   ))}
                   <td />
-                </motion.tr>
-              );
+                </motion.tr>,
+                // Both lists on (M11 round 2): their people, under them.
+                ...(showPeople
+                  ? contactsAt(people, c.id).map((p) => (
+                      <PersonRow key={p.id} person={p} span={fields.length + 1} />
+                    ))
+                  : []),
+              ];
             })}
           </AnimatePresence>
           <AddCompanyRow disabled={loading} span={fields.length + 2} />
@@ -594,5 +602,51 @@ function AddCompanyRow({ span, disabled }: { span: number; disabled: boolean }) 
       </td>
       <td colSpan={span} />
     </tr>
+  );
+}
+
+/**
+ * A person under their company on the Companies sheet (M11 round 2): name,
+ * their status, then role and email. Click for their panel.
+ */
+function PersonRow({ person: p, span }: { person: Contact; span: number }) {
+  const { peopleBoard } = useWorkspace();
+  const { selected, select } = useAppUI();
+  const sc = statusCol(peopleBoard);
+  const open = selected === p.id;
+  const details = [meta(p, 'role'), meta(p, 'email')].filter(Boolean).join(' · ');
+  return (
+    <motion.tr
+      variants={rowInOut}
+      initial="initial"
+      animate="enter"
+      exit="exit"
+      className="person-row group"
+      aria-selected={open}
+    >
+      <td className="sticky-a">
+        <button
+          type="button"
+          onClick={() => select(p.id)}
+          data-opens-panel
+          title={`Open ${p.name}`}
+          className="flex w-full min-w-0 items-center gap-2 py-2 pr-3 pl-7 text-left text-[13px] text-fg hover:underline"
+        >
+          <UserRound size={13} className="shrink-0 text-faint" aria-hidden="true" />
+          <span className="truncate">{p.name}</span>
+        </button>
+      </td>
+      <td
+        onClick={() => select(p.id)}
+        data-opens-panel
+        aria-label={`Status for ${p.name}`}
+        className="cursor-pointer px-3"
+      >
+        <StatusTag col={sc} value={meta(p, 'status')} className="text-[11.5px]" />
+      </td>
+      <td colSpan={span} className="px-3 text-[12.5px] text-muted">
+        <span className="block max-w-[520px] truncate">{details}</span>
+      </td>
+    </motion.tr>
   );
 }

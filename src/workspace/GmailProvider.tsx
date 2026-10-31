@@ -28,6 +28,8 @@ import { useWorkspace, type Workspace } from './WorkspaceProvider';
 /** How far back a company's own check looks, and the all-companies check. */
 const COMPANY_DAYS = 365;
 const ALL_DAYS = 30;
+/** How far back a person's own check looks (M11): the last year, like a company's. */
+const PERSON_DAYS = 365;
 /** A company page re-checks at most this often on its own; the button always checks. */
 const RECHECK_MS = 5 * 60_000;
 /** While Reacher is open, the all-companies check repeats this often. */
@@ -51,6 +53,8 @@ type GmailState = {
    * when nothing's new.
    */
   checkAll: (ask: boolean) => Promise<void>;
+  /** A person's email, from their panel (M11); status under their id. */
+  checkPerson: (p: Contact, ask: boolean) => Promise<void>;
   /** Saves a draft in Gmail. Resolves its link, or an error message. */
   saveDraft: (
     chain: Chain | null,
@@ -180,6 +184,47 @@ export function GmailProvider({ children }: { children: ReactNode }) {
     [gmail],
   );
 
+  /**
+   * A person's email (M11): every thread with their address in the last
+   * year, filed under their company, so their panel shows them. `ask`: a
+   * click, so the connector may ask for the OK.
+   */
+  const checkPerson = useCallback(
+    async (p: Contact, ask: boolean) => {
+      if (!gmail) return;
+      const now = Date.now();
+      if (!ask) {
+        if (now - (lastRun.current[p.id] ?? 0) < RECHECK_MS) return;
+        if (!(await gmail.allowed())) return;
+      }
+      lastRun.current[p.id] = now;
+      const email = contactEmail(p);
+      const company = wsRef.current.companies.find((c) => c.id === p.companyId);
+      if (!email.includes('@') || !company) {
+        patch(p.id, {
+          checking: false,
+          error: {
+            code: 'no_address',
+            message: !company
+              ? 'Put them at a company to keep emails with them.'
+              : 'Add their email so Reacher can find your emails with them.',
+          },
+        });
+        return;
+      }
+      patch(p.id, { checking: true });
+      try {
+        const query = `(from:${email} OR to:${email}) newer_than:${PERSON_DAYS}d`;
+        const lines = await pull(await gmail.search(query, 25), company);
+        patch(p.id, { checking: false, at: Date.now() });
+        if (lines.length) toast(lines.join(' · '));
+      } catch (e) {
+        patch(p.id, { checking: false, error: e as ConnectorError });
+      }
+    },
+    [gmail, pull, patch, toast],
+  );
+
   const checkCompany = useCallback(
     async (company: Company, ask: boolean) => {
       if (!gmail) return;
@@ -285,8 +330,8 @@ export function GmailProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<GmailState>(
-    () => ({ available: !!gmail, status, checkCompany, checkAll, saveDraft }),
-    [gmail, status, checkCompany, checkAll, saveDraft],
+    () => ({ available: !!gmail, status, checkCompany, checkAll, checkPerson, saveDraft }),
+    [gmail, status, checkCompany, checkAll, checkPerson, saveDraft],
   );
   return <GmailContext.Provider value={value}>{children}</GmailContext.Provider>;
 }

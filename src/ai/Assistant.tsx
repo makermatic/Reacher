@@ -110,6 +110,15 @@ type Assistant = {
   ) => Promise<{ subject: string; body: string } | null>;
   /** A quick AI guess at a name from an email address; '' when it can't tell. */
   guessName: (email: string) => Promise<string>;
+  /**
+   * Fills in empty details (website, city, size, type...) for many companies,
+   * one at a time, in the background (after M11). Only when the AI is sure;
+   * names stay as typed. Ends with one message.
+   */
+  fillMissing: (companies: Company[]) => void;
+  /** The fill in progress, for its progress line; null when none. */
+  filling: { done: number; total: number; filled: number } | null;
+  stopFilling: () => void;
 };
 
 const AssistantContext = createContext<Assistant | null>(null);
@@ -315,6 +324,51 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     [ai, apply, fail],
   );
 
+  const [filling, setFilling] = useState<Assistant['filling']>(null);
+  const stopRef = useRef(false);
+  const fillMissing = useCallback(
+    (list: Company[]) => {
+      if (!ai) return toast(NO_AI);
+      if (!list.length) return toast('Every company already has its details.');
+      stopRef.current = false;
+      setFilling({ done: 0, total: list.length, filled: 0 });
+      void (async () => {
+        let filled = 0;
+        let i = 0;
+        for (; i < list.length && !stopRef.current; i++) {
+          // Just-imported companies may not have arrived from the store yet.
+          const c = wsRef.current.companies.find((x) => x.id === list[i]!.id) ?? list[i]!;
+          try {
+            const reply = await ai.json<LookupReply>(lookupPrompt(wsRef.current.board, c.name));
+            const cands = cleanCandidates(reply);
+            if (cands.length && reply?.sure) {
+              // The latest company, in case it changed while the AI answered.
+              const now = wsRef.current.companies.find((x) => x.id === c.id) ?? c;
+              const got = wsRef.current.actions.applyCandidate(now, cands[0]!, true);
+              if (got.length) filled++;
+            }
+          } catch (e) {
+            const text = fail(e);
+            if (text) {
+              toast(`Stopped looking up companies. ${text}`);
+              break;
+            }
+          }
+          setFilling({ done: i + 1, total: list.length, filled });
+        }
+        setFilling(null);
+        const skipped = i - filled;
+        toast(
+          `Filled in details for ${filled} ${filled === 1 ? 'company' : 'companies'}` +
+            (skipped
+              ? `. ${skipped} weren’t sure or had nothing new, so they’re as they were.`
+              : '.'),
+        );
+      })();
+    },
+    [ai, fail, toast],
+  );
+
   const value = useMemo<Assistant>(
     () => ({
       available: !!ai,
@@ -334,6 +388,11 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       },
       lookup,
       lookups,
+      fillMissing,
+      filling,
+      stopFilling: () => {
+        stopRef.current = true;
+      },
       pickCandidate: (companyId, cand) => {
         const cur = lookups[companyId];
         if (!cur || cur.busy) return;
@@ -395,7 +454,20 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [ai, notice, noticeOrigin, lookups, quickUpdate, apply, lookup, toast, fail, setLookup],
+    [
+      ai,
+      notice,
+      noticeOrigin,
+      lookups,
+      quickUpdate,
+      apply,
+      lookup,
+      toast,
+      fail,
+      setLookup,
+      fillMissing,
+      filling,
+    ],
   );
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;

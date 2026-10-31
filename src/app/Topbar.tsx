@@ -58,7 +58,8 @@ export function Topbar() {
           {route.page === 'companies' || route.page === 'people' ? (
             // "All" (or the sprint) with the two lists as icon toggles (Zack's sketch, M11).
             <div className="flex items-center">
-              <SprintPicker className="rounded-r-none" />
+              {/* Squared on the right so the list icons join it; a long name shortens. */}
+              <SprintPicker className="max-w-[280px] !rounded-r-none" />
               <ListToggle />
             </div>
           ) : (
@@ -133,7 +134,7 @@ function SprintPicker({ className = '' }: { className?: string }) {
       icon={<Layers size={16} className="text-muted" aria-hidden="true" />}
       label={current ?? 'All'}
       width={320}
-      className={`max-w-[340px] ${className}`}
+      className={className || 'max-w-[340px]'}
     >
       <MenuItem
         active={!sprint}
@@ -198,43 +199,51 @@ function SprintPicker({ className = '' }: { className?: string }) {
 }
 
 /**
- * Companies or People (M11), as two icon toggles joined to the sprint menu:
- * the list on screen is blue, the other grey. Click the grey one to switch.
+ * The list filter (M11 round 2, Zack's sketch): Companies and People as two
+ * icons next to the sprint, both on by default (companies with their people
+ * under them). Click one to turn it off or on; at least one stays on.
  */
 function ListToggle() {
-  const { route, navigate, select } = useAppUI();
-  const go = (page: 'companies' | 'people') => {
-    if (route.page === page) return;
+  const { route, navigate, select, showPeople, setShowPeople } = useAppUI();
+  const companiesOn = route.page === 'companies';
+  const peopleOn = route.page === 'people' || showPeople;
+  const toggleCompanies = () => {
+    if (companiesOn && !peopleOn) return;
     select(null);
-    navigate({ page });
+    if (companiesOn) navigate({ page: 'people' });
+    else {
+      setShowPeople(true);
+      navigate({ page: 'companies' });
+    }
   };
-  const item = (page: 'companies' | 'people', label: string, Icon: typeof Users) => {
-    const on = route.page === page;
-    return (
-      <button
-        type="button"
-        aria-pressed={on}
-        aria-label={`Show ${label.toLowerCase()}`}
-        title={label}
-        onClick={() => go(page)}
-        className={`grid size-7 place-items-center rounded-md transition-colors ${
-          on
-            ? 'bg-[color-mix(in_srgb,var(--selectable)_22%,transparent)] text-selectable'
-            : 'text-faint hover:bg-hover hover:text-muted'
-        }`}
-      >
-        <Icon size={16} aria-hidden="true" />
-      </button>
-    );
+  const togglePeople = () => {
+    if (peopleOn && !companiesOn) return;
+    setShowPeople(!peopleOn);
   };
+  const item = (on: boolean, label: string, Icon: typeof Users, onClick: () => void) => (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={label}
+      title={on ? `${label}: on` : `${label}: off`}
+      onClick={onClick}
+      className={`grid size-7 place-items-center rounded-md transition-colors ${
+        on
+          ? 'bg-[color-mix(in_srgb,var(--selectable)_22%,transparent)] text-selectable'
+          : 'text-faint hover:bg-hover hover:text-muted'
+      }`}
+    >
+      <Icon size={16} aria-hidden="true" />
+    </button>
+  );
   return (
     <div
       role="group"
-      aria-label="List"
+      aria-label="Show"
       className="flex h-9 items-center gap-0.5 rounded-r-lg border border-l-0 border-line bg-surface px-1"
     >
-      {item('people', 'People', Users)}
-      {item('companies', 'Companies', Building2)}
+      {item(companiesOn, 'Companies', Building2, toggleCompanies)}
+      {item(peopleOn, 'People', Users, togglePeople)}
     </div>
   );
 }

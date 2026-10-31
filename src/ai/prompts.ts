@@ -3,7 +3,7 @@
  * with Zack over many rounds), plus additions marked with the round they came from. Each one sends the instructions, the data and
  * the exact shape it wants back (SPEC section 9).
  */
-import { meta, optionOf, optList, statusCol, valueText } from '../model/board';
+import { isEmptyValue, meta, optionOf, optList, statusCol, valueText } from '../model/board';
 import { todayISO } from '../model/dates';
 import type { Board, Chain, Column, Company, Message, Page } from '../model/types';
 
@@ -154,6 +154,10 @@ export const fillableColumns = (board: Board) =>
       ['text', 'number', 'link', 'values', 'tags', 'checkbox'].includes(col.type) &&
       !PERSONAL.test(col.name),
   );
+
+/** A company with an empty field a lookup could fill (website, city, size...). */
+export const missingDetails = (board: Board, c: Company) =>
+  fillableColumns(board).some((col) => isEmptyValue(meta(c, col.id)));
 
 export type LookupReply = {
   sure?: boolean;
