@@ -15,7 +15,7 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Now
 
-Reacher Test v20: People round 1 (All + list toggles, person emails, notes filed by mention, CSV in Settings) and Zack's palette. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
+Reacher Test v21: People round 2 (list filter with both on, person Gmail over the last year, Fill in missing details, chains named by subject, writer above chains, person suggestions in a sprint). Zack is tracking his real list in Reacher Test. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
 
 ## Links
 
@@ -286,6 +286,24 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
   - Today's "Main contact" fields become links to people, moved over once; CSV import can fill People too.
   - Zack's answers: thumbs down = don't contact again; a person can move companies (rare).
 
+**People round 2 (v21, Zack's notes 2026-10-31)**
+- The list icons are a **filter**, not a switch: Companies and People, both on by default. Both on: each company's people are listed under it on the Companies sheet. People only: the People list. At least one stays on. Companies icon first. (Zack: people pages extend company pages; Companies is the page he lives on.)
+- Long sprint names broke the control: it now shortens with "…" (full name on hover) and the icons join it.
+- People sheet: a click on the company opens it; a right-click changes it.
+- A person's Emails was empty for Jessica at Psyop: the automatic check covers 30 days and threads synced before v20 never recorded who's on them. Now a person's panel checks Gmail for their address over the last year (Zack: just the last year), with Check Gmail; old threads are read once more to record who's on them.
+- **Fill in missing details** (Settings → Import & export) and a CSV import option: the AI looks up website, city, size and type, one company at a time, only filling empty fields when it's sure; names stay as typed. Progress shows with Stop.
+- Email writer above the chains. Chains take the email's subject while still on their starting name ("Email chain Oct 31"); a pencil and a Rename menu item.
+- In a sprint, "+ Add a person" suggests people you have (Dana); picking one adds their company to the sprint instead of a duplicate.
+
+#### Test list for People round 2 (Reacher Test v21)
+1. Top left: All with two blue icons, Companies then People. Each company's people are listed under it. Click People off: just companies. Click Companies off (People on): the People list.
+2. A long sprint name shortens with "…"; hover shows it all.
+3. People list: click a company name: its panel opens. Right-click it: pick another company.
+4. Open Jessica: Emails says "Checking your email with Jessica…" then lists her threads from the last year (or "Check Gmail" if Gmail hasn't been allowed yet).
+5. Settings → Import & export → Fill in missing details → Look up N companies. Progress shows; at the end, one message says how many were filled. Typed fields stay.
+6. A company's Emails: the writer is on top. Paste an email starting "Subject: …" into a new chain: the chain takes that name. Hover a chain name: a pencil renames it.
+7. In a sprint, People, type someone you have who isn't in it: they're suggested; Enter adds their company to the sprint.
+
 **People round 1 (v20, Zack's notes 2026-10-31)**
 - "All companies › People" read wrong. The sprint control now says All (or the sprint) with two icon toggles, People and Companies: the list on screen is blue, the other grey (Zack's sketch). The second dropdown is gone.
 - Import CSV only in Settings → Import & export. Every row's contact becomes a person, even rows that repeat a company or that skip it, so a list of people imports too.
@@ -458,6 +476,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-31 | People round 2: the list icons filter (both on by default, people under companies); person Gmail covers the last year; AI fill for missing details (only when sure, names kept); writer above chains; chains named by subject. |
 | 2026-10-31 | People round 1: All + icon toggles (Zack's sketch) instead of a second dropdown; CSV import only in Settings; person emails; company notes filed under the people they name; Zack's violet palette. Test people cleared. |
 | 2026-10-31 | People (M11) built: a second list like Kitsu's assets; thumbs down = don't contact again; people can move companies. Sprints show the people at their companies. |
 | 2026-10-31 | Feed: a dot and bold label on every line (comments and quick updates too); icons removed. Zack's list in Reacher Test cleared at his request. M10 motion done. Next: People (M11). |
