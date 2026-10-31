@@ -8,14 +8,14 @@ Legend: ✅ done · 🔨 in progress · ⏳ waiting on Zack · ⬜ not started
 
 ## Waiting on Zack
 
-1. ⏳ **Look at People on Reacher Test (v19)**: menu or the Companies ▾ dropdown → People. Test list under M11. Next ideas: AI for person notes ("talked to Ana" updates her), picking a person in the email writer, News Feed and My Tasks for people.
+1. ⏳ **Import his companies and people** with Settings → Import & export → Import CSV (list cleared 2026-10-31, people too). Then test People round 1 (v20), list under M11. Next ideas: AI for person notes, picking a person in the email writer, News Feed and My Tasks for people.
 2. ⏳ Optional: the real Reacher. Zack chose to track in Reacher Test for now (cleared 2026-10-31). A separate real Reacher, only updated when he OKs a round, can be published whenever he says "real".
 3. ⏳ **Outcome:** kept as in the prototype for now (a field that appears once there's been a meeting or interview). Zack wasn't sure what to do with it; decide once he's used it.
 4. ⏳ Still open from before: the M8 (Calendar) and M9 (Gmail) test lists below. They still apply; the buttons now live on the company page tabs.
 
 ## Now
 
-Reacher Test v19: People (M11), on top of M7g, CSV import, feed labels and M10 motion. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
+Reacher Test v20: People round 1 (All + list toggles, person emails, notes filed by mention, CSV in Settings) and Zack's palette. Zack's list in Reacher Test was cleared on 2026-10-31 (backup in the session scratchpad; templates, Your details and status types kept) and he's tracking there now. Next: M11, contacts.
 
 ## Links
 
@@ -286,6 +286,21 @@ Zack's direction (2026-10-29): rework the whole app after Kitsu. Sprints → com
   - Today's "Main contact" fields become links to people, moved over once; CSV import can fill People too.
   - Zack's answers: thumbs down = don't contact again; a person can move companies (rare).
 
+**People round 1 (v20, Zack's notes 2026-10-31)**
+- "All companies › People" read wrong. The sprint control now says All (or the sprint) with two icon toggles, People and Companies: the list on screen is blue, the other grey (Zack's sketch). The second dropdown is gone.
+- Import CSV only in Settings → Import & export. Every row's contact becomes a person, even rows that repeat a company or that skip it, so a list of people imports too.
+- People have Emails: Gmail threads they're on (chains remember who's on them) and chains started from their panel ("+ New chain with Ana").
+- Company vs people notes: a note on a company that names one of its people (full name, or a first name only one of them has) also goes to that person's feed ("on Psyop's page"), and the company's copy is tagged with their name (click to open them).
+- Palette (Zack's coolors 0a0f19-6633aa-5500cc-2c2c8a-cc1133): violet #5500CC accent, indigo #2C2C8A selection, purple #6633AA stars and warnings, crimson #CC1133 danger; lighter tints for text. Status chip colors stay as each status sets them.
+- Zack's test people cleared (backup in the session scratchpad); templates, Your details and status types kept.
+
+#### Test list for People round 1 (Reacher Test v20)
+1. Top left: **All** with two icons. The building (Companies) is blue; click the people icon: People shows and it turns blue.
+2. Settings → Import & export → Import CSV. Import a file with a company and contact columns. The summary says how many companies and people it adds.
+3. Open a company and post "Talked to <first name> about the reel" naming one of its people. The note shows their name as a tag; click it: it's in their feed too, "on <company>'s page".
+4. In a person's panel, Emails lists their Gmail threads (once Gmail's checked) and "+ New chain with <name>".
+5. The violet accent, indigo selection and purple stars are everywhere the green and yellow were.
+
 #### Test list for People (Reacher Test v19)
 1. Top bar: All companies › **Companies ▾**. Pick People. Your Main contacts are there, each 👍 Good to contact.
 2. Click a name or status: their panel. Pick 👎 Don’t contact next to Post, add a note, Post. The sheet and the feed show it.
@@ -443,6 +458,7 @@ Reacher Test has the demo companies, whose addresses aren't real. So first point
 | 2026-10-29 | M7 goes Kitsu-style. Claude's plan: new screens (`src/app/`), data extended (sprints, an events feed) rather than rewritten. |
 | 2026-10-29 | Zack: status isn't shared across sprints (each sprint keeps its own, the company page shows them all); sprints have dates and get an end date when a newer one starts or after 2 quiet weeks; dark by default with a light option; a comment on a company is an AI update about it; Sheet/Board toggle. |
 | 2026-10-30 | Colored columns are stages (Kitsu task types), each with a status; fields are uncolored metadata. Default stages Outreach, Meeting, Application, Interview; statuses To do, Sent, Reply, Scheduled, Done, No. |
+| 2026-10-31 | People round 1: All + icon toggles (Zack's sketch) instead of a second dropdown; CSV import only in Settings; person emails; company notes filed under the people they name; Zack's violet palette. Test people cleared. |
 | 2026-10-31 | People (M11) built: a second list like Kitsu's assets; thumbs down = don't contact again; people can move companies. Sprints show the people at their companies. |
 | 2026-10-31 | Feed: a dot and bold label on every line (comments and quick updates too); icons removed. Zack's list in Reacher Test cleared at his request. M10 motion done. Next: People (M11). |
 | 2026-10-30 | Zack happy with round 2 without more notes. M7g done; CSV import added (Kitsu's importer as the model). Zack wants to start tracking for real from scratch, keeping templates, Your details and Status types; recommended the real Reacher (Reacher Test stays for testing). Publishing it waits for his explicit OK. |
