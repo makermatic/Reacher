@@ -4,7 +4,7 @@ import { allEvents, BY_LABEL, dayOf, KIND_LABEL, timeOf } from '../model/events'
 import type { EventBy, EventKind } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
-import { ByBadge, EventTag } from './Feed';
+import { EventTag } from './Feed';
 import { useSprintInfo } from './sprintLabels';
 import { Dropdown, MenuItem, StatusTag, ui } from './ui';
 
@@ -134,10 +134,9 @@ export function NewsFeedPage() {
                     type="button"
                     onClick={() => showCompany(c.id)}
                     aria-current={selected === c.id || undefined}
-                    className="grid w-full grid-cols-[44px_26px_minmax(0,1fr)] items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-hover aria-[current]:bg-selected"
+                    className="grid w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-hover aria-[current]:bg-selected"
                   >
                     <span className="text-[12px] text-faint">{timeOf(e)}</span>
-                    <ByBadge by={e.by} size={26} />
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-2">
                         <b className="text-[14px] text-strong">{c.name}</b>

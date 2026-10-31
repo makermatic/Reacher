@@ -8,7 +8,7 @@ import type { Company } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { EmailsSection, FieldRows, SprintStatuses } from './CompanySections';
-import { ByBadge, EventTag, when } from './Feed';
+import { EventTag, when } from './Feed';
 import { COMPANY_TABS, type CompanyTab } from './route';
 import { useSprintInfo } from './sprintLabels';
 import { Tabs, ui } from './ui';
@@ -150,7 +150,6 @@ function Timeline({ company }: { company: Company }) {
                 <span className="absolute top-1.5 -left-[27px] size-3 rounded-full border-2 border-panel bg-selectable" />
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[12px] text-muted">{when(ev)}</span>
-                  <ByBadge by={ev.by} size={22} />
                   <EventTag event={ev} />
                 </div>
                 <p className="m-0 line-clamp-3 text-[13.5px] text-fg">{ev.text}</p>
