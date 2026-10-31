@@ -16,7 +16,7 @@ const TAB_LABEL: Record<TasksTab, string> = { list: 'Tasks', board: 'Board', cal
 const KINDS: TaskKind[] = ['reply', 'follow-up', 'prep', 'check-in'];
 const KIND_COLOR: Record<TaskKind, string> = {
   reply: 'var(--c-pink)',
-  'follow-up': 'var(--c-amber)',
+  'follow-up': 'var(--warn)',
   prep: 'var(--c-teal)',
   'check-in': 'var(--c-violet)',
 };
@@ -158,7 +158,7 @@ function DueText({ due }: { due: string }) {
     d < 0
       ? 'text-[var(--c-red)] font-bold'
       : d === 0
-        ? 'text-[var(--c-amber)] font-bold'
+        ? 'text-[var(--warn)] font-bold'
         : 'text-muted';
   return (
     <span className={tone}>

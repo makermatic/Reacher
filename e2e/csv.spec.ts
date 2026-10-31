@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, field, openDemo, statusCell } from './support';
+import type { Page } from '@playwright/test';
+import { expectToast, field, openDemo, settings, statusCell } from './support';
+
+/** Import CSV lives in Settings → Import & export (Zack, M11 round 1). */
+const openImporter = async (page: Page) => {
+  await settings(page, 'Settings');
+  await page.getByRole('button', { name: 'Import & export' }).click();
+  await page.getByRole('button', { name: 'Import CSV' }).click();
+};
+const backToList = (page: Page) => page.getByRole('button', { name: 'Back to companies' }).click();
 
 const CSV = [
   'Studio,Name,Title,Email,Stage,Website',
@@ -14,7 +23,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('CSV import: columns matched, existing companies found, then imported', async ({ page }) => {
-  await page.getByRole('button', { name: 'Import CSV' }).first().click();
+  await openImporter(page);
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('tab', { name: 'Paste' }).click();
   await dialog.locator('#csv-paste').fill(CSV);
@@ -40,7 +49,8 @@ test('CSV import: columns matched, existing companies found, then imported', asy
   // Ignore a column, then import.
   await dialog.getByLabel('Column Website').selectOption('ignore');
   await dialog.getByRole('button', { name: 'Import', exact: true }).click();
-  await expectToast(page, 'Added 1 company, updated 1');
+  await expectToast(page, 'Added 1 company and 2 people, updated 1');
+  await backToList(page);
   await expect(page.locator('main tr', { hasText: 'Oddfellows' })).toBeVisible();
   await expect(statusCell(page, 'Oddfellows')).toHaveText('Reached out');
   await expect(statusCell(page, 'Psyop')).toHaveText(/Wrote back/);
@@ -48,7 +58,7 @@ test('CSV import: columns matched, existing companies found, then imported', asy
 });
 
 test('CSV import from a file, with no company column picked', async ({ page }) => {
-  await page.getByRole('button', { name: 'Import CSV' }).first().click();
+  await openImporter(page);
   await page.locator('#csv-file').setInputFiles({
     name: 'list.csv',
     mimeType: 'text/csv',
@@ -61,6 +71,7 @@ test('CSV import from a file, with no company column picked', async ({ page }) =
   await dialog.getByLabel('Column Color').selectOption('new');
   await dialog.getByRole('button', { name: 'Import', exact: true }).click();
   await expectToast(page, 'Added 1 company');
+  await backToList(page);
   await expect(page.locator('main tr', { hasText: 'Ana' })).toBeVisible();
   // The new field is there, with the value (in Details; star it to show it on the sheet).
   await page.locator('button[title="Open Ana"]').click();

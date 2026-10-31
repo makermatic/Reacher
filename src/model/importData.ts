@@ -113,6 +113,9 @@ export function parseExport(text: string): ImportData {
             count: Number(ch.summary.count) || 0,
           }
         : null,
+      // Who's on it (M11): kept so people find their emails after an import.
+      ...(Array.isArray(ch.people) ? { people: ch.people.map(String) } : {}),
+      ...(Array.isArray(ch.personIds) ? { personIds: ch.personIds.map(String) } : {}),
     }));
 
   const pages: Record<string, Page> = {};

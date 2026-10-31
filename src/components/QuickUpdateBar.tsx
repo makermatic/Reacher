@@ -32,7 +32,7 @@ export function QuickUpdateBar() {
         onSubmit={submit}
         className={`${busy ? 'ai-working ' : ''}flex h-10 items-center gap-2 rounded-full border border-line-strong/60 bg-bg pr-1 pl-3.5 transition-colors focus-within:border-accent`}
       >
-        <Zap size={16} className="shrink-0 text-accent" aria-hidden="true" />
+        <Zap size={16} className="shrink-0 text-accent-text" aria-hidden="true" />
         <label htmlFor="quick-input" className="sr-only">
           Quick update
         </label>

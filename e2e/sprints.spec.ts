@@ -57,7 +57,7 @@ test('each sprint keeps its own status; All companies shows the latest', async (
   await page.getByRole('menuitemradio', { name: /^First Light/ }).click();
   await expect(statusCell(page, 'Psyop')).toHaveText('Rejected');
   await page.getByRole('button', { name: 'Sprint', exact: true }).click();
-  await page.getByRole('menuitemradio', { name: 'All companies' }).click();
+  await page.getByRole('menuitemradio', { name: 'All', exact: true }).click();
   await expect(statusCell(page, 'Psyop')).toHaveText(/Wrote back/);
   // A newer sprint ended the first one (an end date shows once it's a later day).
   await page.getByRole('button', { name: 'Sprint', exact: true }).click();

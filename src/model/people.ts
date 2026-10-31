@@ -8,7 +8,7 @@
 import { asPerson, meta } from './board';
 import { norm, uid } from './text';
 import { isPlainObject } from './text';
-import type { Board, Company, Contact } from './types';
+import type { Board, Chain, Company, Contact } from './types';
 
 /** Status choices: up is the default for everyone new. */
 export const DEFAULT_PEOPLE_BOARD: Board = {
@@ -115,4 +115,32 @@ export function movePatch(p: Contact, companyId: string | null, today: string): 
       ? { pastCompanies: [...(p.pastCompanies ?? []), { companyId: p.companyId, until: today }] }
       : {}),
   };
+}
+
+/** A person's email chains: Gmail threads they're on, and chains started with them. */
+export function chainsOf(p: Contact, chains: Chain[]) {
+  const email = contactEmail(p);
+  return chains
+    .filter((ch) => ch.personIds?.includes(p.id) || (!!email && (ch.people ?? []).includes(email)))
+    .sort((a, b) => (a.started < b.started ? 1 : -1));
+}
+
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const says = (text: string, words: string) =>
+  new RegExp(`(^|[^\\p{L}])${escape(words)}($|[^\\p{L}])`, 'iu').test(text);
+
+/**
+ * The people at a company a note is about (M11): their full name, or a first
+ * name only one of them has (3 letters or more), so "Talked to Ana about the
+ * reel" files under Ana too.
+ */
+export function mentionedIn(people: Contact[], companyId: string, text: string): Contact[] {
+  const here = people.filter((p) => p.companyId === companyId && p.name.trim());
+  const firstOf = (p: Contact) => p.name.trim().split(/\s+/)[0]!;
+  return here.filter((p) => {
+    if (says(text, p.name.trim())) return true;
+    const first = firstOf(p);
+    const shared = here.filter((x) => firstOf(x).toLowerCase() === first.toLowerCase()).length;
+    return first.length >= 3 && shared === 1 && says(text, first);
+  });
 }

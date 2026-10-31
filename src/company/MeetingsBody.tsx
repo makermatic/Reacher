@@ -93,7 +93,7 @@ export function MeetingsBody({ company }: { company: Company }) {
               </b>
               {m.with && ` with ${m.with}`}
               {m.date >= today && (
-                <span className="ml-1.5 rounded-md bg-accent-soft px-1.5 py-px text-[11px] font-semibold text-accent">
+                <span className="ml-1.5 rounded-md bg-accent-soft px-1.5 py-px text-[11px] font-semibold text-accent-text">
                   Upcoming
                 </span>
               )}

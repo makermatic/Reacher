@@ -113,7 +113,7 @@ export function NewsFeedPage() {
             setBy,
           )}
           <span className="ml-auto text-[13px] text-muted">
-            {sprint && info[sprint] ? info[sprint]!.label : 'All companies'}
+            {sprint && info[sprint] ? info[sprint]!.label : 'All'}
           </span>
         </div>
 

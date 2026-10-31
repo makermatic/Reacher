@@ -181,7 +181,7 @@ function TemplateEditor({ initial, onDeleted }: { initial: Template; onDeleted: 
             className={
               p.kind === 'filled'
                 ? 'rounded bg-[color-mix(in_srgb,var(--c-green)_18%,transparent)] px-0.5'
-                : 'rounded bg-[color-mix(in_srgb,var(--c-amber)_26%,transparent)] px-0.5'
+                : 'rounded bg-[color-mix(in_srgb,var(--warn)_26%,transparent)] px-0.5'
             }
           >
             {p.text}

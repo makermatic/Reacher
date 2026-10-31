@@ -201,6 +201,10 @@ export function syncThread(
       };
   const linked = chain.gmailThreadId !== thread.id;
   chain.gmailThreadId = thread.id;
+  // Who's on it, so each person's panel can show their emails (M11).
+  const everyone = thread.messages.flatMap((m) => [m.from, ...m.to]).filter(Boolean);
+  const people = [...new Set([...(chain.people ?? []), ...everyone])];
+  if (people.length !== (chain.people ?? []).length) chain.people = people;
   chain.gmailLink = thread.link;
 
   const added: Message[] = [];

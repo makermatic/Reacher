@@ -2,10 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectToast, openDemo, settings } from './support';
 
 const person = (page: Page) => page.locator('aside[aria-label="Person panel"]');
-const toPeople = async (page: Page) => {
-  await page.getByRole('button', { name: 'List', exact: true }).click();
-  await page.getByRole('menuitemradio', { name: 'People' }).click();
-};
+const toPeople = (page: Page) => page.getByRole('button', { name: 'Show people' }).click();
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page);
@@ -70,4 +67,34 @@ test('People statuses are editable in Status types', async ({ page }) => {
   await page.locator('button[title="Open Alex Sample"]').click();
   await person(page).getByRole('button', { name: 'Status', exact: true }).click();
   await expect(page.getByRole('menuitemradio', { name: /Warm/ })).toBeVisible();
+});
+
+test('the list toggle: the list on screen is pressed', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Show companies' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await toPeople(page);
+  await expect(page.getByRole('button', { name: 'Show people' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('button', { name: 'Sprint', exact: true })).toHaveText(/All/);
+});
+
+test('a company note that names someone goes to them too; their emails are theirs', async ({
+  page,
+}) => {
+  await page.locator('button[title="Open Psyop"]').click();
+  const c = page.locator('aside[aria-label="Company panel"]');
+  await c.getByLabel('Comment').fill('Sam liked the reel');
+  await c.getByRole('button', { name: 'Post' }).click();
+  // Tagged with Sam on the company; in Sam's feed too.
+  await c.getByRole('feed').getByRole('button', { name: 'Sam Example' }).click();
+  const p = person(page);
+  await expect(p.getByRole('feed').getByText('Sam liked the reel')).toBeVisible();
+  await expect(p.getByRole('feed').getByText('on Psyop’s page')).toBeVisible();
+  // A chain started with Sam is in Sam's Emails.
+  await p.getByRole('button', { name: '+ New chain with Sam' }).click();
+  await expect(p.getByLabel('Rename chain')).toHaveValue(/Email with Sam/);
 });

@@ -4,6 +4,7 @@ import { dayOf, KIND_LABEL, timeOf } from '../model/events';
 import { fmtDate, todayISO } from '../model/dates';
 import type { FeedEvent } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
+import { useAppUI } from './AppUI';
 import { useSprintInfo } from './sprintLabels';
 import { colorVar } from './ui';
 
@@ -14,7 +15,7 @@ const KIND_COLOR: Record<FeedEvent['kind'], string> = {
   email: 'var(--c-pink)',
   meeting: 'var(--c-teal)',
   application: 'var(--c-green)',
-  field: 'var(--c-amber)',
+  field: 'var(--warn)',
   company: 'var(--c-violet)',
   sprint: 'var(--c-violet)',
 };
@@ -45,10 +46,29 @@ export function when(e: FeedEvent) {
  */
 export function FeedCard({ event }: { event: FeedEvent }) {
   const info = useSprintInfo();
+  const { people, companies } = useWorkspace();
+  const { select } = useAppUI();
+  // A company note that names someone (M11): their names, to open them.
+  const named = (event.people ?? [])
+    .map((id) => people.find((p) => p.id === id))
+    .filter((p): p is NonNullable<typeof p> => !!p);
+  const from = event.from ? companies.find((c) => c.id === event.from) : undefined;
   return (
     <article className="grid gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-3">
       <header className="flex items-center gap-2">
         <EventTag event={event} />
+        {named.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => select(p.id)}
+            data-opens-panel
+            className="rounded-md bg-hover px-1.5 py-0.5 text-[11.5px] font-semibold text-fg hover:text-strong"
+          >
+            {p.name}
+          </button>
+        ))}
+        {from && <span className="text-[12px] text-faint">on {from.name}’s page</span>}
         <span className="ml-auto text-[12px] whitespace-nowrap text-faint">{when(event)}</span>
       </header>
       <Markdown text={event.text} className="text-[14px] text-fg" />

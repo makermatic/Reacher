@@ -138,6 +138,10 @@ export type Chain = {
   gmailLink?: string;
   /** Gmail messages deleted from this chain, so syncing doesn't bring them back. */
   gmailSkip?: string[];
+  /** Everyone on its Gmail thread, lowercased (M11): how a person finds their emails. */
+  people?: string[];
+  /** People it was started with by hand, from their panel (M11). */
+  personIds?: string[];
 };
 
 export type Note = { id: string; date: string; text: string };
@@ -206,6 +210,10 @@ export type FeedEvent = {
   by: EventBy;
   /** The sprint it happened in, if any. */
   sprintId?: string | null;
+  /** A company note that names some of its people (M11): their ids, as tags. */
+  people?: string[];
+  /** On a person's feed, a note written on this company's page (M11). */
+  from?: string;
   /** For status changes: which column, from and to (option ids). */
   status?: { col: string; from: string | null; to: string | null };
 };

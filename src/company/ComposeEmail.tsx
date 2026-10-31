@@ -250,7 +250,7 @@ export function ComposeEmail({
       </div>
 
       {missing.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg bg-[color-mix(in_srgb,var(--c-amber)_16%,var(--surface))] px-3 py-2 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg bg-[color-mix(in_srgb,var(--warn)_16%,var(--surface))] px-3 py-2 text-[13px]">
           <span>Fill in before sending:</span>
           {missing.map((k, i) => (
             <span key={k} className="inline-flex items-center gap-1">
@@ -312,7 +312,7 @@ export function ComposeEmail({
               href={saved}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent underline underline-offset-2"
+              className="text-accent-text underline underline-offset-2"
             >
               Open it in Gmail ↗
             </a>
@@ -431,7 +431,7 @@ function FixLink({
   contactColId: string | undefined;
 }) {
   const { board } = useWorkspace();
-  const link = 'text-accent underline underline-offset-2';
+  const link = 'text-accent-text underline underline-offset-2';
   if (fieldKey.startsWith('my_'))
     return (
       <button type="button" onClick={onOpenDetails} className={link}>

@@ -22,7 +22,7 @@ import { fmtDate } from '../model/dates';
 import { PeopleList, useList } from './listContext';
 import { CompanyPicker } from './PeoplePage';
 import { TwoClick } from './columns';
-import { EmailsSection, FieldRows, Section } from './CompanySections';
+import { EmailsSection, FieldRows, PersonEmails, Section } from './CompanySections';
 import { FeedCard } from './Feed';
 import { useSprintInfo } from './sprintLabels';
 import { MenuItem, Pop, StatusPicker, StatusTag, ui } from './ui';
@@ -225,7 +225,7 @@ function CompanyPanel({ company: stored }: { company: Company }) {
               />
               {due != null && (
                 <span
-                  className={`text-[12px] ${due < 0 ? 'text-[var(--c-red)]' : due === 0 ? 'text-[var(--c-amber)]' : 'text-faint'}`}
+                  className={`text-[12px] ${due < 0 ? 'text-[var(--c-red)]' : due === 0 ? 'text-[var(--warn)]' : 'text-faint'}`}
                 >
                   {due < 0 ? `${-due}d late` : due === 0 ? 'today' : `in ${due}d`}
                 </span>
@@ -291,7 +291,7 @@ function CompanyPanel({ company: stored }: { company: Company }) {
                   }
                   className="flex w-full items-center gap-2 rounded-lg border border-dashed border-line-strong px-3 py-2 text-left text-[13.5px] text-fg transition-colors hover:border-accent hover:bg-accent-soft"
                 >
-                  <Sparkles size={14} className="shrink-0 text-accent" aria-hidden="true" />
+                  <Sparkles size={14} className="shrink-0 text-accent-text" aria-hidden="true" />
                   <span className="min-w-0 flex-1">{st.text}</span>
                   <span className="shrink-0 text-[12px] text-muted">Write it →</span>
                 </button>
@@ -601,6 +601,9 @@ function PersonPanel({ person }: { person: Contact }) {
         <div className="mt-8 grid gap-8">
           <Section title="Details">
             <FieldRows company={person} />
+          </Section>
+          <Section title="Emails">
+            <PersonEmails person={person} />
           </Section>
         </div>
       </div>

@@ -37,6 +37,7 @@ import type { ImportPlan } from '../model/csvImport';
 import {
   contactsFromCompanies,
   DEFAULT_PEOPLE_BOARD,
+  mentionedIn,
   movePatch,
   newContact,
   peopleBoardOrDefault,
@@ -361,8 +362,8 @@ function makeActions(
       let created = 0;
       let updated = 0;
       const base = Date.now();
-      /** The companies as they'll be, for the contacts that become people (M11). */
-      const touched: Company[] = [];
+      /** Each line's company id, so every row's contact becomes a person (M11). */
+      const idByLine = new Map<number, string>();
       for (const r of plan.rows) {
         if (r.state === 'new') {
           const id = uid('co');
@@ -376,7 +377,7 @@ function makeActions(
           };
           const joined = active ? { ...c, ...joinPatch(nextBoard, c, active) } : c;
           void guard(store.setItem('companies', id, body(joined)));
-          touched.push(joined);
+          idByLine.set(r.line, id);
           api.logEvents(id, [
             makeEvent('company', 'Imported from a CSV', 'you', { sprintId: active }),
             ...(r.comment ? [makeEvent('comment', r.comment, 'you', { sprintId: active })] : []),
@@ -389,13 +390,21 @@ function makeActions(
           if (status !== undefined && status !== r.existing.meta?.status)
             api.setMeta(r.existing.id, 'status', status);
           if (r.comment) api.comment(r.existing.id, r.comment);
-          touched.push({ ...r.existing, meta: { ...r.existing.meta, ...r.meta } });
           updated++;
         }
+        if (r.existing) idByLine.set(r.line, r.existing.id);
       }
-      for (const p of contactsFromCompanies(nextBoard, touched, people, base))
-        void guard(store.setItem('people', p.id, body(p)));
-      return { created, updated };
+      // Everyone in the file becomes a person at their company, even on rows
+      // that repeat a company or that it skips (a list of people works too).
+      const rowsAsCompanies = plan.rows
+        .map((r) => ({
+          id: idByLine.get(r.state === 'merged' ? r.into! : r.line) ?? '',
+          meta: r.meta,
+        }))
+        .filter((x) => x.id) as Company[];
+      const newPeople = contactsFromCompanies(nextBoard, rowsAsCompanies, people, base);
+      for (const p of newPeople) void guard(store.setItem('people', p.id, body(p)));
+      return { created, updated, people: newPeople.length };
     },
 
     // ---------- sprints (M7) ----------
@@ -449,7 +458,20 @@ function makeActions(
 
     /** A comment on a company, from its side panel. */
     comment(id: string, text: string, sprintId: string | null = active) {
-      api.logEvents(id, [makeEvent('comment', text, 'you', { sprintId })]);
+      api.logEvents(id, [api.noteEvent(id, text, sprintId)]);
+    },
+
+    /**
+     * A note on a company, filed under the people it names too (M11): their
+     * feeds get it, and the company's copy is tagged with them.
+     */
+    noteEvent(id: string, text: string, sprintId: string | null) {
+      const named = company(id) ? mentionedIn(people, id, text) : [];
+      for (const p of named) api.logEvents(p.id, [makeEvent('comment', text, 'you', { from: id })]);
+      return makeEvent('comment', text, 'you', {
+        sprintId,
+        ...(named.length ? { people: named.map((p) => p.id) } : {}),
+      });
     },
 
     renameCompany(id: string, name: string) {
@@ -621,7 +643,7 @@ function makeActions(
             )
             .join('\n');
         const events = [
-          ...(id === about ? [] : [makeEvent('comment', note, 'you', { sprintId: sid })]),
+          ...(id === about ? [] : [api.noteEvent(id, note, sid)]),
           makeEvent(set ? 'status' : KIND_OF[acts[0]!.type], text, 'ai', {
             sprintId: sid,
             ...(set
@@ -805,7 +827,7 @@ function makeActions(
     },
 
     /** Starts an empty chain; returns its id. */
-    newChain(companyId: string, title: string) {
+    newChain(companyId: string, title: string, personId?: string) {
       const ch: Chain = {
         id: uid('ch'),
         companyId,
@@ -813,6 +835,7 @@ function makeActions(
         started: todayISO(),
         messages: [],
         summary: null,
+        ...(personId ? { personIds: [personId] } : {}),
       };
       api.saveChain(ch);
       return ch.id;

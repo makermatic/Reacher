@@ -94,7 +94,8 @@ describe('planning an import', () => {
   it('finds companies you have; skips them unless updating', () => {
     const skip = planImport(B, [psyop], header, rows, targets, false);
     expect(skip.rows.map((r) => r.state)).toEqual(['skip', 'new', 'merged', 'incomplete']);
-    expect(skip.counts).toEqual({ create: 1, update: 0, skip: 2 });
+    // Every contact counts, even on rows whose company is skipped or repeated.
+    expect(skip.counts).toEqual({ create: 1, update: 0, skip: 2, people: 3 });
     const upd = planImport(B, [psyop], header, rows, targets, true);
     expect(upd.rows[0]!.state).toBe('update');
     // The update keeps the contact's name and role, and adds the email.

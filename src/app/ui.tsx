@@ -53,7 +53,8 @@ export function StatusTag({
   );
 }
 
-const AVATAR_COLORS = ['#4c8dff', '#2cc5c5', '#3ddc84', '#a78bfa', '#ff6fb1', '#f0b03c'];
+/** Zack's palette (M11 round 1). */
+const AVATAR_COLORS = ['#5500cc', '#6633aa', '#2c2c8a', '#cc1133'];
 
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -76,7 +77,7 @@ export function Avatar({
     <span
       aria-hidden="true"
       style={{ width: size, height: size, background: hue, fontSize: size * 0.4 }}
-      className="inline-grid shrink-0 place-items-center rounded-full font-semibold text-[#0d0f12]"
+      className="inline-grid shrink-0 place-items-center rounded-full font-semibold text-white"
     >
       {initials(name)}
     </span>

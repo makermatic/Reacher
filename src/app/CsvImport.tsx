@@ -151,7 +151,7 @@ function Source({ onRead }: { onRead: (rows: string[][]) => void }) {
 }
 
 const STATE: Record<RowState, { label: string; row: string; tag: string }> = {
-  new: { label: 'New', row: '', tag: 'bg-accent-soft text-accent' },
+  new: { label: 'New', row: '', tag: 'bg-accent-soft text-accent-text' },
   update: {
     label: 'Updates',
     row: 'bg-[color-mix(in_srgb,var(--selectable)_10%,transparent)]',
@@ -200,6 +200,7 @@ function Preview({
   const plan = imported ?? live;
   const hasCompany = targets.includes('company');
   const { create, update: updates, skip } = plan.counts;
+  const canImport = create + updates + plan.counts.people > 0;
   const label = (t: Target) => options.find((o) => o.id === t)?.label ?? t;
 
   const run = () => {
@@ -211,11 +212,13 @@ function Preview({
         ? plan
         : planImport(made.board, companies, cols, body, made.targets, update);
     const done = actions.importRows(final, made.board);
+    const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+    const added = [
+      done.created && n(done.created, 'company', 'companies'),
+      done.people && n(done.people, 'person', 'people'),
+    ].filter(Boolean);
     toast(
-      [
-        done.created && `Added ${done.created} ${done.created === 1 ? 'company' : 'companies'}`,
-        done.updated && `updated ${done.updated}`,
-      ]
+      [added.length && `Added ${added.join(' and ')}`, done.updated && `updated ${done.updated}`]
         .filter(Boolean)
         .join(', ') || 'Nothing to import',
     );
@@ -330,7 +333,15 @@ function Preview({
               , updates <b className="text-strong">{updates}</b>
             </>
           )}
-          {skip > 0 && `, skips ${skip}`}.
+          {skip > 0 && `, skips ${skip}`}
+          {plan.counts.people > 0 && (
+            <>
+              {' '}
+              and adds <b className="text-strong">{plan.counts.people}</b>{' '}
+              {plan.counts.people === 1 ? 'person' : 'people'}
+            </>
+          )}
+          .
         </span>
         <span className="ml-auto flex gap-2">
           <button type="button" onClick={onBack} className={ui.button}>
@@ -338,7 +349,7 @@ function Preview({
           </button>
           <button
             type="button"
-            disabled={!hasCompany || create + updates === 0}
+            disabled={!hasCompany || !canImport}
             onClick={run}
             className={ui.primary}
           >
@@ -362,7 +373,7 @@ function Tag({ state, text }: { state: RowState; text?: string }) {
 
 function Note({ children }: { children: ReactNode }) {
   return (
-    <p className="m-0 rounded-lg bg-[color-mix(in_srgb,var(--c-amber)_14%,transparent)] px-3 py-2 text-[13px] text-fg">
+    <p className="m-0 rounded-lg bg-[color-mix(in_srgb,var(--warn)_14%,transparent)] px-3 py-2 text-[13px] text-fg">
       {children}
     </p>
   );

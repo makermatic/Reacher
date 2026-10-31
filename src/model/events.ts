@@ -14,7 +14,7 @@ export function makeEvent(
   kind: EventKind,
   text: string,
   by: EventBy,
-  extra: Partial<Pick<FeedEvent, 'sprintId' | 'status' | 'at'>> = {},
+  extra: Partial<Pick<FeedEvent, 'sprintId' | 'status' | 'at' | 'people' | 'from'>> = {},
 ): FeedEvent {
   return { id: uid('ev'), at: extra.at ?? nowISO(), kind, text, by, ...extra };
 }

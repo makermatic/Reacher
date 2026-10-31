@@ -227,7 +227,7 @@ export type ImportPlan = {
   rows: RowPlan[];
   /** Choices to add to "values" columns, by column id. */
   newOptions: Record<string, string[]>;
-  counts: { create: number; update: number; skip: number };
+  counts: { create: number; update: number; skip: number; people: number };
   /** Places used by more than one column (the later ones are ignored). */
   duplicates: Target[];
 };
@@ -372,6 +372,20 @@ export function planImport(
       create: plans.filter((p) => p.state === 'new').length,
       update: plans.filter((p) => p.state === 'update').length,
       skip: plans.filter((p) => p.state === 'skip' || p.state === 'incomplete').length,
+      people: countPeople(board, plans),
     },
   };
+}
+
+/** How many different people the file names (each becomes a person, M11). */
+function countPeople(board: Board, plans: RowPlan[]) {
+  const seen = new Set<string>();
+  for (const r of plans) {
+    if (r.state === 'incomplete') continue;
+    for (const col of board.columns.filter((c) => c.type === 'person')) {
+      const p = asPerson(r.meta[col.id]);
+      if (p && (p.name || p.email)) seen.add(`${norm(r.name)}|${norm(p.email || p.name)}`);
+    }
+  }
+  return seen.size;
 }

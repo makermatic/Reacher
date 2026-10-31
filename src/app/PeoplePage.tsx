@@ -17,7 +17,6 @@ import { arrive, chipPop, glide, rowInOut } from '../motion';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useAppUI } from './AppUI';
 import { AddFieldDialog, DisplaySettings, FieldHeader, TwoClick, type Sort } from './columns';
-import { CsvImportButton } from './CsvImport';
 import { FieldInput } from './fields';
 import { PeopleList, useList } from './listContext';
 import { StatusBoard } from './StatusBoard';
@@ -144,7 +143,6 @@ function People() {
               </button>
             ))}
           </div>
-          <CsvImportButton />
           <DisplaySettings />
         </div>
       </div>
@@ -300,7 +298,8 @@ function PeopleTable({
       </table>
       {!loading && !people.length && (
         <p className="sticky left-0 m-0 px-4 py-5 text-[13.5px] text-muted">
-          No people yet. Add one in the last row, from a company’s panel, or with Import CSV.
+          No people yet. Add one in the last row, from a company’s panel, or from a CSV in Settings
+          → Import & export.
         </p>
       )}
       <AddFieldDialog open={addingField} onOpenChange={setAddingField} />

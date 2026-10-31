@@ -5,13 +5,15 @@
  */
 import { ChevronDown, ChevronRight, Star } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChainsBody, NewChainButton } from '../company/ChainsBody';
+import { ChainCard, ChainsBody, NewChainButton } from '../company/ChainsBody';
+import { useToast } from '../components/Toast';
+import { chainsOf } from '../model/people';
 import { ComposeEmail } from '../company/ComposeEmail';
 import { colShows, meta, statusCol } from '../model/board';
 import { updateColumn } from '../model/columns';
-import { fmtDate } from '../model/dates';
+import { fmtDate, todayISO } from '../model/dates';
 import { sprintsOf } from '../model/sprints';
-import type { Company } from '../model/types';
+import type { Company, Contact } from '../model/types';
 import { useWorkspace } from '../workspace/WorkspaceProvider';
 import { useList, type Row } from './listContext';
 import { FieldInput } from './fields';
@@ -71,7 +73,7 @@ export function FieldRows({ company }: { company: Row }) {
                 onClick={() => saveBoard(updateColumn(board, col.id, { onSheet: !starred }))}
                 aria-label={`Show ${col.name} on the sheet`}
                 title={starred ? 'On the sheet. Click to take it off' : 'Star to show on the sheet'}
-                className="grid size-5 place-items-center rounded text-faint transition-colors hover:bg-hover hover:text-fg aria-pressed:text-[var(--c-amber)]"
+                className="grid size-5 place-items-center rounded text-faint transition-colors hover:bg-hover hover:text-fg aria-pressed:text-[var(--warn)]"
               >
                 <Star size={9} fill={starred ? 'currentColor' : 'none'} />
               </button>
@@ -180,5 +182,60 @@ export function EmailsSection({
         <ComposeEmail key={preset?.key ?? 0} company={company} preset={preset} />
       </div>
     </>
+  );
+}
+
+/**
+ * A person's emails (M11): Gmail threads they're on and chains started with
+ * them, each the same chain card as on the company.
+ */
+export function PersonEmails({ person }: { person: Contact }) {
+  const { chains, actions } = useWorkspace();
+  const toast = useToast();
+  const mine = chainsOf(person, chains);
+  const [open, setOpen] = useState<Record<string, boolean>>(() =>
+    mine[0] ? { [mine[0].id]: true } : {},
+  );
+  const first = person.name.split(/\s+/)[0] || person.name;
+  return (
+    <div className="grid gap-2">
+      {mine.length ? (
+        mine.map((ch) => (
+          <ChainCard
+            key={ch.id}
+            chain={ch}
+            open={!!open[ch.id]}
+            onToggle={() => setOpen((cur) => ({ ...cur, [ch.id]: !cur[ch.id] }))}
+          />
+        ))
+      ) : (
+        <p className="m-0 text-[13px] text-muted">
+          No emails with {first} yet. Gmail threads they’re on show up here.
+        </p>
+      )}
+      {person.companyId ? (
+        <div>
+          <button
+            type="button"
+            className={ui.button}
+            onClick={() => {
+              const id = actions.newChain(
+                person.companyId!,
+                `Email with ${first} ${fmtDate(todayISO())}`,
+                person.id,
+              );
+              setOpen((cur) => ({ ...cur, [id]: true }));
+              toast('New chain started. Paste the first email, or rename it.');
+            }}
+          >
+            + New chain with {first}
+          </button>
+        </div>
+      ) : (
+        <p className="m-0 text-[12.5px] text-faint">
+          Put them at a company to keep emails with them.
+        </p>
+      )}
+    </div>
   );
 }

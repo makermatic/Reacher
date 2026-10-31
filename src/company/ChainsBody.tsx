@@ -149,7 +149,7 @@ function GmailBar({ company }: { company: Company }) {
   );
 }
 
-function ChainCard({
+export function ChainCard({
   chain,
   open,
   onToggle,
@@ -478,7 +478,7 @@ function ChainSummary({ chain }: { chain: Chain }) {
             {sum.text}
           </div>
           {stale > 0 && (
-            <div className="text-xs text-[var(--c-amber)]">
+            <div className="text-xs text-[var(--warn)]">
               {stale} new {stale === 1 ? 'email' : 'emails'} since this summary.
             </div>
           )}

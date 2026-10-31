@@ -55,12 +55,14 @@ export function Topbar() {
       </button>
       {sprintPages ? (
         <nav aria-label="Where you are" className="flex min-w-0 items-center gap-2">
-          <SprintPicker />
-          {(route.page === 'companies' || route.page === 'people') && (
-            <>
-              <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
-              <ListPicker />
-            </>
+          {route.page === 'companies' || route.page === 'people' ? (
+            // "All" (or the sprint) with the two lists as icon toggles (Zack's sketch, M11).
+            <div className="flex items-center">
+              <SprintPicker className="rounded-r-none" />
+              <ListToggle />
+            </div>
+          ) : (
+            <SprintPicker />
           )}
           {route.page === 'news' && (
             <>
@@ -92,14 +94,14 @@ export function Topbar() {
         title="Your details"
         className="rounded-full"
       >
-        <Avatar name={me?.name || 'You'} size={40} color="#a7d930" />
+        <Avatar name={me?.name || 'You'} size={40} color="#6633aa" />
       </button>
     </header>
   );
 }
 
-/** The sprint dropdown: All companies, each sprint (newest first), + New sprint. */
-function SprintPicker() {
+/** The sprint dropdown: All, each sprint (newest first), + New sprint. */
+function SprintPicker({ className = '' }: { className?: string }) {
   const { sprints, sprint, setSprint, actions } = useWorkspace();
   const info = useSprintInfo();
   const toast = useToast();
@@ -119,7 +121,7 @@ function SprintPicker() {
     toast(`New sprint: ${name.trim()}`);
   };
 
-  const current = sprint ? info[sprint]?.label : 'All companies';
+  const current = sprint ? info[sprint]?.label : 'All';
   return (
     <Dropdown
       open={open}
@@ -129,9 +131,9 @@ function SprintPicker() {
       }}
       ariaLabel="Sprint"
       icon={<Layers size={16} className="text-muted" aria-hidden="true" />}
-      label={current ?? 'All companies'}
+      label={current ?? 'All'}
       width={320}
-      className="max-w-[340px]"
+      className={`max-w-[340px] ${className}`}
     >
       <MenuItem
         active={!sprint}
@@ -140,7 +142,7 @@ function SprintPicker() {
           setOpen(false);
         }}
       >
-        All companies
+        All
       </MenuItem>
       {sprints.length > 0 && <div className="my-1 border-t border-line" />}
       {[...sprints].reverse().map((s) => (
@@ -155,7 +157,7 @@ function SprintPicker() {
         >
           <span className="min-w-0 flex-1 truncate">{info[s.id]?.label ?? s.name}</span>
           {!info[s.id]?.over && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-text">
               Current
             </span>
           )}
@@ -179,7 +181,7 @@ function SprintPicker() {
         </form>
       ) : (
         <MenuItem onSelect={() => setCreating(true)}>
-          <Plus size={16} className="text-accent" aria-hidden="true" /> New sprint
+          <Plus size={16} className="text-accent-text" aria-hidden="true" /> New sprint
         </MenuItem>
       )}
       <MenuItem
@@ -195,37 +197,44 @@ function SprintPicker() {
   );
 }
 
-/** Companies or People (M11): the two lists, like Kitsu's shots and assets. */
-function ListPicker() {
+/**
+ * Companies or People (M11), as two icon toggles joined to the sprint menu:
+ * the list on screen is blue, the other grey. Click the grey one to switch.
+ */
+function ListToggle() {
   const { route, navigate, select } = useAppUI();
-  const [open, setOpen] = useState(false);
-  const people = route.page === 'people';
   const go = (page: 'companies' | 'people') => {
-    setOpen(false);
-    if (route.page !== page) select(null);
+    if (route.page === page) return;
+    select(null);
     navigate({ page });
   };
+  const item = (page: 'companies' | 'people', label: string, Icon: typeof Users) => {
+    const on = route.page === page;
+    return (
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={`Show ${label.toLowerCase()}`}
+        title={label}
+        onClick={() => go(page)}
+        className={`grid size-7 place-items-center rounded-md transition-colors ${
+          on
+            ? 'bg-[color-mix(in_srgb,var(--selectable)_22%,transparent)] text-selectable'
+            : 'text-faint hover:bg-hover hover:text-muted'
+        }`}
+      >
+        <Icon size={16} aria-hidden="true" />
+      </button>
+    );
+  };
   return (
-    <Dropdown
-      open={open}
-      onOpenChange={setOpen}
-      ariaLabel="List"
-      icon={
-        people ? (
-          <Users size={16} className="text-muted" aria-hidden="true" />
-        ) : (
-          <Building2 size={16} className="text-muted" aria-hidden="true" />
-        )
-      }
-      label={people ? 'People' : 'Companies'}
-      width={200}
+    <div
+      role="group"
+      aria-label="List"
+      className="flex h-9 items-center gap-0.5 rounded-r-lg border border-l-0 border-line bg-surface px-1"
     >
-      <MenuItem active={!people} onSelect={() => go('companies')}>
-        <Building2 size={16} aria-hidden="true" /> Companies
-      </MenuItem>
-      <MenuItem active={people} onSelect={() => go('people')}>
-        <Users size={16} aria-hidden="true" /> People
-      </MenuItem>
-    </Dropdown>
+      {item('people', 'People', Users)}
+      {item('companies', 'Companies', Building2)}
+    </div>
   );
 }

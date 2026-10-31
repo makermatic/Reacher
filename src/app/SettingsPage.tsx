@@ -228,7 +228,7 @@ function ConnectionsTab() {
   const state = (on: boolean) => (
     <span
       className={`rounded-md px-2 py-0.5 text-[12px] font-semibold ${
-        on ? 'bg-accent-soft text-accent' : 'bg-hover text-muted'
+        on ? 'bg-accent-soft text-accent-text' : 'bg-hover text-muted'
       }`}
     >
       {on ? 'Connected' : 'Only inside Claude'}
